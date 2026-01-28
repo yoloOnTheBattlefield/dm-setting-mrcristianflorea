@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { DateRangeFilter } from "@/lib/types";
-import { generateMockContacts } from "@/lib/mockData";
+import { useLeads } from "@/hooks/useLeads";
 import {
   calculateFunnelMetrics,
   calculateVelocityMetrics,
@@ -18,25 +18,26 @@ import { GhostingAnalysis } from "@/components/dashboard/GhostingAnalysis";
 import { FupEffectivenessChart } from "@/components/dashboard/FupEffectivenessChart";
 import { StageAgingTable } from "@/components/dashboard/StageAgingTable";
 import { CumulativeBookingsChart } from "@/components/dashboard/CumulativeBookingsChart";
-import { MessageSquare } from "lucide-react";
-
-// Generate mock data once
-const mockContacts = generateMockContacts(250);
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { MessageSquare, AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function Index() {
   const [dateRange, setDateRange] = useState<DateRangeFilter>(14);
+  const { data: contacts = [], isLoading, isError, error, refetch } = useLeads();
 
   const metrics = useMemo(() => {
+    if (contacts.length === 0) return null;
     return {
-      funnel: calculateFunnelMetrics(mockContacts, dateRange),
-      velocity: calculateVelocityMetrics(mockContacts, dateRange),
-      dailyVolume: calculateDailyVolume(mockContacts, dateRange),
-      ghosting: calculateGhostingBuckets(mockContacts, dateRange),
-      fup: calculateFupEffectiveness(mockContacts, dateRange),
-      aging: calculateStageAging(mockContacts, dateRange),
-      cumulative: calculateCumulativeBookings(mockContacts, dateRange),
+      funnel: calculateFunnelMetrics(contacts, dateRange),
+      velocity: calculateVelocityMetrics(contacts, dateRange),
+      dailyVolume: calculateDailyVolume(contacts, dateRange),
+      ghosting: calculateGhostingBuckets(contacts, dateRange),
+      fup: calculateFupEffectiveness(contacts, dateRange),
+      aging: calculateStageAging(contacts, dateRange),
+      cumulative: calculateCumulativeBookings(contacts, dateRange),
     };
-  }, [dateRange]);
+  }, [contacts, dateRange]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,28 +59,44 @@ export default function Index() {
 
       {/* Dashboard Content */}
       <main className="container py-6">
-        <div className="space-y-6">
-          {/* Row 1: Funnel Overview */}
-          <FunnelOverview metrics={metrics.funnel} />
-
-          {/* Row 2: Velocity + Cumulative */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <VelocityChart metrics={metrics.velocity} />
-            <CumulativeBookingsChart data={metrics.cumulative} />
+        {isLoading ? (
+          <DashboardSkeleton />
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Failed to load data</h2>
+            <p className="text-muted-foreground mb-4">
+              {error instanceof Error ? error.message : "An unknown error occurred"}
+            </p>
+            <Button onClick={() => refetch()} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
           </div>
+        ) : metrics ? (
+          <div className="space-y-6">
+            {/* Row 1: Funnel Overview */}
+            <FunnelOverview metrics={metrics.funnel} />
 
-          {/* Row 3: Daily Volume (full width) */}
-          <DailyVolumeChart data={metrics.dailyVolume} />
+            {/* Row 2: Velocity + Cumulative */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <VelocityChart metrics={metrics.velocity} />
+              <CumulativeBookingsChart data={metrics.cumulative} />
+            </div>
 
-          {/* Row 4: Ghosting + FUP */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <GhostingAnalysis data={metrics.ghosting} />
-            <FupEffectivenessChart data={metrics.fup} />
+            {/* Row 3: Daily Volume (full width) */}
+            <DailyVolumeChart data={metrics.dailyVolume} />
+
+            {/* Row 4: Ghosting + FUP */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <GhostingAnalysis data={metrics.ghosting} />
+              <FupEffectivenessChart data={metrics.fup} />
+            </div>
+
+            {/* Row 5: Stage Aging */}
+            <StageAgingTable data={metrics.aging} />
           </div>
-
-          {/* Row 5: Stage Aging */}
-          <StageAgingTable data={metrics.aging} />
-        </div>
+        ) : null}
 
         {/* Footer */}
         <footer className="mt-8 border-t pt-6 text-center text-xs text-muted-foreground">
