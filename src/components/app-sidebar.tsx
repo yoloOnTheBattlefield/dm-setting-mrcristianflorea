@@ -107,13 +107,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigationItems = React.useMemo(() => {
     const items = [...navMain]
 
-    // Add "New Client" for admins (role === 0)
+    // Add "Clients" dropdown for admins (role === 0)
     if (user?.role === 0) {
       items.splice(1, 0, {
-        title: "New Client",
-        url: "/clients/new",
+        title: "Clients",
+        url: "#",
         icon: UserPlus,
-        isActive: false,
+        items: [
+          {
+            title: "New Client",
+            url: "/clients/new",
+          },
+          {
+            title: "Clients Overview",
+            url: "/clients",
+          },
+        ],
       })
     }
 

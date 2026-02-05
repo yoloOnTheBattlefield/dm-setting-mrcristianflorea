@@ -11,9 +11,31 @@ interface FetchLeadsParams {
   startDate?: string;
   endDate?: string;
   search?: string;
+  page?: number;
+  limit?: number;
 }
 
-async function fetchRawLeads({ ghlId, statuses, startDate, endDate, search }: FetchLeadsParams = {}): Promise<ApiLead[]> {
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+interface LeadsResponse {
+  leads: ApiLead[];
+  pagination: PaginationInfo;
+}
+
+async function fetchRawLeads({
+  ghlId,
+  statuses,
+  startDate,
+  endDate,
+  search,
+  page = 1,
+  limit = 20
+}: FetchLeadsParams = {}): Promise<LeadsResponse> {
   const params = new URLSearchParams();
 
   if (ghlId) {
@@ -36,6 +58,9 @@ async function fetchRawLeads({ ghlId, statuses, startDate, endDate, search }: Fe
     params.append("search", search);
   }
 
+  params.append("page", page.toString());
+  params.append("limit", limit.toString());
+
   const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL;
   const response = await fetch(url);
 
@@ -43,13 +68,13 @@ async function fetchRawLeads({ ghlId, statuses, startDate, endDate, search }: Fe
     throw new Error(`Failed to fetch leads: ${response.status}`);
   }
 
-  const data: ApiLead[] = await response.json();
+  const data: LeadsResponse = await response.json();
   return data;
 }
 
 export function useRawLeads(params?: FetchLeadsParams) {
   return useQuery({
-    queryKey: ["rawLeads", params?.ghlId, params?.statuses, params?.startDate, params?.endDate, params?.search],
+    queryKey: ["rawLeads", params?.ghlId, params?.statuses, params?.startDate, params?.endDate, params?.search, params?.page, params?.limit],
     queryFn: () => fetchRawLeads(params),
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,

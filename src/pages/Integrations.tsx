@@ -3,7 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -98,8 +104,12 @@ export default function Integrations() {
               Connect your Calendly account to sync scheduling data
             </CardDescription>
           </CardHeader>
+
           <CardContent>
-            <Button onClick={() => setIsCalendlyModalOpen(true)} className="w-full">
+            <Button
+              onClick={() => setIsCalendlyModalOpen(true)}
+              className="w-full"
+            >
               Connect Calendly
             </Button>
           </CardContent>
@@ -137,13 +147,27 @@ export default function Integrations() {
 
       {/* Calendly Token Modal */}
       <Dialog open={isCalendlyModalOpen} onOpenChange={setIsCalendlyModalOpen}>
-        <DialogContent className="bg-background">
+        <DialogContent className="bg-background max-w-4xl">
           <DialogHeader>
             <DialogTitle>Add Calendly Token</DialogTitle>
             <DialogDescription>
-              Enter your Calendly API token to connect your account
+              Watch the tutorial below to learn how to get your Calendly API
+              token
             </DialogDescription>
           </DialogHeader>
+
+          {/* Tutorial Video */}
+          <div className="w-full" style={{ aspectRatio: "16/9" }}>
+            <iframe
+              src="https://scribehow.com/embed/Connect_Calendly_to_Your_DM_Settings__u05VqL8yQrSDlTONdLtVgg?as=video"
+              width="100%"
+              height="100%"
+              allow="fullscreen"
+              style={{ border: 0 }}
+              title="Calendly Integration Tutorial"
+            />
+          </div>
+
           <div className="py-4">
             <Label htmlFor="calendly-token">Token</Label>
             <Input

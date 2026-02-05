@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useRawLeads } from "@/hooks/useRawLeads";
 import { useAccounts } from "@/hooks/useAccounts";
 import { ContactsTable } from "@/components/contacts-table";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
-import { AlertCircle, RefreshCw, Search } from "lucide-react";
+import { AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateFilter } from "@/components/dashboard/DateFilter";
@@ -34,11 +35,30 @@ const STATUS_OPTIONS = [
 
 export default function AllContacts() {
   const { user } = useAuth();
-  const [selectedAccount, setSelectedAccount] = useState<string>("all");
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [dateRange, setDateRange] = useState<DateRangeFilter>(14);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initialize state from URL params
+  const [selectedAccount, setSelectedAccount] = useState<string>(
+    searchParams.get("account") || "all"
+  );
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(
+    searchParams.get("status")?.split(",").filter(Boolean) || []
+  );
+  const [dateRange, setDateRange] = useState<DateRangeFilter>(
+    (searchParams.get("dateRange") as DateRangeFilter) || 14
+  );
+  const [searchQuery, setSearchQuery] = useState<string>(
+    searchParams.get("search") || ""
+  );
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>(
+    searchParams.get("search") || ""
+  );
+  const [currentPage, setCurrentPage] = useState<number>(
+    parseInt(searchParams.get("page") || "1", 10)
+  );
+  const [itemsPerPage] = useState<number>(
+    parseInt(searchParams.get("limit") || "20", 10)
+  );
 
   // Determine which ghl to use for filtering
   const ghlId = useMemo(() => {
@@ -76,8 +96,44 @@ export default function AllContacts() {
     return date.toISOString().split("T")[0];
   }, [dateRange]);
 
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [ghlId, selectedStatuses, startDate, endDate, debouncedSearchQuery]);
+
+  // Update URL params when state changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (selectedAccount !== "all") {
+      params.set("account", selectedAccount);
+    }
+
+    if (selectedStatuses.length > 0) {
+      params.set("status", selectedStatuses.join(","));
+    }
+
+    if (dateRange !== 14) {
+      params.set("dateRange", dateRange.toString());
+    }
+
+    if (debouncedSearchQuery) {
+      params.set("search", debouncedSearchQuery);
+    }
+
+    if (currentPage !== 1) {
+      params.set("page", currentPage.toString());
+    }
+
+    if (itemsPerPage !== 20) {
+      params.set("limit", itemsPerPage.toString());
+    }
+
+    setSearchParams(params, { replace: true });
+  }, [selectedAccount, selectedStatuses, dateRange, debouncedSearchQuery, currentPage, itemsPerPage, setSearchParams]);
+
   const {
-    data: contacts = [],
+    data,
     isLoading,
     isError,
     error,
@@ -88,7 +144,12 @@ export default function AllContacts() {
     startDate,
     endDate,
     search: debouncedSearchQuery || undefined,
+    page: currentPage,
+    limit: itemsPerPage,
   });
+
+  const contacts = data?.leads || [];
+  const pagination = data?.pagination;
 
   // Get accounts from /accounts endpoint
   const { data: accounts = [] } = useAccounts();
@@ -222,7 +283,69 @@ export default function AllContacts() {
           </Button>
         </div>
       ) : (
-        <ContactsTable contacts={contacts} />
+        <>
+          <ContactsTable contacts={contacts} />
+
+          {/* Pagination Controls */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between border-t pt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+                {pagination.total} contacts
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={pagination.page === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (pagination.page <= 3) {
+                      pageNum = i + 1;
+                    } else if (pagination.page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i;
+                    } else {
+                      pageNum = pagination.page - 2 + i;
+                    }
+
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={pagination.page === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-10"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                  disabled={pagination.page === pagination.totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import NewClient from "./pages/NewClient";
+import ClientsOverview from "./pages/ClientsOverview";
+import ClientDetail from "./pages/ClientDetail";
 import AllContacts from "./pages/AllContacts";
 import LeadDetail from "./pages/LeadDetail";
 import UserSettings from "./pages/UserSettings";
@@ -38,6 +40,20 @@ const App = () => (
                 <ProtectedRoute>
                   <DashboardLayout>
                     <NewClient />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/clients" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ClientsOverview />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/clients/:id" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ClientDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
