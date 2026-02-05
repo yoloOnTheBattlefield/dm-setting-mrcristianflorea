@@ -1,0 +1,174 @@
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+
+export default function Integrations() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isCalendlyModalOpen, setIsCalendlyModalOpen] = useState(false);
+  const [calendlyToken, setCalendlyToken] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleCalendlySubmit = async () => {
+    if (!calendlyToken.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a Calendly token",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const API_URL = import.meta.env.DEV
+      ? "http://localhost:3000/api/calendly/add"
+      : "https://quddify-server.vercel.app/api/calendly/add";
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token: calendlyToken,
+          user: user,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Calendly token added successfully",
+        });
+        setIsCalendlyModalOpen(false);
+        setCalendlyToken("");
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Error",
+          description: data.message || "Failed to add Calendly token",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to the server",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsCalendlyModalOpen(false);
+    setCalendlyToken("");
+  };
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 p-4">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Integrations</h2>
+        <p className="text-muted-foreground">
+          Connect and manage your third-party integrations
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Calendly Integration Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Calendly</CardTitle>
+            <CardDescription>
+              Connect your Calendly account to sync scheduling data
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => setIsCalendlyModalOpen(true)} className="w-full">
+              Connect Calendly
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Placeholder for future integrations */}
+        <Card className="opacity-50">
+          <CardHeader>
+            <CardTitle>Google Calendar</CardTitle>
+            <CardDescription>
+              Sync events with your Google Calendar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button disabled className="w-full">
+              Coming Soon
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="opacity-50">
+          <CardHeader>
+            <CardTitle>Slack</CardTitle>
+            <CardDescription>
+              Get notifications in your Slack workspace
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button disabled className="w-full">
+              Coming Soon
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Calendly Token Modal */}
+      <Dialog open={isCalendlyModalOpen} onOpenChange={setIsCalendlyModalOpen}>
+        <DialogContent className="bg-background">
+          <DialogHeader>
+            <DialogTitle>Add Calendly Token</DialogTitle>
+            <DialogDescription>
+              Enter your Calendly API token to connect your account
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="calendly-token">Token</Label>
+            <Input
+              id="calendly-token"
+              type="text"
+              placeholder="Enter your Calendly token"
+              value={calendlyToken}
+              onChange={(e) => setCalendlyToken(e.target.value)}
+              className="mt-2"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCalendlySubmit} disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

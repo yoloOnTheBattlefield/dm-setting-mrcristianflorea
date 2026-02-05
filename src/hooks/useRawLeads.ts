@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ApiLead, Contact, transformApiLead } from "@/lib/types";
+import { ApiLead } from "@/lib/types";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/leads"
@@ -7,15 +7,21 @@ const API_URL = import.meta.env.DEV
 
 interface FetchLeadsParams {
   ghlId?: string;
+  statuses?: string[];
   startDate?: string;
   endDate?: string;
+  search?: string;
 }
 
-async function fetchLeads({ ghlId, startDate, endDate }: FetchLeadsParams = {}): Promise<Contact[]> {
+async function fetchRawLeads({ ghlId, statuses, startDate, endDate, search }: FetchLeadsParams = {}): Promise<ApiLead[]> {
   const params = new URLSearchParams();
 
   if (ghlId) {
     params.append("ghl", ghlId);
+  }
+
+  if (statuses && statuses.length > 0) {
+    statuses.forEach(status => params.append("status", status));
   }
 
   if (startDate) {
@@ -26,6 +32,10 @@ async function fetchLeads({ ghlId, startDate, endDate }: FetchLeadsParams = {}):
     params.append("end_date", endDate);
   }
 
+  if (search) {
+    params.append("search", search);
+  }
+
   const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL;
   const response = await fetch(url);
 
@@ -34,13 +44,13 @@ async function fetchLeads({ ghlId, startDate, endDate }: FetchLeadsParams = {}):
   }
 
   const data: ApiLead[] = await response.json();
-  return data.map(transformApiLead);
+  return data;
 }
 
-export function useLeads(params?: FetchLeadsParams) {
+export function useRawLeads(params?: FetchLeadsParams) {
   return useQuery({
-    queryKey: ["leads", params?.ghlId, params?.startDate, params?.endDate],
-    queryFn: () => fetchLeads(params),
+    queryKey: ["rawLeads", params?.ghlId, params?.statuses, params?.startDate, params?.endDate, params?.search],
+    queryFn: () => fetchRawLeads(params),
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,
   });

@@ -5,11 +5,13 @@ export interface ApiLead {
   contact_id: string;
   first_name: string;
   last_name: string;
+  email?: string | null;
   date_created: string;
   qualified_at: string | null;
   booked_at: string | null;
   ghosted_at: string | null;
   follow_up_at: string | null;
+  summary?: string | null;
 }
 
 // Internal contact type used by analytics
@@ -88,4 +90,4 @@ export interface CumulativeBooking {
   cumulative: number;
 }
 
-export type DateRangeFilter = 7 | 14 | 30;
+export type DateRangeFilter = 7 | 14 | 30 | 90 | "all";
