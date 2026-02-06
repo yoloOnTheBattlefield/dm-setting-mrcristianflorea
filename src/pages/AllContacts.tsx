@@ -27,8 +27,9 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
 const STATUS_OPTIONS = [
-  { value: "booked", label: "Booked" },
   { value: "qualified", label: "Qualified" },
+  { value: "link_sent", label: "Link Sent" },
+  { value: "booked", label: "Booked" },
   { value: "ghosted", label: "Ghosted" },
   { value: "follow_up", label: "Follow Up" },
 ];
@@ -163,16 +164,17 @@ export default function AllContacts() {
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
-      <div className="sticky top-20 z-10 bg-background pb-4 flex items-end justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">All Contacts</h2>
-          <p className="text-muted-foreground">
-            View and manage all your contacts
-          </p>
-        </div>
+    <div className="flex flex-1 flex-col">
+      <div className="sticky top-16 z-50 bg-[#0b0b0b] opacity-100 border-b border-white/10">
+        <div className="px-6 py-4 flex items-end justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">All Contacts</h2>
+            <p className="text-muted-foreground">
+              View and manage all your contacts
+            </p>
+          </div>
 
-        <div className="flex gap-4 items-end">
+          <div className="flex gap-4 items-end">
           {user?.role === 0 && (
             <div className="flex flex-col gap-2 w-64">
               <Label htmlFor="account-filter">Filter by Account</Label>
@@ -266,8 +268,10 @@ export default function AllContacts() {
             <DateFilter value={dateRange} onChange={setDateRange} />
           </div>
         </div>
+        </div>
       </div>
 
+      <div className="flex-1 p-6">
       {isError ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
@@ -347,6 +351,7 @@ export default function AllContacts() {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

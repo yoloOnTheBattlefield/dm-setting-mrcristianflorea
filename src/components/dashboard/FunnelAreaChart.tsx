@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface FunnelStage {
   label: string;
@@ -11,8 +12,11 @@ interface FunnelAreaChartProps {
   stages: FunnelStage[];
 }
 
+type ScalingMode = "linear" | "sqrt" | "log";
+
 export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
   const [hoveredStage, setHoveredStage] = useState<number | null>(null);
+  const [scalingMode, setScalingMode] = useState<ScalingMode>("sqrt");
 
   // SVG dimensions
   const svgWidth = 1000;
@@ -21,7 +25,7 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
   const chartWidth = svgWidth - padding.left - padding.right;
   const chartHeight = svgHeight - padding.top - padding.bottom;
 
-  // Calculate stage width (equal spacing)
+  // Calculate stage width (equal horizontal spacing)
   const stageWidth = chartWidth / stages.length;
 
   // Find max value for scaling
@@ -30,109 +34,98 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
   // Vertical center of the chart
   const centerY = padding.top + chartHeight / 2;
 
-  // Generate boundary points with both top and bottom Y coordinates
-  interface BoundaryPoint {
-    x: number;
-    topY: number;
-    bottomY: number;
-  }
+  // Minimum height for non-zero values (5% of chart height)
+  const minHeightPercent = 0.05;
+  const minHeight = chartHeight * minHeightPercent;
 
-  const boundaryPoints: BoundaryPoint[] = [];
+  // Scaling functions
+  const scaleValue = (value: number, mode: ScalingMode): number => {
+    if (value === 0) return 0;
 
-  // Create a point for each stage boundary (left and right edge of each stage)
-  for (let i = 0; i <= stages.length; i++) {
-    const x = padding.left + i * stageWidth;
-    let value;
-
-    if (i === 0) {
-      // Left edge - use first stage value
-      value = stages[0].value;
-    } else if (i === stages.length) {
-      // Right edge - use last stage value
-      value = stages[stages.length - 1].value;
-    } else {
-      // Boundary between stages - use exact value transition (no smoothing if 0)
-      const leftStageValue = stages[i - 1].value;
-      const rightStageValue = stages[i].value;
-
-      // If either stage is 0, don't smooth - use the exact boundary
-      if (leftStageValue === 0 || rightStageValue === 0) {
-        // Use the average but it will collapse to 0 if one side is 0
-        value = (leftStageValue + rightStageValue) / 2;
-      } else {
-        // Normal case - average the two adjacent stage values
-        value = (leftStageValue + rightStageValue) / 2;
-      }
+    switch (mode) {
+      case "linear":
+        return value;
+      case "sqrt":
+        return Math.sqrt(value);
+      case "log":
+        return Math.log10(value + 1);
+      default:
+        return value;
     }
-
-    const height = value === 0 ? 0 : (value / maxValue) * chartHeight;
-
-    boundaryPoints.push({
-      x,
-      topY: centerY - height / 2,
-      bottomY: centerY + height / 2,
-    });
-  }
-
-  // Create smooth curve through points using cubic bezier
-  const createSmoothCurve = (points: { x: number; y: number }[]) => {
-    if (points.length < 2) return "";
-
-    let path = `M ${points[0].x},${points[0].y}`;
-
-    for (let i = 0; i < points.length - 1; i++) {
-      const current = points[i];
-      const next = points[i + 1];
-
-      // Cubic bezier control points for smooth curve
-      const controlPointDistance = (next.x - current.x) * 0.4;
-
-      path += ` C ${current.x + controlPointDistance},${current.y} ${
-        next.x - controlPointDistance
-      },${next.y} ${next.x},${next.y}`;
-    }
-
-    return path;
   };
 
-  // Create top curve (left to right)
-  const topCurve = createSmoothCurve(
-    boundaryPoints.map((p) => ({ x: p.x, y: p.topY })),
-  );
+  // Calculate height for each stage value with scaling
+  const getStageHeight = (value: number) => {
+    // Zero values get zero height (collapsed line)
+    if (value === 0) return 0;
 
-  // Create bottom curve (left to right) then we'll reverse it manually
-  const bottomPoints = boundaryPoints.map((p) => ({ x: p.x, y: p.bottomY }));
+    const scaledValue = scaleValue(value, scalingMode);
+    const scaledMax = scaleValue(maxValue, scalingMode);
 
-  // Manually construct reversed bottom curve (right to left)
-  let bottomCurveReversed = "";
-  if (bottomPoints.length >= 2) {
-    // Start from the last point (we're already at top-right, now go to bottom-right)
-    const lastPoint = bottomPoints[bottomPoints.length - 1];
-    bottomCurveReversed = ` L ${lastPoint.x},${lastPoint.y}`;
+    const height = (scaledValue / scaledMax) * chartHeight;
 
-    // Draw bezier curves back from right to left
-    for (let i = bottomPoints.length - 1; i > 0; i--) {
-      const current = bottomPoints[i];
-      const prev = bottomPoints[i - 1];
+    // Ensure minimum height for visibility (only for non-zero values)
+    return Math.max(height, minHeight);
+  };
 
-      const controlPointDistance = (current.x - prev.x) * 0.4;
+  // Generate trapezoid coordinates for each stage
+  const getTrapezoidPath = (index: number) => {
+    const stage = stages[index];
+    const leftX = padding.left + index * stageWidth;
+    const rightX = padding.left + (index + 1) * stageWidth;
 
-      bottomCurveReversed += ` C ${current.x - controlPointDistance},${current.y} ${
-        prev.x + controlPointDistance
-      },${prev.y} ${prev.x},${prev.y}`;
-    }
-  }
+    // Get heights for current and next stage (or use current for last stage)
+    const currentHeight = getStageHeight(stage.value);
+    const nextStage = stages[index + 1];
+    const nextHeight = nextStage ? getStageHeight(nextStage.value) : currentHeight;
 
-  // Complete funnel path (ONE continuous shape that caves in)
-  const funnelPath = `
-    ${topCurve}
-    ${bottomCurveReversed}
-    Z
-  `;
+    // Calculate Y coordinates
+    const leftTopY = centerY - currentHeight / 2;
+    const leftBottomY = centerY + currentHeight / 2;
+    const rightTopY = centerY - nextHeight / 2;
+    const rightBottomY = centerY + nextHeight / 2;
+
+    // Create trapezoid path (clockwise from top-left)
+    return `
+      M ${leftX},${leftTopY}
+      L ${rightX},${rightTopY}
+      L ${rightX},${rightBottomY}
+      L ${leftX},${leftBottomY}
+      Z
+    `;
+  };
 
   return (
     <CardContent className="p-6">
       <div className="relative w-full">
+        {/* Scaling mode toggle */}
+        <div className="absolute top-0 right-0 flex gap-1 z-20">
+          <Button
+            variant={scalingMode === "linear" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setScalingMode("linear")}
+            className="h-7 text-xs"
+          >
+            Linear
+          </Button>
+          <Button
+            variant={scalingMode === "sqrt" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setScalingMode("sqrt")}
+            className="h-7 text-xs"
+          >
+            Balanced
+          </Button>
+          <Button
+            variant={scalingMode === "log" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setScalingMode("log")}
+            className="h-7 text-xs"
+          >
+            Readable
+          </Button>
+        </div>
+
         <svg
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
           className="w-full h-auto"
@@ -140,123 +133,87 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
           style={{ maxHeight: "450px" }}
         >
           <defs>
-            {/* Clip path for each stage segment */}
-            {stages.map((_, index) => {
-              const clipLeftX = padding.left + index * stageWidth;
-              const clipWidth = stageWidth;
-
-              return (
-                <clipPath key={`clip-${index}`} id={`clip-stage-${index}`}>
-                  <rect
-                    x={clipLeftX}
-                    y={0}
-                    width={clipWidth}
-                    height={svgHeight}
-                  />
-                </clipPath>
-              );
-            })}
-
             <style>
               {`
-                  @keyframes fadeInStage {
-                    from {
-                      opacity: 0;
-                      transform: translateY(10px);
-                    }
-                    to {
-                      opacity: 1;
-                      transform: translateY(0);
-                    }
+                @keyframes fadeInStage {
+                  from {
+                    opacity: 0;
+                    transform: translateY(10px);
                   }
+                  to {
+                    opacity: 1;
+                    transform: translateY(0);
+                  }
+                }
 
-                  @keyframes drawOutline {
-                    from {
-                      stroke-dasharray: 3000;
-                      stroke-dashoffset: 3000;
-                    }
-                    to {
-                      stroke-dasharray: 3000;
-                      stroke-dashoffset: 0;
-                    }
+                @keyframes fadeIn {
+                  from {
+                    opacity: 0;
                   }
+                  to {
+                    opacity: 1;
+                  }
+                }
 
-                  @keyframes fadeIn {
-                    from {
-                      opacity: 0;
-                    }
-                    to {
-                      opacity: 1;
-                    }
-                  }
-
-                  .stage-segment {
-                    transition: opacity 0.3s ease, filter 0.2s ease;
-                  }
-                `}
+                .stage-trapezoid {
+                  transition: opacity 0.3s ease, filter 0.2s ease;
+                }
+              `}
             </style>
           </defs>
 
-          {/* Render the funnel sliced into colored segments using clip paths */}
+          {/* Render each stage as a trapezoid */}
           <g>
-            {stages.map((stage, index) => (
-              <path
-                key={`segment-${index}`}
-                d={funnelPath}
-                fill={stage.color}
-                clipPath={`url(#clip-stage-${index})`}
-                className="stage-segment cursor-pointer"
-                style={{
-                  opacity:
-                    hoveredStage === null || hoveredStage === index ? 0.9 : 0.4,
-                  animation: `fadeInStage 0.7s ease-out ${index * 0.12}s both`,
-                  filter:
-                    hoveredStage === index
-                      ? "brightness(1.15) drop-shadow(0 4px 8px rgba(0,0,0,0.2))"
-                      : "none",
-                }}
-                onMouseEnter={() => setHoveredStage(index)}
-                onMouseLeave={() => setHoveredStage(null)}
-              />
-            ))}
+            {stages.map((stage, index) => {
+              const isZero = stage.value === 0;
+
+              return (
+                <g key={`stage-${index}`}>
+                  {/* Trapezoid shape */}
+                  <path
+                    d={getTrapezoidPath(index)}
+                    fill={isZero ? "none" : stage.color}
+                    className="stage-trapezoid cursor-pointer"
+                    style={{
+                      opacity: isZero
+                        ? 0
+                        : hoveredStage === null || hoveredStage === index
+                        ? 0.9
+                        : 0.4,
+                      animation: `fadeInStage 0.7s ease-out ${index * 0.12}s both`,
+                      filter:
+                        hoveredStage === index
+                          ? "brightness(1.15) drop-shadow(0 4px 8px rgba(0,0,0,0.2))"
+                          : "none",
+                    }}
+                    onMouseEnter={() => setHoveredStage(index)}
+                    onMouseLeave={() => setHoveredStage(null)}
+                  />
+
+                  {/* Border around trapezoid */}
+                  <path
+                    d={getTrapezoidPath(index)}
+                    fill="none"
+                    stroke={isZero ? "rgba(0, 0, 0, 0.3)" : "black"}
+                    strokeWidth={isZero ? "1" : "2"}
+                    strokeLinejoin="miter"
+                    strokeDasharray={isZero ? "4 2" : "none"}
+                    className="pointer-events-none"
+                    style={{
+                      animation: `fadeIn 0.6s ease-out ${index * 0.1 + 0.5}s both`,
+                    }}
+                  />
+                </g>
+              );
+            })}
           </g>
-
-          {/* Thin vertical separator lines between stages */}
-          {boundaryPoints.slice(1, -1).map((point, index) => (
-            <line
-              key={`separator-${index}`}
-              x1={point.x}
-              y1={point.topY}
-              x2={point.x}
-              y2={point.bottomY}
-              stroke="rgba(0, 0, 0, 0.2)"
-              strokeWidth="2"
-              className="pointer-events-none"
-              style={{
-                animation: `fadeIn 0.5s ease-out ${index * 0.1 + 0.8}s both`,
-              }}
-            />
-          ))}
-
-          {/* Thick black outline around the entire funnel (drawn last, on top) */}
-          <path
-            d={funnelPath}
-            fill="none"
-            stroke="black"
-            strokeWidth="8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="pointer-events-none"
-            style={{
-              animation: "drawOutline 2s ease-out 0.3s both",
-            }}
-          />
 
           {/* Labels and values below each stage */}
           {stages.map((stage, index) => {
             const centerX = padding.left + (index + 0.5) * stageWidth;
             const labelY = svgHeight - padding.bottom + 30;
             const valueY = svgHeight - padding.bottom + 55;
+            const isZero = stage.value === 0;
 
             return (
               <g key={`label-${index}`} className="pointer-events-none">
@@ -264,7 +221,9 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
                   x={centerX}
                   y={labelY}
                   textAnchor="middle"
-                  className="text-sm font-semibold fill-muted-foreground"
+                  className={`text-sm font-semibold ${
+                    isZero ? "fill-muted-foreground opacity-50" : "fill-muted-foreground"
+                  }`}
                   style={{
                     animation: `fadeIn 0.6s ease-out ${index * 0.1 + 1}s both`,
                   }}
@@ -275,7 +234,9 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
                   x={centerX}
                   y={valueY}
                   textAnchor="middle"
-                  className="text-xl font-bold fill-foreground"
+                  className={`text-xl font-bold ${
+                    isZero ? "fill-muted-foreground opacity-50" : "fill-foreground"
+                  }`}
                   style={{
                     animation: `fadeIn 0.6s ease-out ${index * 0.1 + 1.1}s both`,
                   }}
@@ -288,61 +249,42 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
         </svg>
 
         {/* Hover tooltip */}
-        {hoveredStage !== null && (
-          <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground px-5 py-3 rounded-lg shadow-2xl border-2 animate-in fade-in-0 zoom-in-95 duration-200 z-10">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              {stages[hoveredStage].label}
-            </p>
-            <p className="text-3xl font-bold mt-1">
-              {stages[hoveredStage].value.toLocaleString()}
-            </p>
-            {hoveredStage > 0 && (
-              <div className="mt-2 pt-2 border-t border-border">
+        {hoveredStage !== null && (() => {
+          const currentStage = stages[hoveredStage];
+          const totalContacts = stages[0].value;
+          const percentOfTotal = (currentStage.value / totalContacts) * 100;
+
+          const previousStage = hoveredStage > 0 ? stages[hoveredStage - 1] : null;
+          const percentFromPrevious = previousStage && previousStage.value > 0
+            ? (currentStage.value / previousStage.value) * 100
+            : null;
+
+          return (
+            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground px-5 py-3 rounded-lg shadow-2xl border-2 animate-in fade-in-0 zoom-in-95 duration-200 z-10">
+              <p
+                className="text-xs font-bold uppercase tracking-wide"
+                style={{ color: currentStage.color }}
+              >
+                {currentStage.label}
+              </p>
+              <p className="text-3xl font-bold mt-1">
+                {currentStage.value.toLocaleString()}
+              </p>
+              <div className="mt-2 pt-2 border-t border-border space-y-1">
                 <p className="text-xs text-muted-foreground">
-                  {stages[hoveredStage].value <
-                  stages[hoveredStage - 1].value ? (
-                    <>
-                      <span className="text-red-500 font-semibold">
-                        {(
-                          ((stages[hoveredStage].value -
-                            stages[hoveredStage - 1].value) /
-                            stages[hoveredStage - 1].value) *
-                          100
-                        ).toFixed(1)}
-                        %
-                      </span>{" "}
-                      from previous stage
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-green-500 font-semibold">
-                        +
-                        {(
-                          ((stages[hoveredStage].value -
-                            stages[hoveredStage - 1].value) /
-                            stages[hoveredStage - 1].value) *
-                          100
-                        ).toFixed(1)}
-                        %
-                      </span>{" "}
-                      from previous stage
-                    </>
-                  )}
+                  of total contacts: <span className="font-semibold">{percentOfTotal.toFixed(2)}%</span>
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Conversion:{" "}
-                  <span className="font-semibold">
-                    {(
-                      (stages[hoveredStage].value / stages[0].value) *
-                      100
-                    ).toFixed(1)}
-                    %
-                  </span>
-                </p>
+                {previousStage && (
+                  <p className="text-xs text-muted-foreground">
+                    from previous stage: <span className="font-semibold">
+                      {percentFromPrevious !== null ? `${percentFromPrevious.toFixed(2)}%` : 'N/A'}
+                    </span>
+                  </p>
+                )}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </div>
     </CardContent>
   );

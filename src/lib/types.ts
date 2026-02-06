@@ -8,6 +8,7 @@ export interface ApiLead {
   email?: string | null;
   date_created: string;
   qualified_at: string | null;
+  link_sent_at: string | null;
   booked_at: string | null;
   ghosted_at: string | null;
   follow_up_at: string | null;
@@ -42,6 +43,8 @@ export interface FunnelMetrics {
   totalContacts: number;
   qualifiedCount: number;
   qualificationRate: number;
+  linkSentCount: number;
+  linkSentRate: number;
   bookedCount: number;
   bookingRate: number;
   ghostedCount: number;
@@ -61,6 +64,7 @@ export interface DailyVolume {
   date: string;
   created: number;
   qualified: number;
+  link_sent: number;
   booked: number;
   ghosted: number;
 }

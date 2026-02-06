@@ -5,14 +5,17 @@ interface StatCardProps {
   value: string | number;
   subValue?: string;
   trend?: "up" | "down" | "neutral";
-  variant?: "default" | "created" | "qualified" | "booked" | "ghosted" | "fup";
+  variant?: "default" | "created" | "qualified" | "link-sent" | "booked" | "ghosted" | "fup";
   className?: string;
+  onClick?: () => void;
+  disabled?: boolean;
 }
 
 const variantStyles = {
   default: "border-border",
   created: "border-l-4 border-l-stage-created",
   qualified: "border-l-4 border-l-stage-qualified",
+  "link-sent": "border-l-4 border-l-stage-link-sent",
   booked: "border-l-4 border-l-stage-booked",
   ghosted: "border-l-4 border-l-stage-ghosted",
   fup: "border-l-4 border-l-stage-fup",
@@ -25,14 +28,19 @@ export function StatCard({
   trend,
   variant = "default",
   className,
+  onClick,
+  disabled = false,
 }: StatCardProps) {
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card p-4 shadow-sm",
+        "rounded-lg border bg-card p-4 shadow-sm transition-all",
         variantStyles[variant],
+        onClick && "cursor-pointer hover:shadow-md hover:scale-[1.02]",
+        disabled && "opacity-40",
         className
       )}
+      onClick={onClick}
     >
       <p className="stat-label mb-1">{label}</p>
       <p className="stat-value">{value}</p>
