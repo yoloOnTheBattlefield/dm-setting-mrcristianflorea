@@ -34,7 +34,7 @@ async function fetchRawLeads({
   endDate,
   search,
   page = 1,
-  limit = 20
+  limit = 20,
 }: FetchLeadsParams = {}): Promise<LeadsResponse> {
   const params = new URLSearchParams();
 
@@ -43,7 +43,7 @@ async function fetchRawLeads({
   }
 
   if (statuses && statuses.length > 0) {
-    statuses.forEach(status => params.append("status", status));
+    statuses.forEach((status) => params.append("status", status));
   }
 
   if (startDate) {
@@ -60,6 +60,7 @@ async function fetchRawLeads({
 
   params.append("page", page.toString());
   params.append("limit", limit.toString());
+  console.log("params", params.toString());
 
   const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL;
   const response = await fetch(url);
@@ -74,7 +75,16 @@ async function fetchRawLeads({
 
 export function useRawLeads(params?: FetchLeadsParams) {
   return useQuery({
-    queryKey: ["rawLeads", params?.ghlId, params?.statuses, params?.startDate, params?.endDate, params?.search, params?.page, params?.limit],
+    queryKey: [
+      "rawLeads",
+      params?.ghlId,
+      params?.statuses,
+      params?.startDate,
+      params?.endDate,
+      params?.search,
+      params?.page,
+      params?.limit,
+    ],
     queryFn: () => fetchRawLeads(params),
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,

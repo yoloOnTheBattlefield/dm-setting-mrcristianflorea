@@ -94,7 +94,7 @@ export default function Index() {
                   <SelectItem value="all">All Accounts</SelectItem>
                   {accounts.map((account) => (
                     <SelectItem key={account.ghl} value={account.ghl}>
-                      {account.first_name} {account.last_name}
+                      {account.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

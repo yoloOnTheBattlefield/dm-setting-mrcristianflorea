@@ -84,7 +84,7 @@ const navMain = [
         },
         {
           title: "Team",
-          url: "#",
+          url: "/settings/team",
         },
         {
           title: "Integrations",

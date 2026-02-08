@@ -12,6 +12,7 @@ import AllContacts from "./pages/AllContacts";
 import LeadDetail from "./pages/LeadDetail";
 import UserSettings from "./pages/UserSettings";
 import Integrations from "./pages/Integrations";
+import TeamMembers from "./pages/TeamMembers";
 import { LoginForm } from "@/components/login-form";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -82,6 +83,13 @@ const App = () => (
                 <ProtectedRoute>
                   <DashboardLayout>
                     <Integrations />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/settings/team" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <TeamMembers />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />

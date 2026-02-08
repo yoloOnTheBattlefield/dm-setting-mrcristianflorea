@@ -95,3 +95,13 @@ export interface CumulativeBooking {
 }
 
 export type DateRangeFilter = 7 | 14 | 30 | 90 | "all";
+
+export interface TeamMember {
+  _id: string;
+  account_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: number;
+  ghl?: string;
+}

@@ -5,9 +5,13 @@ const API_URL = import.meta.env.DEV
   : "https://quddify-server.vercel.app/accounts";
 
 interface Account {
+  _id: string;
   ghl: string;
-  first_name: string;
-  last_name: string;
+  name: string;
+  email: string;
+  calendly?: string | null;
+  calendly_token?: string | null;
+  ghl_lead_booked_webhook?: string | null;
 }
 
 async function fetchAccounts(): Promise<Account[]> {

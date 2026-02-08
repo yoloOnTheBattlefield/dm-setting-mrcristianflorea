@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -50,6 +51,7 @@ export function LoginForm({
           data.first_name,
           data.last_name,
           data._id,
+          data.account_id,
           data.ghl,
           data.role,
         );
@@ -109,9 +111,8 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
