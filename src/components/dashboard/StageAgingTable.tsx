@@ -7,14 +7,14 @@ interface StageAgingTableProps {
 
 function getDaysSeverity(days: number): string {
   if (days <= 2) return "text-muted-foreground";
-  if (days <= 4) return "text-stage-qualified";
+  if (days <= 4) return "text-stage-link-sent";
   if (days <= 7) return "text-stage-ghosted/80";
   return "text-stage-ghosted";
 }
 
 function getDaysBg(days: number): string {
   if (days <= 2) return "bg-muted/50";
-  if (days <= 4) return "bg-stage-qualified/10";
+  if (days <= 4) return "bg-stage-link-sent/10";
   if (days <= 7) return "bg-stage-ghosted/10";
   return "bg-stage-ghosted/20";
 }

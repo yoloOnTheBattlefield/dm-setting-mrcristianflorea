@@ -45,7 +45,6 @@ export function ContactsTable({ contacts }: ContactsTableProps) {
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Created</TableHead>
-            <TableHead>Qualified</TableHead>
             <TableHead>Link Sent</TableHead>
             <TableHead>Booked</TableHead>
             <TableHead>Follow Up</TableHead>
@@ -55,7 +54,7 @@ export function ContactsTable({ contacts }: ContactsTableProps) {
         <TableBody>
           {contacts.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 No contacts found.
               </TableCell>
             </TableRow>
@@ -71,9 +70,6 @@ export function ContactsTable({ contacts }: ContactsTableProps) {
                   </Link>
                 </TableCell>
                 <TableCell>{formatDate(contact.date_created)}</TableCell>
-                <TableCell>
-                  <StatusBadge date={contact.qualified_at} />
-                </TableCell>
                 <TableCell>
                   <StatusBadge date={contact.link_sent_at} />
                 </TableCell>

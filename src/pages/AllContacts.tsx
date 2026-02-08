@@ -27,7 +27,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
 const STATUS_OPTIONS = [
-  { value: "qualified", label: "Qualified" },
   { value: "link_sent", label: "Link Sent" },
   { value: "booked", label: "Booked" },
   { value: "ghosted", label: "Ghosted" },

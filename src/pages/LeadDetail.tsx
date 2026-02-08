@@ -1,14 +1,14 @@
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
-import { AlertCircle, RefreshCw, Send } from "lucide-react";
+import { AlertCircle, RefreshCw, CalendarCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/leads"
@@ -37,48 +37,19 @@ function formatDate(dateString: string | null): string {
   });
 }
 
-// Dummy chat messages
-const dummyMessages = [
-  {
-    id: 1,
-    sender: "me",
-    text: "Hi! I saw you were interested in our services. How can I help you today?",
-    timestamp: "2:30 PM",
-  },
-  {
-    id: 2,
-    sender: "lead",
-    text: "Yes, I'd like to learn more about your pricing plans.",
-    timestamp: "2:32 PM",
-  },
-  {
-    id: 3,
-    sender: "me",
-    text: "Great! We have several options available. Can you tell me more about your needs?",
-    timestamp: "2:33 PM",
-  },
-  {
-    id: 4,
-    sender: "lead",
-    text: "I'm looking for something that can handle about 100 users.",
-    timestamp: "2:35 PM",
-  },
-  {
-    id: 5,
-    sender: "me",
-    text: "Perfect! Our Business plan would be ideal for that. Would you like to schedule a demo?",
-    timestamp: "2:36 PM",
-  },
-  {
-    id: 6,
-    sender: "lead",
-    text: "Sure, that sounds good. When are you available?",
-    timestamp: "2:38 PM",
-  },
-];
+function getLeadStatus(lead: ApiLead): { label: string; variant: "default" | "secondary" | "destructive" | "outline"; color: string } {
+  if (lead.booked_at) return { label: "Booked", variant: "default", color: "bg-stage-booked text-white" };
+  if (lead.ghosted_at) return { label: "Ghosted", variant: "destructive", color: "bg-stage-ghosted text-white" };
+  if (lead.follow_up_at) return { label: "Follow Up", variant: "secondary", color: "bg-stage-fup text-white" };
+  if (lead.link_sent_at) return { label: "Link Sent", variant: "secondary", color: "bg-stage-link-sent text-white" };
+  return { label: "New", variant: "outline", color: "" };
+}
 
 export default function LeadDetail() {
   const { contactId } = useParams<{ contactId: string }>();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isBooking, setIsBooking] = useState(false);
 
   const {
     data: lead,
@@ -93,6 +64,35 @@ export default function LeadDetail() {
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
+
+  const handleMarkAsBooked = async () => {
+    if (!contactId) return;
+
+    setIsBooking(true);
+    try {
+      const response = await fetch(`${API_URL}/${contactId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booked_at: new Date().toISOString() }),
+      });
+
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ["lead", contactId] });
+        toast({ title: "Success", description: "Lead marked as booked." });
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update lead",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
+    } finally {
+      setIsBooking(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -136,85 +136,52 @@ export default function LeadDetail() {
     );
   }
 
+  const status = getLeadStatus(lead);
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
-      <div>
+      <div className="flex items-center gap-3">
         <h2 className="text-2xl font-bold tracking-tight">
           {lead.first_name} {lead.last_name}
         </h2>
-        {lead.email && (
-          <p className="text-sm text-muted-foreground mt-1">{lead.email}</p>
+        <Badge className={cn("text-xs", status.color)} variant={status.variant}>
+          {status.label}
+        </Badge>
+        {!lead.booked_at && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMarkAsBooked}
+            disabled={isBooking}
+            className="ml-1"
+          >
+            <CalendarCheck className="h-3.5 w-3.5 mr-1.5" />
+            {isBooking ? "Booking..." : "Mark as Booked"}
+          </Button>
         )}
-        <p className="text-muted-foreground mt-2">Lead details and timeline</p>
       </div>
+      {lead.email && (
+        <p className="text-sm text-muted-foreground -mt-2">{lead.email}</p>
+      )}
 
-      {/* Chat and Summary Section */}
-      <div className="grid gap-4 lg:grid-cols-2 mt-4">
-        {/* Chat Interface */}
-        <Card className="flex flex-col h-[600px]">
-          <CardHeader>
-            <CardTitle>Conversation</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col flex-1 p-0">
-            <ScrollArea className="flex-1 px-4">
-              <div className="space-y-4 py-4">
-                {dummyMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      "flex flex-col gap-1",
-                      message.sender === "me" ? "items-end" : "items-start",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "rounded-lg px-3 py-2 max-w-[80%]",
-                        message.sender === "me"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted",
-                      )}
-                    >
-                      <p className="text-sm">{message.text}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {message.timestamp}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-            <div className="border-t p-4">
-              <div className="flex gap-2">
-                <Input placeholder="Type a message..." />
-                <Button size="icon">
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
+      {/* Summary Section - full width */}
+      <Card className="flex flex-col mt-2">
+        <CardHeader>
+          <CardTitle>Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {lead.summary ? (
+            <div
+              className="prose prose-sm dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: lead.summary }}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-40 text-muted-foreground">
+              No summary
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Summary Box */}
-        <Card className="flex flex-col h-[600px]">
-          <CardHeader>
-            <CardTitle>Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[500px]">
-              {lead.summary ? (
-                <div
-                  className="prose prose-sm dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: lead.summary }}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No summary
-                </div>
-              )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

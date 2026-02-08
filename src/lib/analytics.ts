@@ -38,9 +38,8 @@ function daysBetween(start: string, end: string): number {
 
 export function calculateFunnelMetrics(contacts: Contact[], days: DateRangeFilter): FunnelMetrics {
   const filtered = filterByDateRange(contacts, days);
-  
+
   const totalContacts = filtered.length;
-  const qualifiedCount = filtered.filter((c) => c.qualifiedDate).length;
   const bookedCount = filtered.filter((c) => c.bookedDate).length;
   const ghostedCount = filtered.filter((c) => c.ghostedDate && !c.bookedDate).length;
   const fupCount = filtered.filter((c) => c.fupDate).length;
@@ -48,10 +47,10 @@ export function calculateFunnelMetrics(contacts: Contact[], days: DateRangeFilte
 
   return {
     totalContacts,
-    qualifiedCount,
-    qualificationRate: totalContacts > 0 ? (qualifiedCount / totalContacts) * 100 : 0,
+    linkSentCount: 0,
+    linkSentRate: 0,
     bookedCount,
-    bookingRate: qualifiedCount > 0 ? (bookedCount / qualifiedCount) * 100 : 0,
+    bookingRate: totalContacts > 0 ? (bookedCount / totalContacts) * 100 : 0,
     ghostedCount,
     ghostRate: totalContacts > 0 ? (ghostedCount / totalContacts) * 100 : 0,
     fupCount,
@@ -63,26 +62,22 @@ export function calculateFunnelMetrics(contacts: Contact[], days: DateRangeFilte
 export function calculateVelocityMetrics(contacts: Contact[], days: DateRangeFilter): VelocityMetrics {
   const filtered = filterByDateRange(contacts, days);
 
-  const createdToQualifiedHours = filtered
-    .filter((c) => c.qualifiedDate)
-    .map((c) => hoursBetween(c.dateCreated, c.qualifiedDate!));
-
-  const qualifiedToBookedHours = filtered
-    .filter((c) => c.qualifiedDate && c.bookedDate)
-    .map((c) => hoursBetween(c.qualifiedDate!, c.bookedDate!));
+  const createdToBookedHours = filtered
+    .filter((c) => c.bookedDate)
+    .map((c) => hoursBetween(c.dateCreated, c.bookedDate!));
 
   const createdToGhostedHours = filtered
     .filter((c) => c.ghostedDate && !c.bookedDate)
     .map((c) => hoursBetween(c.dateCreated, c.ghostedDate!));
 
   return {
-    createdToQualified: {
-      median: median(createdToQualifiedHours),
-      average: average(createdToQualifiedHours),
+    createdToLinkSent: {
+      median: 0,
+      average: 0,
     },
-    qualifiedToBooked: {
-      median: median(qualifiedToBookedHours),
-      average: average(qualifiedToBookedHours),
+    linkSentToBooked: {
+      median: median(createdToBookedHours),
+      average: average(createdToBookedHours),
     },
     createdToGhosted: {
       median: median(createdToGhostedHours),
@@ -100,17 +95,12 @@ export function calculateDailyVolume(contacts: Contact[], days: DateRangeFilter)
     const date = new Date();
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split("T")[0];
-    volumeMap[dateStr] = { date: dateStr, created: 0, qualified: 0, booked: 0, ghosted: 0 };
+    volumeMap[dateStr] = { date: dateStr, created: 0, link_sent: 0, booked: 0, ghosted: 0 };
   }
 
   filtered.forEach((contact) => {
     const createdDate = contact.dateCreated.split("T")[0];
     if (volumeMap[createdDate]) volumeMap[createdDate].created++;
-
-    if (contact.qualifiedDate) {
-      const qualifiedDate = contact.qualifiedDate.split("T")[0];
-      if (volumeMap[qualifiedDate]) volumeMap[qualifiedDate].qualified++;
-    }
 
     if (contact.bookedDate) {
       const bookedDate = contact.bookedDate.split("T")[0];
@@ -156,7 +146,7 @@ export function calculateGhostingBuckets(contacts: Contact[], days: DateRangeFil
 export function calculateFupEffectiveness(contacts: Contact[], days: DateRangeFilter): FupEffectiveness {
   const filtered = filterByDateRange(contacts, days);
   const fupContacts = filtered.filter((c) => c.fupDate);
-  
+
   const totalFup = fupContacts.length;
   const convertedToBooked = fupContacts.filter((c) => c.bookedDate).length;
   const remainingInactive = totalFup - convertedToBooked;
@@ -176,30 +166,22 @@ export function calculateStageAging(contacts: Contact[], days: DateRangeFilter):
 
   const stages: StageAging[] = [
     { stage: "New (No Action)", contacts: [], count: 0 },
-    { stage: "Qualified (Pending)", contacts: [], count: 0 },
     { stage: "In Follow-up", contacts: [], count: 0 },
   ];
 
   filtered.forEach((contact) => {
     // New - no status yet
-    if (!contact.qualifiedDate && !contact.ghostedDate) {
+    if (!contact.bookedDate && !contact.ghostedDate && !contact.fupDate) {
       const daysSince = daysBetween(contact.dateCreated, now.toISOString());
       if (daysSince > 1) {
         stages[0].contacts.push({ name: contact.name, daysSinceAction: Math.floor(daysSince) });
-      }
-    }
-    // Qualified but not booked or ghosted
-    else if (contact.qualifiedDate && !contact.bookedDate && !contact.ghostedDate) {
-      const daysSince = daysBetween(contact.qualifiedDate, now.toISOString());
-      if (daysSince > 1) {
-        stages[1].contacts.push({ name: contact.name, daysSinceAction: Math.floor(daysSince) });
       }
     }
     // In FUP but not converted
     else if (contact.fupDate && !contact.bookedDate) {
       const daysSince = daysBetween(contact.fupDate, now.toISOString());
       if (daysSince > 1) {
-        stages[2].contacts.push({ name: contact.name, daysSinceAction: Math.floor(daysSince) });
+        stages[1].contacts.push({ name: contact.name, daysSinceAction: Math.floor(daysSince) });
       }
     }
   });

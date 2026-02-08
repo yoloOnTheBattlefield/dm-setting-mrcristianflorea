@@ -7,12 +7,11 @@ interface FunnelOverviewProps {
   metrics: FunnelMetrics;
 }
 
-type StageKey = "totalContacts" | "qualified" | "linkSent" | "booked";
+type StageKey = "totalContacts" | "linkSent" | "booked";
 
 export function FunnelOverview({ metrics }: FunnelOverviewProps) {
   const [enabledStages, setEnabledStages] = useState<Record<StageKey, boolean>>({
     totalContacts: true,
-    qualified: true,
     linkSent: true,
     booked: true,
   });
@@ -42,12 +41,6 @@ export function FunnelOverview({ metrics }: FunnelOverviewProps) {
       color: "hsl(var(--stage-created))",
     },
     {
-      key: "qualified" as StageKey,
-      label: "Qualified",
-      value: metrics.qualifiedCount,
-      color: "hsl(var(--stage-qualified))",
-    },
-    {
       key: "linkSent" as StageKey,
       label: "Link Sent",
       value: metrics.linkSentCount,
@@ -71,7 +64,7 @@ export function FunnelOverview({ metrics }: FunnelOverviewProps) {
       <div className="rounded-lg border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold">Metrics Overview</h2>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard
             label="Total Contacts"
             value={metrics.totalContacts}
@@ -80,18 +73,9 @@ export function FunnelOverview({ metrics }: FunnelOverviewProps) {
             disabled={!enabledStages.totalContacts}
           />
           <StatCard
-            label="Qualified"
-            value={metrics.qualifiedCount}
-            subValue={`${metrics.qualificationRate.toFixed(1)}% rate`}
-            variant="qualified"
-            trend={metrics.qualificationRate > 50 ? "up" : "neutral"}
-            onClick={() => toggleStage("qualified")}
-            disabled={!enabledStages.qualified}
-          />
-          <StatCard
             label="Link Sent"
             value={metrics.linkSentCount}
-            subValue={`${metrics.linkSentRate.toFixed(1)}% of qualified`}
+            subValue={`${metrics.linkSentRate.toFixed(1)}% of total`}
             variant="link-sent"
             trend={metrics.linkSentRate > 70 ? "up" : "neutral"}
             onClick={() => toggleStage("linkSent")}
@@ -100,7 +84,7 @@ export function FunnelOverview({ metrics }: FunnelOverviewProps) {
           <StatCard
             label="Booked"
             value={metrics.bookedCount}
-            subValue={`${metrics.bookingRate.toFixed(1)}% of link sent`}
+            subValue={`${metrics.bookingRate.toFixed(1)}% of total`}
             variant="booked"
             trend={metrics.bookingRate > 40 ? "up" : "neutral"}
             onClick={() => toggleStage("booked")}

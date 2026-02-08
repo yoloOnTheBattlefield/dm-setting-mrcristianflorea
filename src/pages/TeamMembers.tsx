@@ -222,7 +222,7 @@ export default function TeamMembers() {
                     </TableCell>
                     <TableCell>{member.email}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      Team Member
+                      {member.role === 0 || member.role === 1 ? "Team Owner" : "Team Member"}
                     </TableCell>
                     {canManage && (
                       <TableCell>

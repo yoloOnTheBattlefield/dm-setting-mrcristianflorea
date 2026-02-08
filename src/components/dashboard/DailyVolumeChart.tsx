@@ -63,12 +63,6 @@ export function DailyVolumeChart({ data }: DailyVolumeChartProps) {
               radius={[2, 2, 0, 0]}
             />
             <Bar
-              dataKey="qualified"
-              name="Qualified"
-              fill="hsl(var(--stage-qualified))"
-              radius={[2, 2, 0, 0]}
-            />
-            <Bar
               dataKey="link_sent"
               name="Link Sent"
               fill="hsl(var(--stage-link-sent))"

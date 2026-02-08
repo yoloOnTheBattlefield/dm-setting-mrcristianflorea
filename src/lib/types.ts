@@ -20,7 +20,6 @@ export interface Contact {
   contactId: string;
   name: string;
   dateCreated: string;
-  qualifiedDate: string | null;
   bookedDate: string | null;
   ghostedDate: string | null;
   fupDate: string | null;
@@ -32,7 +31,6 @@ export function transformApiLead(lead: ApiLead): Contact {
     contactId: lead.contact_id,
     name: `${lead.first_name} ${lead.last_name}`.trim(),
     dateCreated: lead.date_created,
-    qualifiedDate: lead.qualified_at,
     bookedDate: lead.booked_at,
     ghostedDate: lead.ghosted_at,
     fupDate: lead.follow_up_at,
@@ -41,8 +39,6 @@ export function transformApiLead(lead: ApiLead): Contact {
 
 export interface FunnelMetrics {
   totalContacts: number;
-  qualifiedCount: number;
-  qualificationRate: number;
   linkSentCount: number;
   linkSentRate: number;
   bookedCount: number;
@@ -55,15 +51,14 @@ export interface FunnelMetrics {
 }
 
 export interface VelocityMetrics {
-  createdToQualified: { median: number; average: number };
-  qualifiedToBooked: { median: number; average: number };
+  createdToLinkSent: { median: number; average: number };
+  linkSentToBooked: { median: number; average: number };
   createdToGhosted: { median: number; average: number };
 }
 
 export interface DailyVolume {
   date: string;
   created: number;
-  qualified: number;
   link_sent: number;
   booked: number;
   ghosted: number;

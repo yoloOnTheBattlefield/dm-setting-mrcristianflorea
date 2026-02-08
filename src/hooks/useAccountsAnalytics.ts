@@ -9,7 +9,6 @@ interface AccountAnalytics {
   ghl: string;
   name: string;
   totalLeads: number;
-  qualified: number;
   link_sent: number;
   booked: number;
   ghosted: number;

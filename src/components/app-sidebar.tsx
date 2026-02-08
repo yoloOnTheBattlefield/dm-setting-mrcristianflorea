@@ -55,10 +55,6 @@ const navMain = [
           url: "/contacts/all",
         },
         {
-          title: "Qualified",
-          url: "#",
-        },
-        {
           title: "Booked",
           url: "#",
         },

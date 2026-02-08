@@ -49,7 +49,6 @@ export default function UserSettings() {
   const [leadForm, setLeadForm] = useState({
     ghl: "",
     total: "100",
-    qualified: "",
     link_sent: "",
     booked: "",
     ghosted: "",
@@ -66,7 +65,6 @@ export default function UserSettings() {
 
     const body: Record<string, string | number> = { ghl: leadForm.ghl };
     if (leadForm.total) body.total = Number(leadForm.total);
-    if (leadForm.qualified) body.qualified = Number(leadForm.qualified);
     if (leadForm.link_sent) body.link_sent = Number(leadForm.link_sent);
     if (leadForm.booked) body.booked = Number(leadForm.booked);
     if (leadForm.ghosted) body.ghosted = Number(leadForm.ghosted);
@@ -329,16 +327,6 @@ export default function UserSettings() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="gen-qualified">Qualified</Label>
-                  <Input
-                    id="gen-qualified"
-                    type="number"
-                    placeholder="0"
-                    value={leadForm.qualified}
-                    onChange={(e) => setLeadForm((prev) => ({ ...prev, qualified: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="gen-link-sent">Link Sent</Label>
                   <Input
                     id="gen-link-sent"
@@ -348,8 +336,6 @@ export default function UserSettings() {
                     onChange={(e) => setLeadForm((prev) => ({ ...prev, link_sent: e.target.value }))}
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="gen-booked">Booked</Label>
                   <Input

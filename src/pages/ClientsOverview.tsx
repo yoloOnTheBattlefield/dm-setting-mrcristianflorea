@@ -98,7 +98,6 @@ export default function ClientsOverview() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead className="text-right">Total Leads</TableHead>
-                    <TableHead className="text-right">Qualified</TableHead>
                     <TableHead className="text-right">Link Sent</TableHead>
                     <TableHead className="text-right">Booked</TableHead>
                     <TableHead className="text-right">Ghosted</TableHead>
@@ -118,9 +117,6 @@ export default function ClientsOverview() {
                       </TableCell>
                       <TableCell className="text-right">
                         {account.totalLeads.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {account.qualified.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
                         {account.link_sent.toLocaleString()}

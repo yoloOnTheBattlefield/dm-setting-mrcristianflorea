@@ -22,15 +22,15 @@ function formatHours(hours: number): string {
 export function VelocityChart({ metrics }: VelocityChartProps) {
   const data = [
     {
-      name: "Created → Qualified",
-      median: metrics.createdToQualified.median,
-      average: metrics.createdToQualified.average,
-      fill: "hsl(var(--stage-qualified))",
+      name: "Created → Link Sent",
+      median: metrics.createdToLinkSent.median,
+      average: metrics.createdToLinkSent.average,
+      fill: "hsl(var(--stage-link-sent))",
     },
     {
-      name: "Qualified → Booked",
-      median: metrics.qualifiedToBooked.median,
-      average: metrics.qualifiedToBooked.average,
+      name: "Link Sent → Booked",
+      median: metrics.linkSentToBooked.median,
+      average: metrics.linkSentToBooked.average,
       fill: "hsl(var(--stage-booked))",
     },
     {
