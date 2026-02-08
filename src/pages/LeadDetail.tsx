@@ -2,13 +2,31 @@ import { useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
-import { AlertCircle, RefreshCw, CalendarCheck } from "lucide-react";
+import { AlertCircle, RefreshCw, CalendarCheck, DollarSign, Star, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+function parseBoldSectionsToObject(str) {
+  const regex = /<b>(.*?)<\/b>\s*([\s\S]*?)(?=<b>|$)/g;
+  const obj = {};
+
+  let match;
+  while ((match = regex.exec(str)) !== null) {
+    const key = match[1].trim();
+    const value = match[2]
+      .replace(/\n+/g, "\n") // collapse extra newlines
+      .trim();
+
+    obj[key] = value;
+  }
+
+  return obj;
+}
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/leads"
@@ -37,11 +55,35 @@ function formatDate(dateString: string | null): string {
   });
 }
 
-function getLeadStatus(lead: ApiLead): { label: string; variant: "default" | "secondary" | "destructive" | "outline"; color: string } {
-  if (lead.booked_at) return { label: "Booked", variant: "default", color: "bg-stage-booked text-white" };
-  if (lead.ghosted_at) return { label: "Ghosted", variant: "destructive", color: "bg-stage-ghosted text-white" };
-  if (lead.follow_up_at) return { label: "Follow Up", variant: "secondary", color: "bg-stage-fup text-white" };
-  if (lead.link_sent_at) return { label: "Link Sent", variant: "secondary", color: "bg-stage-link-sent text-white" };
+function getLeadStatus(lead: ApiLead): {
+  label: string;
+  variant: "default" | "secondary" | "destructive" | "outline";
+  color: string;
+} {
+  if (lead.booked_at)
+    return {
+      label: "Booked",
+      variant: "default",
+      color: "bg-stage-booked text-white",
+    };
+  if (lead.ghosted_at)
+    return {
+      label: "Ghosted",
+      variant: "destructive",
+      color: "bg-stage-ghosted text-white",
+    };
+  if (lead.follow_up_at)
+    return {
+      label: "Follow Up",
+      variant: "secondary",
+      color: "bg-stage-fup text-white",
+    };
+  if (lead.link_sent_at)
+    return {
+      label: "Link Sent",
+      variant: "secondary",
+      color: "bg-stage-link-sent text-white",
+    };
   return { label: "New", variant: "outline", color: "" };
 }
 
@@ -50,6 +92,8 @@ export default function LeadDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isBooking, setIsBooking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [contractInput, setContractInput] = useState("");
 
   const {
     data: lead,
@@ -88,9 +132,36 @@ export default function LeadDetail() {
         });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to connect to the server",
+        variant: "destructive",
+      });
     } finally {
       setIsBooking(false);
+    }
+  };
+
+  const patchLead = async (body: Record<string, unknown>, successMsg: string) => {
+    if (!contactId) return;
+    setIsSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/${contactId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ["lead", contactId] });
+        toast({ title: "Success", description: successMsg });
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast({ title: "Error", description: data.error || "Failed to update lead", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -101,6 +172,8 @@ export default function LeadDetail() {
       </div>
     );
   }
+
+  console.log(parseBoldSectionsToObject(lead.summary || ""));
 
   if (isError) {
     return (
@@ -164,6 +237,124 @@ export default function LeadDetail() {
         <p className="text-sm text-muted-foreground -mt-2">{lead.email}</p>
       )}
 
+      {/* Sales Tracking */}
+      <Card className="flex flex-col mt-2">
+        <CardHeader>
+          <CardTitle>Sales Tracking</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Score */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <Star className="h-3.5 w-3.5" />
+                Score
+              </label>
+              <Select
+                value={lead.score != null ? String(lead.score) : "none"}
+                onValueChange={(val) =>
+                  patchLead(
+                    { score: val === "none" ? null : Number(val) },
+                    val === "none" ? "Score cleared" : `Score set to ${val}`
+                  )
+                }
+                disabled={isSaving}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Not scored" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not scored</SelectItem>
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Contract Value */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5" />
+                Contract Value
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={contractInput}
+                  onChange={(e) => setContractInput(e.target.value)}
+                  onFocus={() =>
+                    setContractInput(
+                      lead.contract_value != null ? String(lead.contract_value) : ""
+                    )
+                  }
+                  onBlur={() => {
+                    const num = contractInput === "" ? null : Number(contractInput);
+                    if (num !== lead.contract_value) {
+                      patchLead(
+                        { contract_value: num },
+                        num == null ? "Contract value cleared" : `Contract value set to $${num}`
+                      );
+                    }
+                    setContractInput("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  }}
+                  disabled={isSaving}
+                />
+              </div>
+              {lead.contract_value != null && !contractInput && (
+                <p className="text-sm text-muted-foreground">
+                  ${lead.contract_value.toLocaleString()}
+                </p>
+              )}
+            </div>
+
+            {/* Closed */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <CheckCircle className="h-3.5 w-3.5" />
+                Closed
+              </label>
+              {lead.closed_at ? (
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="bg-stage-booked text-white">
+                    Closed {formatDate(lead.closed_at)}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => patchLead({ closed_at: null }, "Closed date cleared")}
+                    disabled={isSaving}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    patchLead(
+                      { closed_at: new Date().toISOString() },
+                      "Lead marked as closed"
+                    )
+                  }
+                  disabled={isSaving}
+                >
+                  <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Mark as Closed
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary Section - full width */}
       <Card className="flex flex-col mt-2">
         <CardHeader>
@@ -182,6 +373,29 @@ export default function LeadDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Q&A Section */}
+      {lead.questions_and_answers && lead.questions_and_answers.length > 0 && (
+        <Card className="flex flex-col">
+          <CardHeader>
+            <CardTitle>Questions & Answers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {lead.questions_and_answers
+                .sort((a, b) => a.position - b.position)
+                .map((qa, i) => (
+                  <div key={i}>
+                    <p className="text-sm font-medium">{qa.question}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {qa.answer}
+                    </p>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

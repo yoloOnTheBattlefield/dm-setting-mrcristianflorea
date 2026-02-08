@@ -13,6 +13,10 @@ export interface ApiLead {
   ghosted_at: string | null;
   follow_up_at: string | null;
   summary?: string | null;
+  questions_and_answers?: { answer: string; position: number; question: string }[];
+  score?: number | null;
+  contract_value?: number | null;
+  closed_at?: string | null;
 }
 
 // Internal contact type used by analytics
