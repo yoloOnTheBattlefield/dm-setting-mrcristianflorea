@@ -8,6 +8,7 @@ import {
   StageAging,
   CumulativeBooking,
 } from "@/lib/types";
+import { RadarDataPoint } from "@/components/dashboard/LeadsRadarChart";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/analytics"
@@ -27,6 +28,7 @@ interface AnalyticsResponse {
   fup: FupEffectiveness;
   aging: StageAging[];
   cumulative: CumulativeBooking[];
+  radar?: RadarDataPoint[];
 }
 
 async function fetchAnalytics({

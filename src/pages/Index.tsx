@@ -11,6 +11,7 @@ import { GhostingAnalysis } from "@/components/dashboard/GhostingAnalysis";
 import { FupEffectivenessChart } from "@/components/dashboard/FupEffectivenessChart";
 import { StageAgingTable } from "@/components/dashboard/StageAgingTable";
 import { CumulativeBookingsChart } from "@/components/dashboard/CumulativeBookingsChart";
+import { LeadsRadarChart } from "@/components/dashboard/LeadsRadarChart";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -130,10 +131,11 @@ export default function Index() {
             {/* Funnel Overview with Area Chart */}
             <FunnelOverview metrics={metrics.funnel} />
 
-            {/* Row 2: Velocity + Cumulative */}
-            <div className="grid gap-6 lg:grid-cols-2">
+            {/* Row 2: Velocity + Cumulative + Radar */}
+            <div className="grid gap-6 lg:grid-cols-3">
               <VelocityChart metrics={metrics.velocity} />
               <CumulativeBookingsChart data={metrics.cumulative} />
+              <LeadsRadarChart data={metrics.radar || []} />
             </div>
 
             {/* Row 3: Daily Volume (full width) */}
