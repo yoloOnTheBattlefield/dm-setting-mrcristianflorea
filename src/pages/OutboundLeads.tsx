@@ -1,0 +1,524 @@
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import {
+  AlertCircle,
+  RefreshCw,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  X,
+  MessageSquare,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const API_URL = import.meta.env.DEV
+  ? "http://localhost:3000/outbound-leads"
+  : "https://quddify-server.vercel.app/outbound-leads";
+
+interface OutboundLead {
+  _id: string;
+  followingKey: string;
+  username: string;
+  fullName: string;
+  profileLink?: string;
+  isVerified?: boolean;
+  followersCount?: number;
+  bio?: string;
+  postsCount?: number;
+  externalUrl?: string | null;
+  email?: string | null;
+  source: string;
+  scrapeDate?: string;
+  ig?: string | null;
+  qualified?: boolean;
+  isMessaged?: boolean | null;
+  dmDate?: string | null;
+  message?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface PaginatedResponse {
+  leads: OutboundLead[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+async function fetchOutboundLeads(params: {
+  source?: string;
+  qualified?: string;
+  search?: string;
+  page: number;
+  limit: number;
+}): Promise<PaginatedResponse> {
+  const searchParams = new URLSearchParams();
+  if (params.source) searchParams.append("source", params.source);
+  if (params.qualified) searchParams.append("qualified", params.qualified);
+  if (params.search) searchParams.append("search", params.search);
+  searchParams.append("page", String(params.page));
+  searchParams.append("limit", String(params.limit));
+
+  const response = await fetch(`${API_URL}?${searchParams.toString()}`);
+  if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
+  return response.json();
+}
+
+async function patchOutboundLead(
+  id: string,
+  body: Record<string, unknown>
+): Promise<void> {
+  const response = await fetch(`${API_URL}/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to update: ${response.status}`);
+  }
+}
+
+function formatNumber(n?: number): string {
+  if (n == null) return "-";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+export default function OutboundLeads() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [source, setSource] = useState(searchParams.get("source") || "all");
+  const [qualified, setQualified] = useState(searchParams.get("qualified") || "all");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get("search") || "");
+  const [currentPage, setCurrentPage] = useState(
+    parseInt(searchParams.get("page") || "1", 10)
+  );
+  const limit = 20;
+
+  // DM dialog state
+  const [editingLead, setEditingLead] = useState<OutboundLead | null>(null);
+  const [dmMessage, setDmMessage] = useState("");
+  const [dmDate, setDmDate] = useState("");
+  const [isSavingDm, setIsSavingDm] = useState(false);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [source, qualified, debouncedSearch]);
+
+  // Sync URL params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (source !== "all") params.set("source", source);
+    if (qualified !== "all") params.set("qualified", qualified);
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (currentPage !== 1) params.set("page", String(currentPage));
+    setSearchParams(params, { replace: true });
+  }, [source, qualified, debouncedSearch, currentPage, setSearchParams]);
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: [
+      "outbound-leads",
+      source === "all" ? undefined : source,
+      qualified === "all" ? undefined : qualified,
+      debouncedSearch || undefined,
+      currentPage,
+    ],
+    queryFn: () =>
+      fetchOutboundLeads({
+        source: source === "all" ? undefined : source,
+        qualified: qualified === "all" ? undefined : qualified,
+        search: debouncedSearch || undefined,
+        page: currentPage,
+        limit,
+      }),
+    staleTime: 1000 * 60 * 2,
+    refetchOnWindowFocus: false,
+  });
+
+  const leads = data?.leads || [];
+  const pagination = data?.pagination;
+
+  const toggleMessaged = useCallback(
+    async (lead: OutboundLead) => {
+      const newVal = !lead.isMessaged;
+      try {
+        await patchOutboundLead(lead._id, {
+          isMessaged: newVal,
+          ...(newVal ? { dmDate: new Date().toISOString() } : { dmDate: null }),
+        });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+        toast({
+          title: "Updated",
+          description: newVal ? "Marked as messaged" : "Marked as not messaged",
+        });
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: err instanceof Error ? err.message : "Failed to update",
+          variant: "destructive",
+        });
+      }
+    },
+    [queryClient, toast]
+  );
+
+  const openDmDialog = (lead: OutboundLead) => {
+    setEditingLead(lead);
+    setDmMessage(lead.message || "");
+    setDmDate(
+      lead.dmDate ? new Date(lead.dmDate).toISOString().slice(0, 16) : ""
+    );
+  };
+
+  const saveDm = async () => {
+    if (!editingLead) return;
+    setIsSavingDm(true);
+    try {
+      await patchOutboundLead(editingLead._id, {
+        message: dmMessage || null,
+        dmDate: dmDate ? new Date(dmDate).toISOString() : null,
+        isMessaged: !!(dmMessage || dmDate),
+      });
+      queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+      toast({ title: "Success", description: "DM details saved" });
+      setEditingLead(null);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to save",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingDm(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        <DashboardSkeleton />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 flex-col">
+      {/* Sticky header with filters */}
+      <div className="sticky top-16 z-50 bg-[#0b0b0b] border-b border-white/10">
+        <div className="px-6 py-4 flex items-end justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">
+              Outbound Leads
+            </h2>
+            <p className="text-muted-foreground">
+              IG profiles from scraper uploads
+            </p>
+          </div>
+
+          <div className="flex gap-4 items-end">
+            {/* Source filter */}
+            <div className="flex flex-col gap-2 w-48">
+              <Label>Source</Label>
+              <Select value={source} onValueChange={setSource}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Sources" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sources</SelectItem>
+                  {/* Sources are dynamic from data, so we just use a text approach */}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Qualified filter */}
+            <div className="flex flex-col gap-2 w-40">
+              <Label>Qualified</Label>
+              <Select value={qualified} onValueChange={setQualified}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="true">Qualified</SelectItem>
+                  <SelectItem value="false">Not Qualified</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Search */}
+            <div className="flex flex-col gap-2 w-64">
+              <Label>Search</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search username or name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="flex-1 p-6">
+        {isError ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Failed to load data</h2>
+            <p className="text-muted-foreground mb-4">
+              {error instanceof Error ? error.message : "An unknown error occurred"}
+            </p>
+            <Button onClick={() => refetch()} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="rounded-lg border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="text-right">Followers</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Qualified</TableHead>
+                    <TableHead>Messaged</TableHead>
+                    <TableHead>DM</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leads.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-24 text-center">
+                        No outbound leads found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    leads.map((lead) => (
+                      <TableRow key={lead._id}>
+                        <TableCell className="font-medium">
+                          <a
+                            href={lead.profileLink || `https://instagram.com/${lead.username}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            @{lead.username}
+                          </a>
+                        </TableCell>
+                        <TableCell>{lead.fullName || "-"}</TableCell>
+                        <TableCell className="text-right">
+                          {formatNumber(lead.followersCount)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">@{lead.source}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {lead.qualified ? (
+                            <Check className="h-4 w-4 text-stage-booked" />
+                          ) : (
+                            <X className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Checkbox
+                            checked={!!lead.isMessaged}
+                            onCheckedChange={() => toggleMessaged(lead)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDmDialog(lead)}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            {pagination && pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between border-t pt-4 mt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing{" "}
+                  {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                  {Math.min(
+                    pagination.page * pagination.limit,
+                    pagination.total
+                  )}{" "}
+                  of {pagination.total} leads
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={pagination.page === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from(
+                      { length: Math.min(5, pagination.totalPages) },
+                      (_, i) => {
+                        let pageNum;
+                        if (pagination.totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (pagination.page <= 3) {
+                          pageNum = i + 1;
+                        } else if (
+                          pagination.page >=
+                          pagination.totalPages - 2
+                        ) {
+                          pageNum = pagination.totalPages - 4 + i;
+                        } else {
+                          pageNum = pagination.page - 2 + i;
+                        }
+
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={
+                              pagination.page === pageNum
+                                ? "default"
+                                : "outline"
+                            }
+                            size="sm"
+                            onClick={() => setCurrentPage(pageNum)}
+                            className="w-10"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      }
+                    )}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((prev) =>
+                        Math.min(pagination.totalPages, prev + 1)
+                      )
+                    }
+                    disabled={pagination.page === pagination.totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* DM Edit Dialog */}
+      <Dialog
+        open={!!editingLead}
+        onOpenChange={(open) => !open && setEditingLead(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              DM Details — @{editingLead?.username}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>DM Date</Label>
+              <Input
+                type="datetime-local"
+                value={dmDate}
+                onChange={(e) => setDmDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Message</Label>
+              <textarea
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                placeholder="Enter the DM message..."
+                value={dmMessage}
+                onChange={(e) => setDmMessage(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditingLead(null)}
+                disabled={isSavingDm}
+              >
+                Cancel
+              </Button>
+              <Button onClick={saveDm} disabled={isSavingDm}>
+                {isSavingDm ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

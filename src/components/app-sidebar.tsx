@@ -120,6 +120,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           },
         ],
       })
+
+      // Add admin-only items under Contacts
+      const contactsSection = items.find((item) => item.title === "Contacts")
+      if (contactsSection?.items) {
+        contactsSection.items.push(
+          {
+            title: "Outbound Leads",
+            url: "/outbound-leads",
+          },
+          {
+            title: "Upload",
+            url: "/contacts/upload",
+          },
+        )
+      }
     }
 
     return items

@@ -13,6 +13,8 @@ import LeadDetail from "./pages/LeadDetail";
 import UserSettings from "./pages/UserSettings";
 import Integrations from "./pages/Integrations";
 import TeamMembers from "./pages/TeamMembers";
+import UploadXlsx from "./pages/UploadXlsx";
+import OutboundLeads from "./pages/OutboundLeads";
 import { LoginForm } from "@/components/login-form";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -90,6 +92,20 @@ const App = () => (
                 <ProtectedRoute>
                   <DashboardLayout>
                     <TeamMembers />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/contacts/upload" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <UploadXlsx />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/outbound-leads" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <OutboundLeads />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
