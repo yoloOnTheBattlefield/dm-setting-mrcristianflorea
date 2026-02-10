@@ -15,10 +15,12 @@ import Integrations from "./pages/Integrations";
 import TeamMembers from "./pages/TeamMembers";
 import UploadXlsx from "./pages/UploadXlsx";
 import OutboundLeads from "./pages/OutboundLeads";
+import Prompts from "./pages/Prompts";
 import { LoginForm } from "@/components/login-form";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SocketProvider } from "@/contexts/SocketContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -26,6 +28,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <ThemeProvider attribute="class" forcedTheme="dark" storageKey="dm-pipeline-theme">
     <AuthProvider>
+      <SocketProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
@@ -109,6 +112,13 @@ const App = () => (
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/prompts" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <Prompts />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/login" element={
                 <div className="flex min-h-screen items-center justify-center">
                   <LoginForm />
@@ -120,6 +130,7 @@ const App = () => (
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
+      </SocketProvider>
     </AuthProvider>
   </ThemeProvider>
 );

@@ -121,6 +121,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ],
       })
 
+      // Add admin-only items under Settings
+      const settingsSection = items.find((item) => item.title === "Settings")
+      if (settingsSection?.items) {
+        settingsSection.items.push({
+          title: "Prompts",
+          url: "/prompts",
+        })
+      }
+
       // Add admin-only items under Contacts
       const contactsSection = items.find((item) => item.title === "Contacts")
       if (contactsSection?.items) {

@@ -39,6 +39,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePrompts } from "@/hooks/usePrompts";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/outbound-leads"
@@ -60,6 +62,8 @@ interface OutboundLead {
   scrapeDate?: string;
   ig?: string | null;
   qualified?: boolean;
+  promptId?: string;
+  promptLabel?: string;
   isMessaged?: boolean | null;
   dmDate?: string | null;
   message?: string | null;
@@ -81,6 +85,7 @@ async function fetchOutboundLeads(params: {
   source?: string;
   qualified?: string;
   search?: string;
+  promptLabel?: string;
   page: number;
   limit: number;
 }): Promise<PaginatedResponse> {
@@ -88,6 +93,7 @@ async function fetchOutboundLeads(params: {
   if (params.source) searchParams.append("source", params.source);
   if (params.qualified) searchParams.append("qualified", params.qualified);
   if (params.search) searchParams.append("search", params.search);
+  if (params.promptLabel) searchParams.append("promptLabel", params.promptLabel);
   searchParams.append("page", String(params.page));
   searchParams.append("limit", String(params.limit));
 
@@ -121,10 +127,14 @@ function formatNumber(n?: number): string {
 export default function OutboundLeads() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const { data: promptOptions = [] } = usePrompts(user?.account_id);
 
   const [source, setSource] = useState(searchParams.get("source") || "all");
   const [qualified, setQualified] = useState(searchParams.get("qualified") || "all");
+  const [promptFilter, setPromptFilter] = useState(searchParams.get("promptLabel") || "all");
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get("search") || "");
   const [currentPage, setCurrentPage] = useState(
@@ -147,23 +157,25 @@ export default function OutboundLeads() {
   // Reset page on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [source, qualified, debouncedSearch]);
+  }, [source, qualified, promptFilter, debouncedSearch]);
 
   // Sync URL params
   useEffect(() => {
     const params = new URLSearchParams();
     if (source !== "all") params.set("source", source);
     if (qualified !== "all") params.set("qualified", qualified);
+    if (promptFilter !== "all") params.set("promptLabel", promptFilter);
     if (debouncedSearch) params.set("search", debouncedSearch);
     if (currentPage !== 1) params.set("page", String(currentPage));
     setSearchParams(params, { replace: true });
-  }, [source, qualified, debouncedSearch, currentPage, setSearchParams]);
+  }, [source, qualified, promptFilter, debouncedSearch, currentPage, setSearchParams]);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       "outbound-leads",
       source === "all" ? undefined : source,
       qualified === "all" ? undefined : qualified,
+      promptFilter === "all" ? undefined : promptFilter,
       debouncedSearch || undefined,
       currentPage,
     ],
@@ -171,6 +183,7 @@ export default function OutboundLeads() {
       fetchOutboundLeads({
         source: source === "all" ? undefined : source,
         qualified: qualified === "all" ? undefined : qualified,
+        promptLabel: promptFilter === "all" ? undefined : promptFilter,
         search: debouncedSearch || undefined,
         page: currentPage,
         limit,
@@ -289,6 +302,24 @@ export default function OutboundLeads() {
               </Select>
             </div>
 
+            {/* Prompt filter */}
+            <div className="flex flex-col gap-2 w-48">
+              <Label>Prompt</Label>
+              <Select value={promptFilter} onValueChange={setPromptFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Prompts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Prompts</SelectItem>
+                  {promptOptions.map((p) => (
+                    <SelectItem key={p._id} value={p.label}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Search */}
             <div className="flex flex-col gap-2 w-64">
               <Label>Search</Label>
@@ -331,6 +362,7 @@ export default function OutboundLeads() {
                     <TableHead>Name</TableHead>
                     <TableHead className="text-right">Followers</TableHead>
                     <TableHead>Source</TableHead>
+                    <TableHead>Prompt</TableHead>
                     <TableHead>Qualified</TableHead>
                     <TableHead>Messaged</TableHead>
                     <TableHead>DM</TableHead>
@@ -339,7 +371,7 @@ export default function OutboundLeads() {
                 <TableBody>
                   {leads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center">
+                      <TableCell colSpan={8} className="h-24 text-center">
                         No outbound leads found.
                       </TableCell>
                     </TableRow>
@@ -362,6 +394,13 @@ export default function OutboundLeads() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">@{lead.source}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {lead.promptLabel ? (
+                            <Badge variant="outline">{lead.promptLabel}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {lead.qualified ? (
