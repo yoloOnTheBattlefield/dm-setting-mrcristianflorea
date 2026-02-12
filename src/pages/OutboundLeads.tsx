@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
@@ -11,11 +11,18 @@ import {
   Check,
   X,
   MessageSquare,
+  Users,
+  Send,
+  MessageCircle,
+  CalendarCheck,
+  DollarSign,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -67,6 +74,9 @@ interface OutboundLead {
   isMessaged?: boolean | null;
   dmDate?: string | null;
   message?: string | null;
+  replied?: boolean;
+  booked?: boolean;
+  contract_value?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -81,9 +91,21 @@ interface PaginatedResponse {
   };
 }
 
+interface FunnelStats {
+  total: number;
+  qualified: number;
+  messaged: number;
+  replied: number;
+  booked: number;
+  contracts: number;
+  contract_value: number;
+}
+
 async function fetchOutboundLeads(params: {
   source?: string;
   qualified?: string;
+  replied?: string;
+  booked?: string;
   search?: string;
   promptLabel?: string;
   page: number;
@@ -92,6 +114,8 @@ async function fetchOutboundLeads(params: {
   const searchParams = new URLSearchParams();
   if (params.source) searchParams.append("source", params.source);
   if (params.qualified) searchParams.append("qualified", params.qualified);
+  if (params.replied) searchParams.append("replied", params.replied);
+  if (params.booked) searchParams.append("booked", params.booked);
   if (params.search) searchParams.append("search", params.search);
   if (params.promptLabel) searchParams.append("promptLabel", params.promptLabel);
   searchParams.append("page", String(params.page));
@@ -99,6 +123,12 @@ async function fetchOutboundLeads(params: {
 
   const response = await fetch(`${API_URL}?${searchParams.toString()}`);
   if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
+  return response.json();
+}
+
+async function fetchFunnelStats(): Promise<FunnelStats> {
+  const response = await fetch(`${API_URL}/stats`);
+  if (!response.ok) throw new Error(`Failed to fetch stats: ${response.status}`);
   return response.json();
 }
 
@@ -134,6 +164,8 @@ export default function OutboundLeads() {
 
   const [source, setSource] = useState(searchParams.get("source") || "all");
   const [qualified, setQualified] = useState(searchParams.get("qualified") || "all");
+  const [repliedFilter, setRepliedFilter] = useState(searchParams.get("replied") || "all");
+  const [bookedFilter, setBookedFilter] = useState(searchParams.get("booked") || "all");
   const [promptFilter, setPromptFilter] = useState(searchParams.get("promptLabel") || "all");
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get("search") || "");
@@ -157,24 +189,28 @@ export default function OutboundLeads() {
   // Reset page on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [source, qualified, promptFilter, debouncedSearch]);
+  }, [source, qualified, repliedFilter, bookedFilter, promptFilter, debouncedSearch]);
 
   // Sync URL params
   useEffect(() => {
     const params = new URLSearchParams();
     if (source !== "all") params.set("source", source);
     if (qualified !== "all") params.set("qualified", qualified);
+    if (repliedFilter !== "all") params.set("replied", repliedFilter);
+    if (bookedFilter !== "all") params.set("booked", bookedFilter);
     if (promptFilter !== "all") params.set("promptLabel", promptFilter);
     if (debouncedSearch) params.set("search", debouncedSearch);
     if (currentPage !== 1) params.set("page", String(currentPage));
     setSearchParams(params, { replace: true });
-  }, [source, qualified, promptFilter, debouncedSearch, currentPage, setSearchParams]);
+  }, [source, qualified, repliedFilter, bookedFilter, promptFilter, debouncedSearch, currentPage, setSearchParams]);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       "outbound-leads",
       source === "all" ? undefined : source,
       qualified === "all" ? undefined : qualified,
+      repliedFilter === "all" ? undefined : repliedFilter,
+      bookedFilter === "all" ? undefined : bookedFilter,
       promptFilter === "all" ? undefined : promptFilter,
       debouncedSearch || undefined,
       currentPage,
@@ -183,11 +219,20 @@ export default function OutboundLeads() {
       fetchOutboundLeads({
         source: source === "all" ? undefined : source,
         qualified: qualified === "all" ? undefined : qualified,
+        replied: repliedFilter === "all" ? undefined : repliedFilter,
+        booked: bookedFilter === "all" ? undefined : bookedFilter,
         promptLabel: promptFilter === "all" ? undefined : promptFilter,
         search: debouncedSearch || undefined,
         page: currentPage,
         limit,
       }),
+    staleTime: 1000 * 60 * 2,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: funnelStats } = useQuery({
+    queryKey: ["outbound-leads-stats"],
+    queryFn: fetchFunnelStats,
     staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
   });
@@ -204,10 +249,49 @@ export default function OutboundLeads() {
           ...(newVal ? { dmDate: new Date().toISOString() } : { dmDate: null }),
         });
         queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
         toast({
           title: "Updated",
           description: newVal ? "Marked as messaged" : "Marked as not messaged",
         });
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: err instanceof Error ? err.message : "Failed to update",
+          variant: "destructive",
+        });
+      }
+    },
+    [queryClient, toast]
+  );
+
+  const toggleField = useCallback(
+    async (lead: OutboundLead, field: "replied" | "booked") => {
+      const newVal = !lead[field];
+      try {
+        await patchOutboundLead(lead._id, { [field]: newVal });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: err instanceof Error ? err.message : "Failed to update",
+          variant: "destructive",
+        });
+      }
+    },
+    [queryClient, toast]
+  );
+
+  const saveContractValue = useCallback(
+    async (lead: OutboundLead, value: string) => {
+      const num = value === "" ? null : parseFloat(value);
+      if (num === (lead.contract_value ?? null)) return;
+      if (value !== "" && isNaN(num as number)) return;
+      try {
+        await patchOutboundLead(lead._id, { contract_value: num });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
       } catch (err) {
         toast({
           title: "Error",
@@ -237,6 +321,7 @@ export default function OutboundLeads() {
         isMessaged: !!(dmMessage || dmDate),
       });
       queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
       toast({ title: "Success", description: "DM details saved" });
       setEditingLead(null);
     } catch (err) {
@@ -320,6 +405,36 @@ export default function OutboundLeads() {
               </Select>
             </div>
 
+            {/* Replied filter */}
+            <div className="flex flex-col gap-2 w-32">
+              <Label>Replied</Label>
+              <Select value={repliedFilter} onValueChange={setRepliedFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="true">Yes</SelectItem>
+                  <SelectItem value="false">No</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Booked filter */}
+            <div className="flex flex-col gap-2 w-32">
+              <Label>Booked</Label>
+              <Select value={bookedFilter} onValueChange={setBookedFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="true">Yes</SelectItem>
+                  <SelectItem value="false">No</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Search */}
             <div className="flex flex-col gap-2 w-64">
               <Label>Search</Label>
@@ -337,6 +452,28 @@ export default function OutboundLeads() {
           </div>
         </div>
       </div>
+
+      {/* Funnel */}
+      {funnelStats && (
+        <div className="px-6 pt-4">
+          <div className="flex items-center gap-2">
+            <FunnelCard label="Qualified" value={funnelStats.qualified} icon={<Users className="h-4 w-4 text-blue-400" />} />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <FunnelCard label="Messaged" value={funnelStats.messaged} icon={<Send className="h-4 w-4 text-violet-400" />} />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <FunnelCard label="Replied" value={funnelStats.replied} icon={<MessageCircle className="h-4 w-4 text-yellow-400" />} />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <FunnelCard label="Booked" value={funnelStats.booked} icon={<CalendarCheck className="h-4 w-4 text-green-400" />} />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <FunnelCard
+              label="Revenue"
+              value={`$${funnelStats.contract_value.toLocaleString()}`}
+              sub={`${funnelStats.contracts} deal${funnelStats.contracts !== 1 ? "s" : ""}`}
+              icon={<DollarSign className="h-4 w-4 text-emerald-400" />}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="flex-1 p-6">
@@ -365,13 +502,16 @@ export default function OutboundLeads() {
                     <TableHead>Prompt</TableHead>
                     <TableHead>Qualified</TableHead>
                     <TableHead>Messaged</TableHead>
+                    <TableHead>Replied</TableHead>
+                    <TableHead>Booked</TableHead>
+                    <TableHead>Contract</TableHead>
                     <TableHead>DM</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {leads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center">
+                      <TableCell colSpan={11} className="h-24 text-center">
                         No outbound leads found.
                       </TableCell>
                     </TableRow>
@@ -413,6 +553,30 @@ export default function OutboundLeads() {
                           <Checkbox
                             checked={!!lead.isMessaged}
                             onCheckedChange={() => toggleMessaged(lead)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Checkbox
+                            checked={!!lead.replied}
+                            onCheckedChange={() => toggleField(lead, "replied")}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Checkbox
+                            checked={!!lead.booked}
+                            onCheckedChange={() => toggleField(lead, "booked")}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            className="w-24 h-7 text-xs"
+                            placeholder="-"
+                            defaultValue={lead.contract_value ?? ""}
+                            onBlur={(e) => saveContractValue(lead, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                            }}
                           />
                         </TableCell>
                         <TableCell>
@@ -559,5 +723,30 @@ export default function OutboundLeads() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function FunnelCard({
+  label,
+  value,
+  sub,
+  icon,
+}: {
+  label: string;
+  value: number | string;
+  sub?: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <Card className="flex-1 min-w-0">
+      <CardContent className="py-3 px-4 flex items-center gap-3">
+        {icon}
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-lg font-bold leading-tight">{value}</p>
+          {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

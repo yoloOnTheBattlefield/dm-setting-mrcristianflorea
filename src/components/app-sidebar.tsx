@@ -2,6 +2,7 @@ import * as React from "react"
 import {
   BarChart3,
   MessageSquare,
+  Send,
   Settings2,
   TrendingUp,
   Users,
@@ -29,19 +30,10 @@ const navMain = [
       title: "Analytics",
       url: "#",
       icon: TrendingUp,
-      disabled: true,
       items: [
         {
-          title: "Funnel Metrics",
-          url: "#",
-        },
-        {
-          title: "Velocity",
-          url: "#",
-        },
-        {
-          title: "Daily Volume",
-          url: "#",
+          title: "Outbound",
+          url: "/analytics/outbound",
         },
       ],
     },
@@ -103,47 +95,52 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigationItems = React.useMemo(() => {
     const items = [...navMain]
 
-    // Add "Clients" dropdown for admins (role === 0)
+    // Add admin-only nav items (role === 0)
     if (user?.role === 0) {
-      items.splice(1, 0, {
-        title: "Clients",
-        url: "#",
-        icon: UserPlus,
-        items: [
-          {
-            title: "New Client",
-            url: "/clients/new",
-          },
-          {
-            title: "Clients Overview",
-            url: "/clients",
-          },
-        ],
-      })
-
-      // Add admin-only items under Settings
-      const settingsSection = items.find((item) => item.title === "Settings")
-      if (settingsSection?.items) {
-        settingsSection.items.push({
-          title: "Prompts",
-          url: "/prompts",
-        })
-      }
-
-      // Add admin-only items under Contacts
-      const contactsSection = items.find((item) => item.title === "Contacts")
-      if (contactsSection?.items) {
-        contactsSection.items.push(
-          {
-            title: "Outbound Leads",
-            url: "/outbound-leads",
-          },
-          {
-            title: "Upload",
-            url: "/contacts/upload",
-          },
-        )
-      }
+      items.splice(1, 0,
+        {
+          title: "Clients",
+          url: "#",
+          icon: UserPlus,
+          items: [
+            {
+              title: "New Client",
+              url: "/clients/new",
+            },
+            {
+              title: "Clients Overview",
+              url: "/clients",
+            },
+          ],
+        },
+        {
+          title: "Outbound",
+          url: "#",
+          icon: Send,
+          items: [
+            {
+              title: "Campaigns",
+              url: "/campaigns",
+            },
+            {
+              title: "Leads",
+              url: "/outbound-leads",
+            },
+            {
+              title: "Browsers",
+              url: "/senders",
+            },
+            {
+              title: "Prompts",
+              url: "/prompts",
+            },
+            {
+              title: "Upload",
+              url: "/contacts/upload",
+            },
+          ],
+        },
+      )
     }
 
     return items

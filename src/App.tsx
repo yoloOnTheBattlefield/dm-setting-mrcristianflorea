@@ -16,6 +16,10 @@ import TeamMembers from "./pages/TeamMembers";
 import UploadXlsx from "./pages/UploadXlsx";
 import OutboundLeads from "./pages/OutboundLeads";
 import Prompts from "./pages/Prompts";
+import Campaigns from "./pages/Campaigns";
+import CampaignDetail from "./components/campaigns/CampaignDetail";
+import Senders from "./pages/Senders";
+import OutboundAnalytics from "./pages/OutboundAnalytics";
 import { LoginForm } from "@/components/login-form";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -116,6 +120,34 @@ const App = () => (
                 <ProtectedRoute>
                   <DashboardLayout>
                     <Prompts />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/senders" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <Senders />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics/outbound" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <OutboundAnalytics />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/campaigns" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <Campaigns />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/campaigns/:id" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <CampaignDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />

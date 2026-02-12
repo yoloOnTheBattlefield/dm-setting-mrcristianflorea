@@ -43,12 +43,15 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { Switch } from "@/components/ui/switch";
 import {
   usePrompts,
   useCreatePrompt,
   useUpdatePrompt,
   useDeletePrompt,
-  Prompt,
+  DEFAULT_FILTERS,
+  type Prompt,
+  type PromptFilters,
 } from "@/hooks/usePrompts";
 import { Plus, Pencil, Trash2, Check } from "lucide-react";
 
@@ -71,6 +74,7 @@ export default function Prompts() {
     label: "",
     promptText: "",
     isDefault: false,
+    filters: { ...DEFAULT_FILTERS },
   });
 
   const { data: prompts = [], isLoading } = usePrompts(accountId);
@@ -78,9 +82,11 @@ export default function Prompts() {
   const updateMutation = useUpdatePrompt(accountId);
   const deleteMutation = useDeletePrompt(accountId);
 
+  const emptyForm = { label: "", promptText: "", isDefault: false, filters: { ...DEFAULT_FILTERS } };
+
   const openCreate = () => {
     setEditingPrompt(null);
-    setFormData({ label: "", promptText: "", isDefault: false });
+    setFormData(emptyForm);
     setDialogOpen(true);
   };
 
@@ -90,8 +96,13 @@ export default function Prompts() {
       label: prompt.label,
       promptText: prompt.promptText,
       isDefault: prompt.isDefault,
+      filters: { ...DEFAULT_FILTERS, ...prompt.filters },
     });
     setDialogOpen(true);
+  };
+
+  const updateFilter = <K extends keyof PromptFilters>(key: K, value: PromptFilters[K]) => {
+    setFormData((prev) => ({ ...prev, filters: { ...prev.filters, [key]: value } }));
   };
 
   const handleSubmit = async () => {
@@ -100,22 +111,24 @@ export default function Prompts() {
       return;
     }
     try {
+      const { filters, ...rest } = formData;
       if (editingPrompt) {
         await updateMutation.mutateAsync({
           id: editingPrompt._id,
-          body: formData,
+          body: { ...rest, filters },
         });
         toast({ title: "Success", description: "Prompt updated" });
       } else {
         await createMutation.mutateAsync({
           account_id: accountId,
-          ...formData,
+          ...rest,
+          filters,
         });
         toast({ title: "Success", description: "Prompt created" });
       }
       setDialogOpen(false);
       setEditingPrompt(null);
-      setFormData({ label: "", promptText: "", isDefault: false });
+      setFormData(emptyForm);
     } catch (error) {
       toast({
         title: "Error",
@@ -163,7 +176,7 @@ export default function Prompts() {
             setDialogOpen(open);
             if (!open) {
               setEditingPrompt(null);
-              setFormData({ label: "", promptText: "", isDefault: false });
+              setFormData(emptyForm);
             }
           }}>
             <DialogTrigger asChild>
@@ -216,6 +229,69 @@ export default function Prompts() {
                   <Label htmlFor="prompt-default" className="text-sm font-normal">
                     Set as default prompt
                   </Label>
+                </div>
+
+                {/* Filters */}
+                <div className="space-y-3 pt-2 border-t">
+                  <Label className="text-sm font-medium">Lead Filters</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="filter-minFollowers" className="text-xs text-muted-foreground">
+                        Min Followers
+                      </Label>
+                      <Input
+                        id="filter-minFollowers"
+                        type="number"
+                        min={0}
+                        value={formData.filters.minFollowers}
+                        onChange={(e) => updateFilter("minFollowers", Number(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="filter-minPosts" className="text-xs text-muted-foreground">
+                        Min Posts
+                      </Label>
+                      <Input
+                        id="filter-minPosts"
+                        type="number"
+                        min={0}
+                        value={formData.filters.minPosts}
+                        onChange={(e) => updateFilter("minPosts", Number(e.target.value) || 0)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="filter-excludePrivate" className="text-xs text-muted-foreground">
+                        Exclude private accounts
+                      </Label>
+                      <Switch
+                        id="filter-excludePrivate"
+                        checked={formData.filters.excludePrivate}
+                        onCheckedChange={(v) => updateFilter("excludePrivate", v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="filter-verifiedOnly" className="text-xs text-muted-foreground">
+                        Verified only
+                      </Label>
+                      <Switch
+                        id="filter-verifiedOnly"
+                        checked={formData.filters.verifiedOnly}
+                        onCheckedChange={(v) => updateFilter("verifiedOnly", v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="filter-bioRequired" className="text-xs text-muted-foreground">
+                        Bio required
+                      </Label>
+                      <Switch
+                        id="filter-bioRequired"
+                        checked={formData.filters.bioRequired}
+                        onCheckedChange={(v) => updateFilter("bioRequired", v)}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
               <DialogFooter>

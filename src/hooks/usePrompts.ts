@@ -4,12 +4,29 @@ const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/prompts"
   : "https://quddify-server.vercel.app/prompts";
 
+export interface PromptFilters {
+  minFollowers: number;
+  minPosts: number;
+  excludePrivate: boolean;
+  verifiedOnly: boolean;
+  bioRequired: boolean;
+}
+
+export const DEFAULT_FILTERS: PromptFilters = {
+  minFollowers: 40000,
+  minPosts: 10,
+  excludePrivate: true,
+  verifiedOnly: false,
+  bioRequired: false,
+};
+
 export interface Prompt {
   _id: string;
   account_id: string;
   label: string;
   promptText: string;
   isDefault: boolean;
+  filters?: PromptFilters;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,12 +36,14 @@ interface CreatePromptBody {
   label: string;
   promptText: string;
   isDefault?: boolean;
+  filters?: Partial<PromptFilters>;
 }
 
 interface UpdatePromptBody {
   label?: string;
   promptText?: string;
   isDefault?: boolean;
+  filters?: Partial<PromptFilters>;
 }
 
 async function fetchPrompts(accountId: string): Promise<Prompt[]> {
