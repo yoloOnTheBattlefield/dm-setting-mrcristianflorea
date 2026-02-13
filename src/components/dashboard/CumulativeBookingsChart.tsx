@@ -22,7 +22,7 @@ export function CumulativeBookingsChart({ data }: CumulativeBookingsChartProps) 
   const total = data[data.length - 1]?.cumulative || 0;
 
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-sm">
+    <div className="rounded-lg border bg-card p-6 shadow-sm h-full flex flex-col">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Cumulative Bookings</h2>
@@ -36,7 +36,7 @@ export function CumulativeBookingsChart({ data }: CumulativeBookingsChartProps) 
         </div>
       </div>
 
-      <div className="h-48">
+      <div className="flex-1 min-h-[160px]">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={formattedData}>
             <defs>

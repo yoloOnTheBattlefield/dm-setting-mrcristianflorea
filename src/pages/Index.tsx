@@ -132,7 +132,7 @@ export default function Index() {
             <FunnelOverview metrics={metrics.funnel} />
 
             {/* Row 2: Velocity + Cumulative + Radar */}
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-3 items-stretch">
               <VelocityChart metrics={metrics.velocity} />
               <CumulativeBookingsChart data={metrics.cumulative} />
               <LeadsRadarChart data={metrics.radar || []} />

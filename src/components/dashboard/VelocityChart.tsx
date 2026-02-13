@@ -42,7 +42,7 @@ export function VelocityChart({ metrics }: VelocityChartProps) {
   ];
 
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-sm">
+    <div className="rounded-lg border bg-card p-6 shadow-sm h-full flex flex-col">
       <h2 className="mb-1 text-lg font-semibold">Stage Velocity</h2>
       <p className="mb-4 text-sm text-muted-foreground">
         Median time between stages (faster is better)
@@ -62,7 +62,7 @@ export function VelocityChart({ metrics }: VelocityChartProps) {
         ))}
       </div>
 
-      <div className="h-40">
+      <div className="flex-1 min-h-[160px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" barSize={24}>
             <XAxis

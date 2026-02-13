@@ -113,6 +113,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             },
           ],
         },
+      )
+    }
+
+    // Add outbound nav items for users with outbound access
+    if (user?.has_outbound) {
+      items.splice(user?.role === 0 ? 2 : 1, 0,
         {
           title: "Outbound",
           url: "#",
@@ -144,7 +150,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
 
     return items
-  }, [user?.role])
+  }, [user?.role, user?.has_outbound])
 
   return (
     <Sidebar collapsible="icon" {...props}>

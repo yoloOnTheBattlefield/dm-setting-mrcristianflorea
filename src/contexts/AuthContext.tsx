@@ -10,13 +10,14 @@ interface User {
   name?: string
   role?: number
   api_key?: string
+  has_outbound?: boolean
 }
 
 interface AuthContextType {
   isAuthenticated: boolean
   user: User | null
   loading: boolean
-  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string) => void
+  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean) => void
   updateUser: (updates: Partial<User>) => void
   logout: () => void
 }
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [])
 
-  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string) => {
+  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean) => {
     const fullName = firstName && lastName
       ? `${firstName} ${lastName}`
       : firstName || email.split('@')[0]
@@ -55,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: fullName,
       role,
       api_key,
+      has_outbound,
     }
 
     localStorage.setItem("isAuthenticated", "true")
