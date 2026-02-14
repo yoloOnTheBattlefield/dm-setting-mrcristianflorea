@@ -42,20 +42,20 @@ export function VelocityChart({ metrics }: VelocityChartProps) {
   ];
 
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-sm h-full flex flex-col">
-      <h2 className="mb-1 text-lg font-semibold">Stage Velocity</h2>
-      <p className="mb-4 text-sm text-muted-foreground">
+    <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm h-full flex flex-col">
+      <h2 className="mb-1 text-base sm:text-lg font-semibold">Stage Velocity</h2>
+      <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-muted-foreground">
         Median time between stages (faster is better)
       </p>
 
-      <div className="mb-4 flex flex-wrap gap-4">
+      <div className="mb-3 sm:mb-4 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-4">
         {data.map((item) => (
-          <div key={item.name} className="min-w-[140px]">
-            <p className="text-xs text-muted-foreground">{item.name}</p>
-            <p className="text-2xl font-bold" style={{ color: item.fill }}>
+          <div key={item.name} className="min-w-0 sm:min-w-[140px]">
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{item.name}</p>
+            <p className="text-lg sm:text-2xl font-bold" style={{ color: item.fill }}>
               {formatHours(item.median)}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
               avg: {formatHours(item.average)}
             </p>
           </div>

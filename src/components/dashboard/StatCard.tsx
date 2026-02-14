@@ -33,7 +33,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card p-4 shadow-sm transition-all",
+        "rounded-lg border bg-card p-3 sm:p-4 shadow-sm transition-all",
         variantStyles[variant],
         onClick && "cursor-pointer hover:shadow-md hover:scale-[1.02]",
         disabled && "opacity-40",

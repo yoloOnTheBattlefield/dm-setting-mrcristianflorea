@@ -22,8 +22,8 @@ function getDaysBg(days: number): string {
 export function StageAgingTable({ data }: StageAgingTableProps) {
   if (data.length === 0) {
     return (
-      <div className="rounded-lg border bg-card p-6 shadow-sm">
-        <h2 className="mb-1 text-lg font-semibold">Stage Aging & Backlog</h2>
+      <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm">
+        <h2 className="mb-1 text-base sm:text-lg font-semibold">Stage Aging & Backlog</h2>
         <div className="flex h-40 items-center justify-center text-muted-foreground">
           No stuck leads detected
         </div>
@@ -32,9 +32,9 @@ export function StageAgingTable({ data }: StageAgingTableProps) {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-sm">
-      <h2 className="mb-1 text-lg font-semibold">Stage Aging & Backlog</h2>
-      <p className="mb-4 text-sm text-muted-foreground">
+    <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm">
+      <h2 className="mb-1 text-base sm:text-lg font-semibold">Stage Aging & Backlog</h2>
+      <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-muted-foreground">
         Leads stuck in stages (days since last action)
       </p>
 

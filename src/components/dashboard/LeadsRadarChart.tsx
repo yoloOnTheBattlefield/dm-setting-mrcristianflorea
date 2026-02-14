@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SourceFilter } from "@/lib/types";
 
 export interface RadarDataPoint {
   month: string;
@@ -27,16 +28,29 @@ export interface RadarDataPoint {
   booked: number;
   ghosted: number;
   follow_up: number;
+  ob_messaged: number;
+  ob_replied: number;
+  ob_booked: number;
 }
 
 type MetricKey = keyof Omit<RadarDataPoint, "month">;
 
-const metricOptions: { value: MetricKey; label: string; color: string }[] = [
-  { value: "leads", label: "Total Leads", color: "hsl(var(--stage-created))" },
-  { value: "link_sent", label: "Link Sent", color: "hsl(var(--stage-link-sent))" },
-  { value: "booked", label: "Booked", color: "hsl(var(--stage-booked))" },
-  { value: "ghosted", label: "Ghosted", color: "hsl(var(--stage-ghosted))" },
-  { value: "follow_up", label: "Follow Up", color: "hsl(var(--stage-fup))" },
+interface MetricOption {
+  value: MetricKey;
+  label: string;
+  color: string;
+  source: "inbound" | "outbound";
+}
+
+const metricOptions: MetricOption[] = [
+  { value: "leads", label: "Total Leads", color: "hsl(var(--stage-created))", source: "inbound" },
+  { value: "link_sent", label: "Link Sent", color: "hsl(var(--stage-link-sent))", source: "inbound" },
+  { value: "booked", label: "Booked", color: "hsl(var(--stage-booked))", source: "inbound" },
+  { value: "ghosted", label: "Ghosted", color: "hsl(var(--stage-ghosted))", source: "inbound" },
+  { value: "follow_up", label: "Follow Up", color: "hsl(var(--stage-fup))", source: "inbound" },
+  { value: "ob_messaged", label: "OB Messaged", color: "hsl(260 60% 55%)", source: "outbound" },
+  { value: "ob_replied", label: "OB Replied", color: "hsl(45 90% 55%)", source: "outbound" },
+  { value: "ob_booked", label: "OB Booked", color: "hsl(150 60% 45%)", source: "outbound" },
 ];
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -66,11 +80,38 @@ function getConfig(a: MetricKey, b: MetricKey): ChartConfig {
 
 interface LeadsRadarChartProps {
   data: RadarDataPoint[];
+  source?: SourceFilter;
 }
 
-export function LeadsRadarChart({ data }: LeadsRadarChartProps) {
-  const [metricA, setMetricA] = useState<MetricKey>("leads");
-  const [metricB, setMetricB] = useState<MetricKey>("link_sent");
+function getDefaultMetrics(source: SourceFilter): [MetricKey, MetricKey] {
+  if (source === "outbound") return ["ob_messaged", "ob_replied"];
+  return ["leads", "link_sent"];
+}
+
+export function LeadsRadarChart({ data, source = "all" }: LeadsRadarChartProps) {
+  const [defaults] = useState(() => getDefaultMetrics(source));
+  const [metricA, setMetricA] = useState<MetricKey>(defaults[0]);
+  const [metricB, setMetricB] = useState<MetricKey>(defaults[1]);
+
+  // Filter available options based on source
+  const availableOptions = useMemo(() => {
+    if (source === "inbound") return metricOptions.filter((o) => o.source === "inbound");
+    if (source === "outbound") return metricOptions.filter((o) => o.source === "outbound");
+    return metricOptions; // all
+  }, [source]);
+
+  // Reset selections when source changes and current selections are no longer valid
+  useMemo(() => {
+    const validKeys = new Set(availableOptions.map((o) => o.value));
+    if (!validKeys.has(metricA)) {
+      const [a, b] = getDefaultMetrics(source);
+      setMetricA(a);
+      setMetricB(b);
+    } else if (!validKeys.has(metricB)) {
+      const [, b] = getDefaultMetrics(source);
+      setMetricB(b);
+    }
+  }, [source, availableOptions]);
 
   const config = getConfig(metricA, metricB);
   const colorA = metricOptions.find((o) => o.value === metricA)!.color;
@@ -88,28 +129,28 @@ export function LeadsRadarChart({ data }: LeadsRadarChartProps) {
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="items-center pb-4">
-        <CardTitle>Leads Comparison</CardTitle>
-        <div className="flex items-center gap-2">
+      <CardHeader className="items-center pb-3 sm:pb-4 px-3 sm:px-6">
+        <CardTitle className="text-base sm:text-lg">Leads Comparison</CardTitle>
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <Select value={metricA} onValueChange={(v) => setMetricA(v as MetricKey)}>
-            <SelectTrigger className="h-7 w-[120px] text-xs">
+            <SelectTrigger className="h-7 w-[100px] sm:w-[130px] text-[10px] sm:text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {metricOptions.map((opt) => (
+              {availableOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <span className="text-xs text-muted-foreground">vs</span>
+          <span className="text-[10px] sm:text-xs text-muted-foreground">vs</span>
           <Select value={metricB} onValueChange={(v) => setMetricB(v as MetricKey)}>
-            <SelectTrigger className="h-7 w-[120px] text-xs">
+            <SelectTrigger className="h-7 w-[100px] sm:w-[130px] text-[10px] sm:text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {metricOptions.map((opt) => (
+              {availableOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>

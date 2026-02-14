@@ -96,15 +96,15 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
   };
 
   return (
-    <CardContent className="p-6">
+    <CardContent className="p-3 sm:p-6">
       <div className="relative w-full">
         {/* Scaling mode toggle */}
-        <div className="absolute top-0 right-0 flex gap-1 z-20">
+        <div className="flex justify-end gap-1 mb-2 sm:absolute sm:top-0 sm:right-0 sm:mb-0 z-20">
           <Button
             variant={scalingMode === "linear" ? "default" : "outline"}
             size="sm"
             onClick={() => setScalingMode("linear")}
-            className="h-7 text-xs"
+            className="h-6 text-[10px] px-2 sm:h-7 sm:text-xs sm:px-3"
           >
             Linear
           </Button>
@@ -112,7 +112,7 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
             variant={scalingMode === "sqrt" ? "default" : "outline"}
             size="sm"
             onClick={() => setScalingMode("sqrt")}
-            className="h-7 text-xs"
+            className="h-6 text-[10px] px-2 sm:h-7 sm:text-xs sm:px-3"
           >
             Balanced
           </Button>
@@ -120,7 +120,7 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
             variant={scalingMode === "log" ? "default" : "outline"}
             size="sm"
             onClick={() => setScalingMode("log")}
-            className="h-7 text-xs"
+            className="h-6 text-[10px] px-2 sm:h-7 sm:text-xs sm:px-3"
           >
             Readable
           </Button>
@@ -260,14 +260,14 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
             : null;
 
           return (
-            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground px-5 py-3 rounded-lg shadow-2xl border-2 animate-in fade-in-0 zoom-in-95 duration-200 z-10">
+            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground px-3 py-2 sm:px-5 sm:py-3 rounded-lg shadow-2xl border-2 animate-in fade-in-0 zoom-in-95 duration-200 z-10 max-w-[90%]">
               <p
                 className="text-xs font-bold uppercase tracking-wide"
                 style={{ color: currentStage.color }}
               >
                 {currentStage.label}
               </p>
-              <p className="text-3xl font-bold mt-1">
+              <p className="text-2xl sm:text-3xl font-bold mt-1">
                 {currentStage.value.toLocaleString()}
               </p>
               <div className="mt-2 pt-2 border-t border-border space-y-1">
