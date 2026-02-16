@@ -137,6 +137,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               url: "/senders",
             },
             {
+              title: "Accounts",
+              url: "/outbound-accounts",
+            },
+            {
               title: "Prompts",
               url: "/prompts",
             },

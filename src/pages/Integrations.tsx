@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { fetchWithAuth } from "@/lib/api";
 
 const ACCOUNTS_API_URL = import.meta.env.DEV
   ? "http://localhost:3000/accounts"
@@ -39,7 +40,7 @@ export default function Integrations() {
   // Fetch current openai_token from account
   useEffect(() => {
     if (!user?.id) return;
-    fetch(`${ACCOUNTS_API_URL}/${user.id}`)
+    fetchWithAuth(`${ACCOUNTS_API_URL}/${user.id}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.openai_token) {
@@ -54,7 +55,7 @@ export default function Integrations() {
     if (!user?.id) return;
     setIsSavingOpenai(true);
     try {
-      const response = await fetch(`${ACCOUNTS_API_URL}/${user.id}`, {
+      const response = await fetchWithAuth(`${ACCOUNTS_API_URL}/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ openai_token: openaiToken.trim() || null }),
@@ -93,14 +94,13 @@ export default function Integrations() {
       : "https://quddify-server.vercel.app/api/calendly/add";
 
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetchWithAuth(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           token: calendlyToken,
-          user: user,
         }),
       });
 

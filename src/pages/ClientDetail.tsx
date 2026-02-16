@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { fetchWithAuth } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -69,9 +70,9 @@ export default function ClientDetail() {
     email: "",
     password: "",
   });
-  const { data: teamMembers = [], isLoading: isTeamLoading } = useTeamMembers(id);
+  const { data: teamMembers = [], isLoading: isTeamLoading } = useTeamMembers();
   const addMember = useAddTeamMember();
-  const deleteMember = useDeleteTeamMember(id);
+  const deleteMember = useDeleteTeamMember();
 
   // Fetch client data
   useEffect(() => {
@@ -86,7 +87,7 @@ export default function ClientDetail() {
         : "https://quddify-server.vercel.app/accounts/ghl-webhook";
 
       try {
-        const response = await fetch(`${API_URL}?_id=${id}`);
+        const response = await fetchWithAuth(`${API_URL}?_id=${id}`);
         if (response.ok) {
           const data = await response.json();
           setClient(data);
@@ -123,7 +124,6 @@ export default function ClientDetail() {
     }
     try {
       await addMember.mutateAsync({
-        account_id: id,
         email: newMember.email,
         password: newMember.password,
         first_name: newMember.first_name,
@@ -189,7 +189,7 @@ export default function ClientDetail() {
       : "https://quddify-server.vercel.app/accounts/ghl-webhook";
 
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetchWithAuth(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

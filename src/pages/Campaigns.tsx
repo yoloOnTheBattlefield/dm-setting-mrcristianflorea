@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  AlertCircle,
   Loader2,
   Copy,
   Check,
@@ -13,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
 import { useSenderAccounts } from "@/hooks/useSenderAccounts";
+import { fetchWithAuth } from "@/lib/api";
 import { type Campaign } from "@/hooks/useCampaigns";
 import CampaignList from "@/components/campaigns/CampaignList";
 import CampaignCreateEditDialog from "@/components/campaigns/CampaignCreateEditDialog";
@@ -40,7 +40,7 @@ export default function Campaigns() {
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [createEditOpen, setCreateEditOpen] = useState(false);
 
-  const { data: sendersData } = useSenderAccounts(apiKey);
+  const { data: sendersData } = useSenderAccounts();
   const senders = sendersData?.senders ?? [];
 
   // Socket listeners for real-time updates
@@ -81,14 +81,12 @@ export default function Campaigns() {
   }, [socket, queryClient]);
 
   const sendPing = async () => {
-    if (!apiKey) return;
     setPinging(true);
     setPongStatus("waiting");
     try {
-      const res = await fetch(`${TASKS_API_URL}/ping`, {
+      const res = await fetchWithAuth(`${TASKS_API_URL}/ping`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ message: "hello extension" }),
@@ -111,7 +109,7 @@ export default function Campaigns() {
     if (!user?.id) return;
     setGeneratingKey(true);
     try {
-      const res = await fetch(`${ACCOUNTS_URL}/${user.id}/api-key`, {
+      const res = await fetchWithAuth(`${ACCOUNTS_URL}/${user.id}/api-key`, {
         method: "POST",
       });
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -128,28 +126,6 @@ export default function Campaigns() {
       setGeneratingKey(false);
     }
   };
-
-  if (!apiKey) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-        <AlertCircle className="h-12 w-12 text-muted-foreground" />
-        <h2 className="text-lg font-semibold">No API Key Found</h2>
-        <p className="text-muted-foreground max-w-md">
-          Your account does not have an API key configured. Generate one so the Chrome extension can connect.
-        </p>
-        <Button onClick={generateApiKey} disabled={generatingKey}>
-          {generatingKey ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            "Generate API Key"
-          )}
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -197,7 +173,6 @@ export default function Campaigns() {
 
       {/* Campaign List */}
       <CampaignList
-        apiKey={apiKey}
         senders={senders}
         onCreateCampaign={() => {
           setEditingCampaign(null);
@@ -214,7 +189,6 @@ export default function Campaigns() {
         open={createEditOpen}
         onOpenChange={setCreateEditOpen}
         campaign={editingCampaign}
-        apiKey={apiKey}
         senders={senders}
       />
     </div>

@@ -31,17 +31,6 @@ export default function Index() {
   const [source, setSource] = useState<SourceFilter>(hasOutbound ? "all" : "inbound");
   const effectiveSource = hasOutbound ? source : "inbound";
 
-  // Determine which ghl to use for filtering
-  const ghlId = useMemo(() => {
-    if (user?.role !== 0) {
-      return user?.ghl;
-    }
-    if (selectedAccount !== "all") {
-      return selectedAccount;
-    }
-    return undefined;
-  }, [user?.role, user?.ghl, selectedAccount]);
-
   const endDate = useMemo(() => {
     if (dateRange === "all") return undefined;
     return new Date().toISOString().split("T")[0];
@@ -63,7 +52,6 @@ export default function Index() {
     error,
     refetch,
   } = useAnalytics({
-    ghlId,
     startDate,
     endDate,
     source: effectiveSource,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
@@ -17,6 +17,8 @@ import {
   CalendarCheck,
   DollarSign,
   ArrowRight,
+  Upload,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +50,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePrompts } from "@/hooks/usePrompts";
+import { useImportOutboundLeads } from "@/hooks/useOutboundLeads";
+import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/outbound-leads"
@@ -121,13 +125,13 @@ async function fetchOutboundLeads(params: {
   searchParams.append("page", String(params.page));
   searchParams.append("limit", String(params.limit));
 
-  const response = await fetch(`${API_URL}?${searchParams.toString()}`);
+  const response = await fetchWithAuth(`${API_URL}?${searchParams.toString()}`);
   if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
   return response.json();
 }
 
 async function fetchFunnelStats(): Promise<FunnelStats> {
-  const response = await fetch(`${API_URL}/stats`);
+  const response = await fetchWithAuth(`${API_URL}/stats`);
   if (!response.ok) throw new Error(`Failed to fetch stats: ${response.status}`);
   return response.json();
 }
@@ -136,7 +140,7 @@ async function patchOutboundLead(
   id: string,
   body: Record<string, unknown>
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -160,7 +164,7 @@ export default function OutboundLeads() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data: promptOptions = [] } = usePrompts(user?.account_id);
+  const { data: promptOptions = [] } = usePrompts();
 
   const [source, setSource] = useState(searchParams.get("source") || "all");
   const [qualified, setQualified] = useState(searchParams.get("qualified") || "all");
@@ -173,6 +177,31 @@ export default function OutboundLeads() {
     parseInt(searchParams.get("page") || "1", 10)
   );
   const limit = 20;
+
+  // Import XLSX state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const importMutation = useImportOutboundLeads();
+
+  const handleImport = async () => {
+    if (!selectedFile) return;
+    try {
+      const result = await importMutation.mutateAsync(selectedFile);
+      toast({
+        title: "Import complete",
+        description: `${result.imported} imported, ${result.skipped} skipped out of ${result.total} rows`,
+      });
+      setImportDialogOpen(false);
+      setSelectedFile(null);
+    } catch (err) {
+      toast({
+        title: "Import failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
 
   // DM dialog state
   const [editingLead, setEditingLead] = useState<OutboundLead | null>(null);
@@ -232,7 +261,7 @@ export default function OutboundLeads() {
 
   const { data: funnelStats } = useQuery({
     queryKey: ["outbound-leads-stats"],
-    queryFn: fetchFunnelStats,
+    queryFn: () => fetchFunnelStats(),
     staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
   });
@@ -348,13 +377,24 @@ export default function OutboundLeads() {
       {/* Sticky header with filters */}
       <div className="sticky top-16 z-50 bg-[#0b0b0b] border-b border-white/10">
         <div className="px-6 py-4 flex items-end justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">
-              Outbound Leads
-            </h2>
-            <p className="text-muted-foreground">
-              IG profiles from scraper uploads
-            </p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">
+                Outbound Leads
+              </h2>
+              <p className="text-muted-foreground">
+                IG profiles from scraper uploads
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-2"
+              onClick={() => setImportDialogOpen(true)}
+            >
+              <Upload className="h-4 w-4 mr-1.5" />
+              Import XLSX
+            </Button>
           </div>
 
           <div className="flex gap-4 items-end">
@@ -717,6 +757,81 @@ export default function OutboundLeads() {
               </Button>
               <Button onClick={saveDm} disabled={isSavingDm}>
                 {isSavingDm ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import XLSX Dialog */}
+      <Dialog
+        open={importDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedFile(null);
+          }
+          setImportDialogOpen(open);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Outbound Leads from XLSX</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">
+              Upload an XLSX file with columns: Username, Full name, Profile link, Is verified, Followers count, Biography, Posts count, External url, Email, Source, Scrape Date, IG, Qualified, Messaged?, DM Date, Message
+            </p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setSelectedFile(file);
+                e.target.value = "";
+              }}
+            />
+
+            <div
+              className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-white/10 p-8 cursor-pointer hover:border-white/20 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {selectedFile ? (
+                <>
+                  <FileSpreadsheet className="h-8 w-8 text-green-400" />
+                  <p className="text-sm font-medium">{selectedFile.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(selectedFile.size / 1024).toFixed(1)} KB — Click to change
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Click to select an XLSX file
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setImportDialogOpen(false);
+                  setSelectedFile(null);
+                }}
+                disabled={importMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleImport}
+                disabled={!selectedFile || importMutation.isPending}
+              >
+                {importMutation.isPending ? "Importing..." : "Import"}
               </Button>
             </div>
           </div>

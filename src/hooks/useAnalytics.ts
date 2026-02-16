@@ -10,13 +10,13 @@ import {
   SourceFilter,
 } from "@/lib/types";
 import { RadarDataPoint } from "@/components/dashboard/LeadsRadarChart";
+import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/analytics"
   : "https://quddify-server.vercel.app/analytics";
 
 interface FetchAnalyticsParams {
-  ghlId?: string;
   startDate?: string;
   endDate?: string;
   source?: SourceFilter;
@@ -34,16 +34,11 @@ interface AnalyticsResponse {
 }
 
 async function fetchAnalytics({
-  ghlId,
   startDate,
   endDate,
   source,
 }: FetchAnalyticsParams = {}): Promise<AnalyticsResponse> {
   const params = new URLSearchParams();
-
-  if (ghlId) {
-    params.append("ghl", ghlId);
-  }
 
   if (startDate) {
     params.append("start_date", startDate);
@@ -58,7 +53,7 @@ async function fetchAnalytics({
   }
 
   const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL;
-  const response = await fetch(url);
+  const response = await fetchWithAuth(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch analytics: ${response.status}`);
@@ -70,9 +65,9 @@ async function fetchAnalytics({
 
 export function useAnalytics(params?: FetchAnalyticsParams) {
   return useQuery({
-    queryKey: ["analytics", params?.ghlId, params?.startDate, params?.endDate, params?.source],
+    queryKey: ["analytics", params?.startDate, params?.endDate, params?.source],
     queryFn: () => fetchAnalytics(params),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
 }

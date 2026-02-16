@@ -32,6 +32,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
+import { fetchWithAuth } from "@/lib/api";
 import {
   useSenderAccounts,
   useCreateSenderAccount,
@@ -40,7 +41,6 @@ import {
   type SenderAccount,
 } from "@/hooks/useSenderAccounts";
 import {
-  AlertCircle,
   Loader2,
   Plus,
   Pencil,
@@ -100,7 +100,7 @@ export default function Senders() {
   const [deletingSender, setDeletingSender] = useState<SenderAccount | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
 
-  const { data, isLoading } = useSenderAccounts(apiKey, {
+  const { data, isLoading } = useSenderAccounts({
     page: currentPage,
     limit,
     refetchInterval: 10_000,
@@ -109,9 +109,9 @@ export default function Senders() {
   const senders = data?.senders ?? [];
   const pagination = data?.pagination;
 
-  const createMutation = useCreateSenderAccount(apiKey);
-  const updateMutation = useUpdateSenderAccount(apiKey);
-  const deleteMutation = useDeleteSenderAccount(apiKey);
+  const createMutation = useCreateSenderAccount();
+  const updateMutation = useUpdateSenderAccount();
+  const deleteMutation = useDeleteSenderAccount();
 
   // Socket listeners
   useEffect(() => {
@@ -201,7 +201,7 @@ export default function Senders() {
     if (!user?.id) return;
     setGeneratingKey(true);
     try {
-      const res = await fetch(`${ACCOUNTS_URL}/${user.id}/api-key`, {
+      const res = await fetchWithAuth(`${ACCOUNTS_URL}/${user.id}/api-key`, {
         method: "POST",
       });
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -219,28 +219,6 @@ export default function Senders() {
     }
   };
 
-  if (!apiKey) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-        <AlertCircle className="h-12 w-12 text-muted-foreground" />
-        <h2 className="text-lg font-semibold">No API Key Found</h2>
-        <p className="text-muted-foreground max-w-md">
-          Your account does not have an API key configured. Generate one so the Chrome extension can connect.
-        </p>
-        <Button onClick={generateApiKey} disabled={generatingKey}>
-          {generatingKey ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            "Generate API Key"
-          )}
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-1 flex-col">
       {/* Header */}
@@ -249,20 +227,39 @@ export default function Senders() {
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-2xl font-bold tracking-tight">Browsers</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs text-muted-foreground h-7 px-2"
-                onClick={() => {
-                  navigator.clipboard.writeText(apiKey);
-                  setCopied(true);
-                  toast({ title: "Copied", description: "API key copied to clipboard" });
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-              >
-                {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                {copied ? "Copied" : "Copy API Key"}
-              </Button>
+              {apiKey ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground h-7 px-2"
+                  onClick={() => {
+                    navigator.clipboard.writeText(apiKey);
+                    setCopied(true);
+                    toast({ title: "Copied", description: "API key copied to clipboard" });
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                >
+                  {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                  {copied ? "Copied" : "Copy API Key"}
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground h-7 px-2"
+                  onClick={generateApiKey}
+                  disabled={generatingKey}
+                >
+                  {generatingKey ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    "Generate API Key"
+                  )}
+                </Button>
+              )}
             </div>
             <p className="text-muted-foreground">Connected Instagram accounts for sending DMs</p>
           </div>

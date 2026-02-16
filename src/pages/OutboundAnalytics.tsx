@@ -57,8 +57,6 @@ function pct(a: number, b: number) {
 
 export default function OutboundAnalytics() {
   const { user } = useAuth();
-  const apiKey = user?.api_key;
-
   const [dateRange, setDateRange] = useState<DateRangeFilter>("all");
   const [campaignId, setCampaignId] = useState<string>("all");
 
@@ -77,7 +75,7 @@ export default function OutboundAnalytics() {
   const cid = campaignId === "all" ? undefined : campaignId;
 
   // Campaigns for filter dropdown
-  const { data: campaignsData } = useCampaigns(apiKey, { limit: 100 });
+  const { data: campaignsData } = useCampaigns({ limit: 100 });
   const campaigns = campaignsData?.campaigns || [];
 
   // Analytics queries

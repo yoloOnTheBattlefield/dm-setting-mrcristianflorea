@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/analytics"
@@ -64,7 +65,7 @@ export function useOutboundFunnel(params?: {
       if (params?.end_date) sp.append("end_date", params.end_date);
       if (params?.campaign_id) sp.append("campaign_id", params.campaign_id);
       const url = sp.toString() ? `${API_URL}/outbound?${sp.toString()}` : `${API_URL}/outbound`;
-      const res = await fetch(url);
+      const res = await fetchWithAuth(url);
       if (!res.ok) throw new Error(`Failed to fetch outbound analytics: ${res.status}`);
       return res.json();
     },
@@ -80,7 +81,7 @@ export function useMessageAnalytics(params?: { campaign_id?: string }) {
       const sp = new URLSearchParams();
       if (params?.campaign_id) sp.append("campaign_id", params.campaign_id);
       const url = sp.toString() ? `${API_URL}/messages?${sp.toString()}` : `${API_URL}/messages`;
-      const res = await fetch(url);
+      const res = await fetchWithAuth(url);
       if (!res.ok) throw new Error(`Failed to fetch message analytics: ${res.status}`);
       return res.json();
     },
@@ -96,7 +97,7 @@ export function useSenderAnalytics(params?: { campaign_id?: string }) {
       const sp = new URLSearchParams();
       if (params?.campaign_id) sp.append("campaign_id", params.campaign_id);
       const url = sp.toString() ? `${API_URL}/senders?${sp.toString()}` : `${API_URL}/senders`;
-      const res = await fetch(url);
+      const res = await fetchWithAuth(url);
       if (!res.ok) throw new Error(`Failed to fetch sender analytics: ${res.status}`);
       return res.json();
     },
@@ -109,7 +110,7 @@ export function useCampaignAnalytics() {
   return useQuery({
     queryKey: ["analytics-campaigns"],
     queryFn: async (): Promise<{ campaigns: CampaignPerformance[] }> => {
-      const res = await fetch(`${API_URL}/campaigns`);
+      const res = await fetchWithAuth(`${API_URL}/campaigns`);
       if (!res.ok) throw new Error(`Failed to fetch campaign analytics: ${res.status}`);
       return res.json();
     },

@@ -68,14 +68,12 @@ function formatDate(dateStr: string) {
 }
 
 interface CampaignListProps {
-  apiKey: string;
   senders: SenderAccount[];
   onCreateCampaign: () => void;
   onEditCampaign: (campaign: Campaign) => void;
 }
 
 export default function CampaignList({
-  apiKey,
   senders,
   onCreateCampaign,
   onEditCampaign,
@@ -87,15 +85,15 @@ export default function CampaignList({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const limit = 20;
 
-  const { data, isLoading, isError, error, refetch } = useCampaigns(apiKey, {
+  const { data, isLoading, isError, error, refetch } = useCampaigns({
     status: statusFilter === "all" ? undefined : statusFilter,
     page: currentPage,
     limit,
   });
 
-  const deleteMutation = useDeleteCampaign(apiKey);
-  const startMutation = useStartCampaign(apiKey);
-  const pauseMutation = usePauseCampaign(apiKey);
+  const deleteMutation = useDeleteCampaign();
+  const startMutation = useStartCampaign();
+  const pauseMutation = usePauseCampaign();
 
   const campaigns = data?.campaigns || [];
   const pagination = data?.pagination;

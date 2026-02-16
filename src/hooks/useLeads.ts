@@ -1,22 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { ApiLead, Contact, transformApiLead } from "@/lib/types";
+import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/leads"
   : "https://quddify-server.vercel.app/leads";
 
 interface FetchLeadsParams {
-  ghlId?: string;
   startDate?: string;
   endDate?: string;
 }
 
-async function fetchLeads({ ghlId, startDate, endDate }: FetchLeadsParams = {}): Promise<Contact[]> {
+async function fetchLeads({ startDate, endDate }: FetchLeadsParams = {}): Promise<Contact[]> {
   const params = new URLSearchParams();
-
-  if (ghlId) {
-    params.append("ghl", ghlId);
-  }
 
   if (startDate) {
     params.append("start_date", startDate);
@@ -27,7 +23,7 @@ async function fetchLeads({ ghlId, startDate, endDate }: FetchLeadsParams = {}):
   }
 
   const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL;
-  const response = await fetch(url);
+  const response = await fetchWithAuth(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch leads: ${response.status}`);
@@ -39,9 +35,9 @@ async function fetchLeads({ ghlId, startDate, endDate }: FetchLeadsParams = {}):
 
 export function useLeads(params?: FetchLeadsParams) {
   return useQuery({
-    queryKey: ["leads", params?.ghlId, params?.startDate, params?.endDate],
+    queryKey: ["leads", params?.startDate, params?.endDate],
     queryFn: () => fetchLeads(params),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
 }

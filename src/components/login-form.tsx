@@ -56,6 +56,7 @@ export function LoginForm({
           data.role,
           data.api_key,
           data.has_outbound,
+          data.token,
         );
         toast({
           title: "Login successful",

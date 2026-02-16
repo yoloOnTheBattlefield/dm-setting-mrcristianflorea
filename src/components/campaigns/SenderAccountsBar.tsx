@@ -30,16 +30,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Settings2, Plus, Trash2, Wifi, WifiOff } from "lucide-react";
 
-interface SenderAccountsBarProps {
-  apiKey: string;
-}
-
-export default function SenderAccountsBar({ apiKey }: SenderAccountsBarProps) {
-  const { data, isLoading } = useSenderAccounts(apiKey);
+export default function SenderAccountsBar() {
+  const { data, isLoading } = useSenderAccounts();
   const senders = data?.senders ?? [];
-  const createMutation = useCreateSenderAccount(apiKey);
-  const updateMutation = useUpdateSenderAccount(apiKey);
-  const deleteMutation = useDeleteSenderAccount(apiKey);
+  const createMutation = useCreateSenderAccount();
+  const updateMutation = useUpdateSenderAccount();
+  const deleteMutation = useDeleteSenderAccount();
   const { toast } = useToast();
 
   // Add account dialog

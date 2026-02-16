@@ -18,7 +18,9 @@ import OutboundLeads from "./pages/OutboundLeads";
 import Prompts from "./pages/Prompts";
 import Campaigns from "./pages/Campaigns";
 import CampaignDetail from "./components/campaigns/CampaignDetail";
+import CampaignAddLeads from "./pages/CampaignAddLeads";
 import Senders from "./pages/Senders";
+import OutboundAccounts from "./pages/OutboundAccounts";
 import OutboundAnalytics from "./pages/OutboundAnalytics";
 import { LoginForm } from "@/components/login-form";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -130,6 +132,13 @@ const App = () => (
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/outbound-accounts" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <OutboundAccounts />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/analytics/outbound" element={
                 <ProtectedRoute>
                   <DashboardLayout>
@@ -141,6 +150,13 @@ const App = () => (
                 <ProtectedRoute>
                   <DashboardLayout>
                     <Campaigns />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/campaigns/:id/add-leads" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <CampaignAddLeads />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />

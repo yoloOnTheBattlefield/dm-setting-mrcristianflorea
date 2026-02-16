@@ -59,7 +59,6 @@ export default function Prompts() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const accountId = user?.account_id;
 
   // Admin guard
   useEffect(() => {
@@ -77,10 +76,10 @@ export default function Prompts() {
     filters: { ...DEFAULT_FILTERS },
   });
 
-  const { data: prompts = [], isLoading } = usePrompts(accountId);
+  const { data: prompts = [], isLoading } = usePrompts();
   const createMutation = useCreatePrompt();
-  const updateMutation = useUpdatePrompt(accountId);
-  const deleteMutation = useDeletePrompt(accountId);
+  const updateMutation = useUpdatePrompt();
+  const deleteMutation = useDeletePrompt();
 
   const emptyForm = { label: "", promptText: "", isDefault: false, filters: { ...DEFAULT_FILTERS } };
 
@@ -106,10 +105,6 @@ export default function Prompts() {
   };
 
   const handleSubmit = async () => {
-    if (!accountId) {
-      toast({ title: "Error", description: "Account ID not found. Try logging out and back in.", variant: "destructive" });
-      return;
-    }
     try {
       const { filters, ...rest } = formData;
       if (editingPrompt) {
@@ -120,7 +115,6 @@ export default function Prompts() {
         toast({ title: "Success", description: "Prompt updated" });
       } else {
         await createMutation.mutateAsync({
-          account_id: accountId,
           ...rest,
           filters,
         });

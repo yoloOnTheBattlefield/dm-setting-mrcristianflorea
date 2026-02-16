@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/accounts"
@@ -15,7 +16,7 @@ interface Account {
 }
 
 async function fetchAccounts(): Promise<Account[]> {
-  const response = await fetch(API_URL);
+  const response = await fetchWithAuth(API_URL);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch accounts: ${response.status}`);
@@ -29,7 +30,7 @@ export function useAccounts() {
   return useQuery({
     queryKey: ["accounts"],
     queryFn: fetchAccounts,
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
   });
 }

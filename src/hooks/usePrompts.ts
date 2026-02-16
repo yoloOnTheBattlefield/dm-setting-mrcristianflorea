@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/prompts"
@@ -32,7 +33,6 @@ export interface Prompt {
 }
 
 interface CreatePromptBody {
-  account_id: string;
   label: string;
   promptText: string;
   isDefault?: boolean;
@@ -46,8 +46,8 @@ interface UpdatePromptBody {
   filters?: Partial<PromptFilters>;
 }
 
-async function fetchPrompts(accountId: string): Promise<Prompt[]> {
-  const response = await fetch(`${API_URL}?account_id=${accountId}`);
+async function fetchPrompts(): Promise<Prompt[]> {
+  const response = await fetchWithAuth(API_URL);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch prompts: ${response.status}`);
@@ -59,7 +59,7 @@ async function fetchPrompts(accountId: string): Promise<Prompt[]> {
 }
 
 async function createPrompt(body: CreatePromptBody): Promise<Prompt> {
-  const response = await fetch(API_URL, {
+  const response = await fetchWithAuth(API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -74,7 +74,7 @@ async function createPrompt(body: CreatePromptBody): Promise<Prompt> {
 }
 
 async function updatePrompt({ id, body }: { id: string; body: UpdatePromptBody }): Promise<Prompt> {
-  const response = await fetch(`${API_URL}/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -89,7 +89,7 @@ async function updatePrompt({ id, body }: { id: string; body: UpdatePromptBody }
 }
 
 async function deletePrompt(id: string): Promise<void> {
-  const response = await fetch(`${API_URL}/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/${id}`, {
     method: "DELETE",
   });
 
@@ -99,11 +99,10 @@ async function deletePrompt(id: string): Promise<void> {
   }
 }
 
-export function usePrompts(accountId: string | undefined) {
+export function usePrompts() {
   return useQuery({
-    queryKey: ["prompts", accountId],
-    queryFn: () => fetchPrompts(accountId!),
-    enabled: !!accountId,
+    queryKey: ["prompts"],
+    queryFn: () => fetchPrompts(),
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
@@ -114,30 +113,30 @@ export function useCreatePrompt() {
 
   return useMutation({
     mutationFn: createPrompt,
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["prompts", variables.account_id] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prompts"] });
     },
   });
 }
 
-export function useUpdatePrompt(accountId: string | undefined) {
+export function useUpdatePrompt() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: updatePrompt,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["prompts", accountId] });
+      queryClient.invalidateQueries({ queryKey: ["prompts"] });
     },
   });
 }
 
-export function useDeletePrompt(accountId: string | undefined) {
+export function useDeletePrompt() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: deletePrompt,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["prompts", accountId] });
+      queryClient.invalidateQueries({ queryKey: ["prompts"] });
     },
   });
 }

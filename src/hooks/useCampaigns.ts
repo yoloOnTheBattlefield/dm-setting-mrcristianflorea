@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/api/campaigns"
@@ -69,17 +70,9 @@ interface CampaignLeadsResponse {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
-function authHeaders(apiKey: string) {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-  };
-}
-
 // --- Queries ---
 
 export function useCampaigns(
-  apiKey: string | undefined,
   params: { status?: string; page?: number; limit?: number }
 ) {
   return useQuery({
@@ -89,39 +82,38 @@ export function useCampaigns(
       if (params.status) sp.append("status", params.status);
       if (params.page) sp.append("page", String(params.page));
       if (params.limit) sp.append("limit", String(params.limit));
-      const res = await fetch(`${API_URL}?${sp.toString()}`, { headers: authHeaders(apiKey!) });
+      const res = await fetchWithAuth(`${API_URL}?${sp.toString()}`);
       if (!res.ok) throw new Error(`Failed to fetch campaigns: ${res.status}`);
       return res.json();
     },
-    enabled: !!apiKey,
     staleTime: 1000 * 30,
     refetchOnWindowFocus: false,
   });
 }
 
-export function useCampaign(apiKey: string | undefined, campaignId: string | null) {
+export function useCampaign(campaignId: string | null) {
   return useQuery({
     queryKey: ["campaign", campaignId],
     queryFn: async (): Promise<Campaign> => {
-      const res = await fetch(`${API_URL}/${campaignId}`, { headers: authHeaders(apiKey!) });
+      const res = await fetchWithAuth(`${API_URL}/${campaignId}`);
       if (!res.ok) throw new Error(`Failed to fetch campaign: ${res.status}`);
       return res.json();
     },
-    enabled: !!apiKey && !!campaignId,
+    enabled: !!campaignId,
     staleTime: 1000 * 10,
     refetchOnWindowFocus: false,
   });
 }
 
-export function useCampaignStats(apiKey: string | undefined, campaignId: string | null) {
+export function useCampaignStats(campaignId: string | null) {
   return useQuery({
     queryKey: ["campaign-stats", campaignId],
     queryFn: async (): Promise<CampaignStats> => {
-      const res = await fetch(`${API_URL}/${campaignId}/stats`, { headers: authHeaders(apiKey!) });
+      const res = await fetchWithAuth(`${API_URL}/${campaignId}/stats`);
       if (!res.ok) throw new Error(`Failed to fetch stats: ${res.status}`);
       return res.json();
     },
-    enabled: !!apiKey && !!campaignId,
+    enabled: !!campaignId,
     refetchInterval: 10_000,
     staleTime: 1000 * 5,
     refetchOnWindowFocus: false,
@@ -129,7 +121,6 @@ export function useCampaignStats(apiKey: string | undefined, campaignId: string 
 }
 
 export function useCampaignLeads(
-  apiKey: string | undefined,
   campaignId: string | null,
   params: { status?: string; page?: number; limit?: number }
 ) {
@@ -140,11 +131,11 @@ export function useCampaignLeads(
       if (params.status) sp.append("status", params.status);
       if (params.page) sp.append("page", String(params.page));
       if (params.limit) sp.append("limit", String(params.limit));
-      const res = await fetch(`${API_URL}/${campaignId}/leads?${sp.toString()}`, { headers: authHeaders(apiKey!) });
+      const res = await fetchWithAuth(`${API_URL}/${campaignId}/leads?${sp.toString()}`);
       if (!res.ok) throw new Error(`Failed to fetch leads: ${res.status}`);
       return res.json();
     },
-    enabled: !!apiKey && !!campaignId,
+    enabled: !!campaignId,
     staleTime: 1000 * 15,
     refetchOnWindowFocus: false,
   });
@@ -152,7 +143,7 @@ export function useCampaignLeads(
 
 // --- Mutations ---
 
-export function useCreateCampaign(apiKey: string | undefined) {
+export function useCreateCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: {
@@ -162,9 +153,9 @@ export function useCreateCampaign(apiKey: string | undefined) {
       schedule?: Partial<CampaignSchedule>;
       daily_limit_per_sender?: number;
     }) => {
-      const res = await fetch(API_URL, {
+      const res = await fetchWithAuth(API_URL, {
         method: "POST",
-        headers: authHeaders(apiKey!),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       if (!res.ok) {
@@ -177,7 +168,7 @@ export function useCreateCampaign(apiKey: string | undefined) {
   });
 }
 
-export function useUpdateCampaign(apiKey: string | undefined) {
+export function useUpdateCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, body }: {
@@ -190,9 +181,9 @@ export function useUpdateCampaign(apiKey: string | undefined) {
         daily_limit_per_sender?: number;
       };
     }) => {
-      const res = await fetch(`${API_URL}/${id}`, {
+      const res = await fetchWithAuth(`${API_URL}/${id}`, {
         method: "PATCH",
-        headers: authHeaders(apiKey!),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       if (!res.ok) {
@@ -208,13 +199,12 @@ export function useUpdateCampaign(apiKey: string | undefined) {
   });
 }
 
-export function useDeleteCampaign(apiKey: string | undefined) {
+export function useDeleteCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${API_URL}/${id}`, {
+      const res = await fetchWithAuth(`${API_URL}/${id}`, {
         method: "DELETE",
-        headers: authHeaders(apiKey!),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -226,13 +216,13 @@ export function useDeleteCampaign(apiKey: string | undefined) {
   });
 }
 
-export function useStartCampaign(apiKey: string | undefined) {
+export function useStartCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${API_URL}/${id}/start`, {
+      const res = await fetchWithAuth(`${API_URL}/${id}/start`, {
         method: "POST",
-        headers: authHeaders(apiKey!),
+        headers: { "Content-Type": "application/json" },
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -247,13 +237,13 @@ export function useStartCampaign(apiKey: string | undefined) {
   });
 }
 
-export function usePauseCampaign(apiKey: string | undefined) {
+export function usePauseCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${API_URL}/${id}/pause`, {
+      const res = await fetchWithAuth(`${API_URL}/${id}/pause`, {
         method: "POST",
-        headers: authHeaders(apiKey!),
+        headers: { "Content-Type": "application/json" },
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -268,13 +258,13 @@ export function usePauseCampaign(apiKey: string | undefined) {
   });
 }
 
-export function useAddCampaignLeads(apiKey: string | undefined) {
+export function useAddCampaignLeads() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ campaignId, lead_ids }: { campaignId: string; lead_ids: string[] }) => {
-      const res = await fetch(`${API_URL}/${campaignId}/leads`, {
+      const res = await fetchWithAuth(`${API_URL}/${campaignId}/leads`, {
         method: "POST",
-        headers: authHeaders(apiKey!),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lead_ids }),
       });
       if (!res.ok) {
@@ -292,13 +282,12 @@ export function useAddCampaignLeads(apiKey: string | undefined) {
   });
 }
 
-export function useRemoveCampaignLeads(apiKey: string | undefined) {
+export function useRemoveCampaignLeads() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (campaignId: string) => {
-      const res = await fetch(`${API_URL}/${campaignId}/leads`, {
+      const res = await fetchWithAuth(`${API_URL}/${campaignId}/leads`, {
         method: "DELETE",
-        headers: authHeaders(apiKey!),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));

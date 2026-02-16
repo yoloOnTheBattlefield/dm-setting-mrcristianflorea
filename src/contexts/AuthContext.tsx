@@ -17,7 +17,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   user: User | null
   loading: boolean
-  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean) => void
+  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string) => void
   updateUser: (updates: Partial<User>) => void
   logout: () => void
 }
@@ -34,14 +34,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const authStatus = localStorage.getItem("isAuthenticated")
     const userDataString = localStorage.getItem("user")
 
-    if (authStatus === "true" && userDataString) {
+    const token = localStorage.getItem("token")
+    if (authStatus === "true" && userDataString && token) {
       setIsAuthenticated(true)
       setUser(JSON.parse(userDataString))
     }
     setLoading(false)
   }, [])
 
-  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean) => {
+  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string) => {
     const fullName = firstName && lastName
       ? `${firstName} ${lastName}`
       : firstName || email.split('@')[0]
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     localStorage.setItem("isAuthenticated", "true")
     localStorage.setItem("user", JSON.stringify(userData))
+    if (token) localStorage.setItem("token", token)
     setIsAuthenticated(true)
     setUser(userData)
   }
@@ -80,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem("isAuthenticated")
     localStorage.removeItem("user")
+    localStorage.removeItem("token")
     setIsAuthenticated(false)
     setUser(null)
   }

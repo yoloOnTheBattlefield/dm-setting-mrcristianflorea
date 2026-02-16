@@ -43,7 +43,6 @@ interface CampaignCreateEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campaign: Campaign | null;
-  apiKey: string;
   senders: SenderAccount[];
 }
 
@@ -75,12 +74,11 @@ export default function CampaignCreateEditDialog({
   open,
   onOpenChange,
   campaign,
-  apiKey,
   senders,
 }: CampaignCreateEditDialogProps) {
   const { toast } = useToast();
-  const createMutation = useCreateCampaign(apiKey);
-  const updateMutation = useUpdateCampaign(apiKey);
+  const createMutation = useCreateCampaign();
+  const updateMutation = useUpdateCampaign();
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
 
   const isEdit = !!campaign;

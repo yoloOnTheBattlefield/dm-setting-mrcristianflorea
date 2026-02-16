@@ -60,20 +60,6 @@ export default function AllContacts() {
     parseInt(searchParams.get("limit") || "20", 10)
   );
 
-  // Determine which ghl to use for filtering
-  const ghlId = useMemo(() => {
-    // If user is not admin, use their ghl
-    if (user?.role !== 0) {
-      return user?.ghl;
-    }
-    // If admin and has selected an account, use that account's ghl
-    if (selectedAccount !== "all") {
-      return selectedAccount;
-    }
-    // If admin and "all" is selected, don't filter by ghl
-    return undefined;
-  }, [user?.role, user?.ghl, selectedAccount]);
-
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -99,7 +85,7 @@ export default function AllContacts() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [ghlId, selectedStatuses, startDate, endDate, debouncedSearchQuery]);
+  }, [selectedStatuses, startDate, endDate, debouncedSearchQuery]);
 
   // Update URL params when state changes
   useEffect(() => {
@@ -139,7 +125,6 @@ export default function AllContacts() {
     error,
     refetch,
   } = useRawLeads({
-    ghlId,
     statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
     startDate,
     endDate,

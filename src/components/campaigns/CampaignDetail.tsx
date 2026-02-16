@@ -31,7 +31,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 import {
   useCampaign,
   useCampaignStats,
@@ -55,7 +54,6 @@ import {
   ChevronRight,
   ListTodo,
 } from "lucide-react";
-import LeadPickerDialog from "./LeadPickerDialog";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   draft: { label: "Draft", className: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
@@ -84,22 +82,19 @@ function formatDate(dateStr: string) {
 export default function CampaignDetail() {
   const { id: campaignId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const apiKey = user?.api_key;
   const { toast } = useToast();
 
-  const { data: campaign, isLoading: campaignLoading } = useCampaign(apiKey, campaignId ?? null);
-  const { data: stats } = useCampaignStats(apiKey, campaignId ?? null);
-  const startMutation = useStartCampaign(apiKey);
-  const pauseMutation = usePauseCampaign(apiKey);
-  const removeMutation = useRemoveCampaignLeads(apiKey);
+  const { data: campaign, isLoading: campaignLoading } = useCampaign(campaignId ?? null);
+  const { data: stats } = useCampaignStats(campaignId ?? null);
+  const startMutation = useStartCampaign();
+  const pauseMutation = usePauseCampaign();
+  const removeMutation = useRemoveCampaignLeads();
 
   const [leadStatusFilter, setLeadStatusFilter] = useState("all");
   const [leadPage, setLeadPage] = useState(1);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
-  const { data: leadsData, isLoading: leadsLoading } = useCampaignLeads(apiKey, campaignId ?? null, {
+  const { data: leadsData, isLoading: leadsLoading } = useCampaignLeads(campaignId ?? null, {
     status: leadStatusFilter === "all" ? undefined : leadStatusFilter,
     page: leadPage,
     limit: 50,
@@ -243,7 +238,7 @@ export default function CampaignDetail() {
                 Remove Pending
               </Button>
             )}
-            <Button size="sm" onClick={() => setPickerOpen(true)}>
+            <Button size="sm" onClick={() => navigate(`/campaigns/${campaignId}/add-leads`)}>
               <Plus className="h-3.5 w-3.5 mr-1" />
               Add Leads
             </Button>
@@ -354,14 +349,6 @@ export default function CampaignDetail() {
           </div>
         )}
       </div>
-
-      {/* Lead Picker */}
-      <LeadPickerDialog
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        campaignId={campaign._id}
-        apiKey={apiKey}
-      />
 
       {/* Remove Pending Confirm */}
       <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>

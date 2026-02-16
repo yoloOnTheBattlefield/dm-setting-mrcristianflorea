@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
+import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/leads"
   : "https://quddify-server.vercel.app/leads";
 
 interface FetchLeadsParams {
-  ghlId?: string;
   statuses?: string[];
   startDate?: string;
   endDate?: string;
@@ -28,7 +28,6 @@ interface LeadsResponse {
 }
 
 async function fetchRawLeads({
-  ghlId,
   statuses,
   startDate,
   endDate,
@@ -37,10 +36,6 @@ async function fetchRawLeads({
   limit = 20,
 }: FetchLeadsParams = {}): Promise<LeadsResponse> {
   const params = new URLSearchParams();
-
-  if (ghlId) {
-    params.append("ghl", ghlId);
-  }
 
   if (statuses && statuses.length > 0) {
     statuses.forEach((status) => params.append("status", status));
@@ -60,10 +55,9 @@ async function fetchRawLeads({
 
   params.append("page", page.toString());
   params.append("limit", limit.toString());
-  console.log("params", params.toString());
 
   const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL;
-  const response = await fetch(url);
+  const response = await fetchWithAuth(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch leads: ${response.status}`);
@@ -77,7 +71,6 @@ export function useRawLeads(params?: FetchLeadsParams) {
   return useQuery({
     queryKey: [
       "rawLeads",
-      params?.ghlId,
       params?.statuses,
       params?.startDate,
       params?.endDate,
@@ -86,7 +79,7 @@ export function useRawLeads(params?: FetchLeadsParams) {
       params?.limit,
     ],
     queryFn: () => fetchRawLeads(params),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
 }

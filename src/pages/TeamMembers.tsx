@@ -47,8 +47,6 @@ export default function TeamMembers() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // account_id is the org ID — all roles get it from login
-  const accountId = user?.account_id;
   const canManage = user?.role === 0 || user?.role === 1;
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -59,18 +57,13 @@ export default function TeamMembers() {
     password: "",
   });
 
-  const { data: teamMembers = [], isLoading } = useTeamMembers(accountId);
+  const { data: teamMembers = [], isLoading } = useTeamMembers();
   const addMember = useAddTeamMember();
-  const deleteMember = useDeleteTeamMember(accountId);
+  const deleteMember = useDeleteTeamMember();
 
   const handleAddMember = async () => {
-    if (!accountId) {
-      toast({ title: "Error", description: "Account ID not found. Try logging out and back in.", variant: "destructive" });
-      return;
-    }
     try {
       await addMember.mutateAsync({
-        account_id: accountId,
         email: newMember.email,
         password: newMember.password,
         first_name: newMember.first_name,

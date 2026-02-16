@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAccounts } from "@/hooks/useAccounts";
+import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/accounts"
@@ -73,7 +74,7 @@ export default function UserSettings() {
 
     setIsGenerating(true);
     try {
-      const response = await fetch(LEADS_API_URL, {
+      const response = await fetchWithAuth(LEADS_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -118,7 +119,7 @@ export default function UserSettings() {
 
     setIsSaving(true);
     try {
-      const response = await fetch(`${API_URL}/${user.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -157,7 +158,7 @@ export default function UserSettings() {
 
     setIsChangingPassword(true);
     try {
-      const response = await fetch(`${API_URL}/${user.id}/password`, {
+      const response = await fetchWithAuth(`${API_URL}/${user.id}/password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

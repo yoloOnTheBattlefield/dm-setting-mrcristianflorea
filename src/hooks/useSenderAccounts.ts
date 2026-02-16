@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/api/sender-accounts"
@@ -23,15 +24,7 @@ interface SendersResponse {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
-function authHeaders(apiKey: string) {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-  };
-}
-
 export function useSenderAccounts(
-  apiKey: string | undefined,
   params?: { page?: number; limit?: number; refetchInterval?: number }
 ) {
   const page = params?.page;
@@ -43,26 +36,23 @@ export function useSenderAccounts(
       const sp = new URLSearchParams();
       if (page) sp.append("page", String(page));
       sp.append("limit", String(limit));
-      const res = await fetch(`${API_URL}?${sp.toString()}`, {
-        headers: authHeaders(apiKey!),
-      });
+      const res = await fetchWithAuth(`${API_URL}?${sp.toString()}`);
       if (!res.ok) throw new Error(`Failed to fetch senders: ${res.status}`);
       return res.json();
     },
-    enabled: !!apiKey,
     staleTime: 1000 * 10,
     refetchInterval: params?.refetchInterval,
     refetchOnWindowFocus: false,
   });
 }
 
-export function useUpdateSenderAccount(apiKey: string | undefined) {
+export function useUpdateSenderAccount() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: { display_name?: string; daily_limit?: number } }) => {
-      const res = await fetch(`${API_URL}/${id}`, {
+      const res = await fetchWithAuth(`${API_URL}/${id}`, {
         method: "PATCH",
-        headers: authHeaders(apiKey!),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
       if (!res.ok) {
@@ -77,13 +67,13 @@ export function useUpdateSenderAccount(apiKey: string | undefined) {
   });
 }
 
-export function useCreateSenderAccount(apiKey: string | undefined) {
+export function useCreateSenderAccount() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: { ig_username: string; display_name?: string; daily_limit?: number }) => {
-      const res = await fetch(API_URL, {
+      const res = await fetchWithAuth(API_URL, {
         method: "POST",
-        headers: authHeaders(apiKey!),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       if (!res.ok) {
@@ -98,13 +88,12 @@ export function useCreateSenderAccount(apiKey: string | undefined) {
   });
 }
 
-export function useDeleteSenderAccount(apiKey: string | undefined) {
+export function useDeleteSenderAccount() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${API_URL}/${id}`, {
+      const res = await fetchWithAuth(`${API_URL}/${id}`, {
         method: "DELETE",
-        headers: authHeaders(apiKey!),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

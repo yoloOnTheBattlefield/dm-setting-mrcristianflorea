@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/accounts/analytics"
@@ -36,7 +37,7 @@ async function fetchAccountsAnalytics({
   }
 
   const url = `${API_URL}${params.toString() ? `?${params.toString()}` : ""}`;
-  const response = await fetch(url);
+  const response = await fetchWithAuth(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch accounts analytics: ${response.status}`);
@@ -50,7 +51,7 @@ export function useAccountsAnalytics(params?: FetchAccountsAnalyticsParams) {
   return useQuery({
     queryKey: ["accountsAnalytics", params?.startDate, params?.endDate],
     queryFn: () => fetchAccountsAnalytics(params),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
 }

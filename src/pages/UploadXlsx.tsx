@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchWithAuth } from "@/lib/api";
 import { usePrompts } from "@/hooks/usePrompts";
 import { useJobs, useCancelJob } from "@/hooks/useJobs";
 import { useJobProgress } from "@/hooks/useJobProgress";
@@ -54,7 +55,6 @@ const FILE_STATUS_STYLES: Record<string, { label: string; className: string }> =
 export default function UploadXlsx() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const accountId = user?.account_id;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -62,8 +62,8 @@ export default function UploadXlsx() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [selectedPromptId, setSelectedPromptId] = useState<string>("none");
 
-  const { data: prompts = [] } = usePrompts(accountId);
-  const { data: jobsData } = useJobs(accountId);
+  const { data: prompts = [] } = usePrompts();
+  const { data: jobsData } = useJobs();
   const cancelJob = useCancelJob();
   const liveProgress = useJobProgress(activeJobId);
 
@@ -132,17 +132,16 @@ export default function UploadXlsx() {
   );
 
   const handleUpload = async () => {
-    if (files.length === 0 || !accountId) return;
+    if (files.length === 0) return;
     setIsSubmitting(true);
     try {
       const formData = new FormData();
       files.forEach((f) => formData.append("files", f));
-      formData.append("account_id", accountId);
       if (selectedPromptId !== "none") {
         formData.append("promptId", selectedPromptId);
       }
 
-      const response = await fetch(API_URL, {
+      const response = await fetchWithAuth(API_URL, {
         method: "POST",
         body: formData,
       });
