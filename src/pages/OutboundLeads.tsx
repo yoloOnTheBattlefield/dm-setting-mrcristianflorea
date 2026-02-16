@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import {
@@ -18,7 +18,7 @@ import {
   DollarSign,
   ArrowRight,
   Upload,
-  FileSpreadsheet,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +50,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePrompts } from "@/hooks/usePrompts";
-import { useImportOutboundLeads } from "@/hooks/useOutboundLeads";
 import { fetchWithAuth } from "@/lib/api";
 
 const API_URL = import.meta.env.DEV
@@ -151,6 +150,23 @@ async function patchOutboundLead(
   }
 }
 
+async function bulkDeleteLeads(body: {
+  ids?: string[];
+  all?: boolean;
+  filters?: Record<string, string>;
+}): Promise<{ deleted: number }> {
+  const response = await fetchWithAuth(`${API_URL}/bulk-delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to delete: ${response.status}`);
+  }
+  return response.json();
+}
+
 function formatNumber(n?: number): string {
   if (n == null) return "-";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -177,31 +193,18 @@ export default function OutboundLeads() {
     parseInt(searchParams.get("page") || "1", 10)
   );
   const limit = 20;
+  const navigate = useNavigate();
 
-  // Import XLSX state
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const importMutation = useImportOutboundLeads();
+  // Selection state (declarations only — callbacks defined after `leads`)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleImport = async () => {
-    if (!selectedFile) return;
-    try {
-      const result = await importMutation.mutateAsync(selectedFile);
-      toast({
-        title: "Import complete",
-        description: `${result.imported} imported, ${result.skipped} skipped out of ${result.total} rows`,
-      });
-      setImportDialogOpen(false);
-      setSelectedFile(null);
-    } catch (err) {
-      toast({
-        title: "Import failed",
-        description: err instanceof Error ? err.message : "Unknown error",
-        variant: "destructive",
-      });
-    }
-  };
+  // Clear selection on page/filter change
+  useEffect(() => {
+    setSelectedIds(new Set());
+    setSelectAll(false);
+  }, [currentPage, source, qualified, repliedFilter, bookedFilter, promptFilter, debouncedSearch]);
 
   // DM dialog state
   const [editingLead, setEditingLead] = useState<OutboundLead | null>(null);
@@ -268,6 +271,73 @@ export default function OutboundLeads() {
 
   const leads = data?.leads || [];
   const pagination = data?.pagination;
+
+  // Selection callbacks (must be after `leads` is defined)
+  const toggleSelectOne = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    setSelectAll(false);
+  }, []);
+
+  const toggleSelectPage = useCallback(() => {
+    if (!leads.length) return;
+    const allPageSelected = leads.every((l) => selectedIds.has(l._id));
+    if (allPageSelected) {
+      setSelectedIds(new Set());
+      setSelectAll(false);
+    } else {
+      setSelectedIds(new Set(leads.map((l) => l._id)));
+    }
+  }, [leads, selectedIds]);
+
+  const currentFilters = useCallback(() => {
+    const f: Record<string, string> = {};
+    if (source !== "all") f.source = source;
+    if (qualified !== "all") f.qualified = qualified;
+    if (repliedFilter !== "all") f.replied = repliedFilter;
+    if (bookedFilter !== "all") f.booked = bookedFilter;
+    if (promptFilter !== "all") f.promptLabel = promptFilter;
+    if (debouncedSearch) f.search = debouncedSearch;
+    return f;
+  }, [source, qualified, repliedFilter, bookedFilter, promptFilter, debouncedSearch]);
+
+  const handleBulkDelete = useCallback(async () => {
+    const count = selectAll ? (pagination?.total ?? 0) : selectedIds.size;
+    if (count === 0) return;
+
+    try {
+      setIsDeleting(true);
+      let result: { deleted: number };
+      if (selectAll) {
+        result = await bulkDeleteLeads({ all: true, filters: currentFilters() });
+      } else {
+        result = await bulkDeleteLeads({ ids: Array.from(selectedIds) });
+      }
+      toast({
+        title: "Deleted",
+        description: `${result.deleted} lead${result.deleted !== 1 ? "s" : ""} deleted`,
+      });
+      setSelectedIds(new Set());
+      setSelectAll(false);
+      queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to delete",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [selectAll, selectedIds, pagination, currentFilters, queryClient, toast]);
 
   const toggleMessaged = useCallback(
     async (lead: OutboundLead) => {
@@ -390,7 +460,7 @@ export default function OutboundLeads() {
               variant="outline"
               size="sm"
               className="ml-2"
-              onClick={() => setImportDialogOpen(true)}
+              onClick={() => navigate("/outbound-leads/import")}
             >
               <Upload className="h-4 w-4 mr-1.5" />
               Import XLSX
@@ -531,10 +601,61 @@ export default function OutboundLeads() {
           </div>
         ) : (
           <>
+            {/* Selection action bar */}
+            {(selectedIds.size > 0 || selectAll) && (
+              <div className="flex items-center gap-3 mb-3 px-3 py-2 rounded-lg bg-muted/50 border">
+                <span className="text-sm">
+                  {selectAll
+                    ? `All ${pagination?.total ?? 0} leads selected`
+                    : `${selectedIds.size} selected`}
+                </span>
+                {!selectAll && selectedIds.size === leads.length && pagination && pagination.total > leads.length && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-xs h-auto p-0"
+                    onClick={() => setSelectAll(true)}
+                  >
+                    Select all {pagination.total} matching leads
+                  </Button>
+                )}
+                {selectAll && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-xs h-auto p-0"
+                    onClick={() => {
+                      setSelectAll(false);
+                      setSelectedIds(new Set(leads.map((l) => l._id)));
+                    }}
+                  >
+                    Select this page only
+                  </Button>
+                )}
+                <div className="ml-auto">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1.5" />
+                    {isDeleting ? "Deleting..." : `Delete ${selectAll ? (pagination?.total ?? 0) : selectedIds.size}`}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="rounded-lg border bg-card">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={leads.length > 0 && (selectAll || leads.every((l) => selectedIds.has(l._id)))}
+                        onCheckedChange={toggleSelectPage}
+                      />
+                    </TableHead>
                     <TableHead>Username</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead className="text-right">Followers</TableHead>
@@ -551,13 +672,28 @@ export default function OutboundLeads() {
                 <TableBody>
                   {leads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="h-24 text-center">
+                      <TableCell colSpan={12} className="h-24 text-center">
                         No outbound leads found.
                       </TableCell>
                     </TableRow>
                   ) : (
                     leads.map((lead) => (
-                      <TableRow key={lead._id}>
+                      <TableRow key={lead._id} data-state={selectedIds.has(lead._id) || selectAll ? "selected" : undefined}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectAll || selectedIds.has(lead._id)}
+                            onCheckedChange={() => {
+                              if (selectAll) {
+                                setSelectAll(false);
+                                const next = new Set(leads.map((l) => l._id));
+                                next.delete(lead._id);
+                                setSelectedIds(next);
+                              } else {
+                                toggleSelectOne(lead._id);
+                              }
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">
                           <a
                             href={lead.profileLink || `https://instagram.com/${lead.username}`}
@@ -763,80 +899,6 @@ export default function OutboundLeads() {
         </DialogContent>
       </Dialog>
 
-      {/* Import XLSX Dialog */}
-      <Dialog
-        open={importDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedFile(null);
-          }
-          setImportDialogOpen(open);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Import Outbound Leads from XLSX</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <p className="text-sm text-muted-foreground">
-              Upload an XLSX file with columns: Username, Full name, Profile link, Is verified, Followers count, Biography, Posts count, External url, Email, Source, Scrape Date, IG, Qualified, Messaged?, DM Date, Message
-            </p>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setSelectedFile(file);
-                e.target.value = "";
-              }}
-            />
-
-            <div
-              className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-white/10 p-8 cursor-pointer hover:border-white/20 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {selectedFile ? (
-                <>
-                  <FileSpreadsheet className="h-8 w-8 text-green-400" />
-                  <p className="text-sm font-medium">{selectedFile.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(selectedFile.size / 1024).toFixed(1)} KB — Click to change
-                  </p>
-                </>
-              ) : (
-                <>
-                  <Upload className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Click to select an XLSX file
-                  </p>
-                </>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setImportDialogOpen(false);
-                  setSelectedFile(null);
-                }}
-                disabled={importMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleImport}
-                disabled={!selectedFile || importMutation.isPending}
-              >
-                {importMutation.isPending ? "Importing..." : "Import"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

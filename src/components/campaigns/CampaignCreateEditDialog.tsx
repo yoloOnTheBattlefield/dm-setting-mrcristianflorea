@@ -48,6 +48,7 @@ interface CampaignCreateEditDialogProps {
 
 interface FormData {
   name: string;
+  mode: "auto" | "manual";
   messages: string[];
   sender_ids: string[];
   active_hours_start: number;
@@ -60,6 +61,7 @@ interface FormData {
 
 const DEFAULT_FORM: FormData = {
   name: "",
+  mode: "auto",
   messages: [""],
   sender_ids: [],
   active_hours_start: 9,
@@ -88,6 +90,7 @@ export default function CampaignCreateEditDialog({
       if (campaign) {
         setForm({
           name: campaign.name,
+          mode: campaign.mode || "auto",
           messages: campaign.messages.length > 0 ? [...campaign.messages] : [""],
           sender_ids: [...campaign.sender_ids],
           active_hours_start: campaign.schedule.active_hours_start,
@@ -139,6 +142,7 @@ export default function CampaignCreateEditDialog({
 
     const body = {
       name: form.name.trim(),
+      mode: form.mode,
       messages: form.messages.filter((m) => m.trim()),
       sender_ids: form.sender_ids,
       schedule: {
@@ -190,11 +194,30 @@ export default function CampaignCreateEditDialog({
               />
             </div>
 
+            {/* Mode */}
+            <div className="space-y-1.5">
+              <Label>Sending Mode</Label>
+              <Select value={form.mode} onValueChange={(v: "auto" | "manual") => setForm((p) => ({ ...p, mode: v }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Automatic</SelectItem>
+                  <SelectItem value="manual">Manual (VA Mode)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {form.mode === "auto"
+                  ? "Messages are sent automatically by the scheduler."
+                  : "A VA sends messages manually via the Chrome extension; backend controls pacing, limits, and message rotation."}
+              </p>
+            </div>
+
             {/* Messages */}
             <div className="space-y-2">
               <Label>Message Templates</Label>
               <p className="text-xs text-muted-foreground">
-                Add multiple variants to rotate. Use {"{{username}}"} for the target handle.
+                Add multiple variants to rotate. Placeholders: {"{{username}}"}, {"{{firstName}}"}, {"{{name}}"}, {"{{bio}}"}
               </p>
               {form.messages.map((msg, i) => (
                 <div key={i} className="flex gap-2">

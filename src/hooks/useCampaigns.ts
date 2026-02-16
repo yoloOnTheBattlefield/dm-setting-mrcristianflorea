@@ -26,6 +26,7 @@ export interface Campaign {
   _id: string;
   account_id: string;
   name: string;
+  mode: "auto" | "manual";
   status: "draft" | "active" | "paused" | "completed";
   messages: string[];
   sender_ids: string[];
@@ -55,6 +56,7 @@ export interface CampaignLead {
   status: "pending" | "queued" | "sent" | "failed" | "skipped";
   sent_at: string | null;
   message_used: string | null;
+  template_index: number | null;
   task_id: string | null;
   error: string | null;
   createdAt: string;
@@ -148,6 +150,7 @@ export function useCreateCampaign() {
   return useMutation({
     mutationFn: async (body: {
       name: string;
+      mode?: "auto" | "manual";
       messages?: string[];
       sender_ids?: string[];
       schedule?: Partial<CampaignSchedule>;
@@ -175,6 +178,7 @@ export function useUpdateCampaign() {
       id: string;
       body: {
         name?: string;
+        mode?: "auto" | "manual";
         messages?: string[];
         sender_ids?: string[];
         schedule?: Partial<CampaignSchedule>;

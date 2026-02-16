@@ -181,6 +181,7 @@ export default function CampaignList({
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Mode</TableHead>
                   <TableHead>Senders</TableHead>
                   <TableHead>Progress</TableHead>
                   <TableHead>Created</TableHead>
@@ -190,7 +191,7 @@ export default function CampaignList({
               <TableBody>
                 {campaigns.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                       No campaigns found.
                     </TableCell>
                   </TableRow>
@@ -209,6 +210,11 @@ export default function CampaignList({
                         <TableCell className="font-medium">{c.name}</TableCell>
                         <TableCell>
                           <Badge className={badge.className}>{badge.label}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px] font-normal">
+                            {c.mode === "manual" ? "Manual" : "Auto"}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">

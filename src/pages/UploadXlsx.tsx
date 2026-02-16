@@ -11,6 +11,8 @@ import { usePrompts } from "@/hooks/usePrompts";
 import { useJobs, useCancelJob } from "@/hooks/useJobs";
 import { useJobProgress } from "@/hooks/useJobProgress";
 import JobCard from "@/components/JobCard";
+import ColumnMapper from "@/components/ColumnMapper";
+import { parseXlsxPreview, type ColumnMapping } from "@/lib/column-mapping";
 import {
   Select,
   SelectContent,
@@ -27,6 +29,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  ArrowRight,
 } from "lucide-react";
 
 const API_URL = import.meta.env.DEV
@@ -61,6 +64,10 @@ export default function UploadXlsx() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [selectedPromptId, setSelectedPromptId] = useState<string>("none");
+  const [uploadStep, setUploadStep] = useState<"select" | "mapping" | "uploading">("select");
+  const [xlsxHeaders, setXlsxHeaders] = useState<string[]>([]);
+  const [xlsxPreviewRows, setXlsxPreviewRows] = useState<Record<string, unknown>[]>([]);
+  const [isParsing, setIsParsing] = useState(false);
 
   const { data: prompts = [] } = usePrompts();
   const { data: jobsData } = useJobs();
@@ -131,14 +138,37 @@ export default function UploadXlsx() {
     [handleFiles],
   );
 
-  const handleUpload = async () => {
+  const handleNextToMapping = async () => {
+    if (files.length === 0) return;
+    setIsParsing(true);
+    try {
+      const { headers, previewRows } = await parseXlsxPreview(files[0]);
+      setXlsxHeaders(headers);
+      setXlsxPreviewRows(previewRows);
+      setUploadStep("mapping");
+    } catch (err) {
+      toast({
+        title: "Parse error",
+        description: err instanceof Error ? err.message : "Could not read file headers",
+        variant: "destructive",
+      });
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleUpload = async (mapping?: ColumnMapping) => {
     if (files.length === 0) return;
     setIsSubmitting(true);
+    setUploadStep("uploading");
     try {
       const formData = new FormData();
       files.forEach((f) => formData.append("files", f));
       if (selectedPromptId !== "none") {
         formData.append("promptId", selectedPromptId);
+      }
+      if (mapping) {
+        formData.append("columnMapping", JSON.stringify(mapping));
       }
 
       const response = await fetchWithAuth(API_URL, {
@@ -150,12 +180,15 @@ export default function UploadXlsx() {
         const data = await response.json();
         setActiveJobId(data.jobId);
         setFiles([]);
+        setUploadStep("select");
         toast({ title: "Job created", description: "Processing started. You can track progress below." });
       } else {
         const data = await response.json().catch(() => ({}));
+        setUploadStep("select");
         toast({ title: "Upload failed", description: data.error || `Server error: ${response.status}`, variant: "destructive" });
       }
     } catch {
+      setUploadStep("select");
       toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
@@ -202,7 +235,7 @@ export default function UploadXlsx() {
       </p>
 
       {/* Drop zone */}
-      <Card
+      {uploadStep === "select" && <Card
         className={`flex flex-col items-center justify-center border-2 border-dashed transition-colors cursor-pointer ${
           isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-muted-foreground/50"
         }`}
@@ -234,10 +267,10 @@ export default function UploadXlsx() {
             }}
           />
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Prompt selector */}
-      <div className="flex flex-col gap-2 max-w-sm">
+      {uploadStep === "select" && <div className="flex flex-col gap-2 max-w-sm">
         <Label>Classification Prompt (optional)</Label>
         <Select value={selectedPromptId} onValueChange={setSelectedPromptId}>
           <SelectTrigger>
@@ -252,10 +285,10 @@ export default function UploadXlsx() {
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </div>}
 
       {/* Selected files preview */}
-      {files.length > 0 && (
+      {uploadStep === "select" && files.length > 0 && (
         <Card>
           <CardContent className="py-4 space-y-3">
             {files.map((file, idx) => {
@@ -291,17 +324,40 @@ export default function UploadXlsx() {
               <Button variant="ghost" size="sm" onClick={() => setFiles([])} disabled={isSubmitting}>
                 Clear All
               </Button>
-              <Button size="sm" onClick={handleUpload} disabled={isSubmitting || !!showActiveJob}>
-                {isSubmitting ? (
+              <Button size="sm" onClick={handleNextToMapping} disabled={isParsing || isSubmitting || !!showActiveJob}>
+                {isParsing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                    Creating job...
+                    Reading headers...
                   </>
                 ) : (
-                  `Upload ${files.length} file(s)`
+                  <>
+                    Next: Map Columns
+                    <ArrowRight className="h-4 w-4 ml-1.5" />
+                  </>
                 )}
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Column mapping step */}
+      {uploadStep === "mapping" && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Map Columns</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Match your spreadsheet columns to the correct fields
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ColumnMapper
+              headers={xlsxHeaders}
+              previewRows={xlsxPreviewRows}
+              onConfirm={(mapping) => handleUpload(mapping)}
+              onBack={() => setUploadStep("select")}
+            />
           </CardContent>
         </Card>
       )}

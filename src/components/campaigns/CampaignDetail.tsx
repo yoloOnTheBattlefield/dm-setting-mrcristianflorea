@@ -172,6 +172,9 @@ export default function CampaignDetail() {
           </Button>
           <h3 className="text-xl font-bold">{campaign.name}</h3>
           <Badge className={badge.className}>{badge.label}</Badge>
+          <Badge variant="outline" className="text-[10px] font-normal">
+            {campaign.mode === "manual" ? "Manual" : "Auto"}
+          </Badge>
         </div>
         {canStartPause && (
           <Button
@@ -252,6 +255,7 @@ export default function CampaignDetail() {
                 <TableHead>Lead</TableHead>
                 <TableHead>Sender</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Template</TableHead>
                 <TableHead>Sent At</TableHead>
                 <TableHead>Message</TableHead>
                 <TableHead>Error</TableHead>
@@ -260,13 +264,13 @@ export default function CampaignDetail() {
             <TableBody>
               {leadsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={7} className="h-24 text-center">
                     No leads found.
                   </TableCell>
                 </TableRow>
@@ -297,6 +301,9 @@ export default function CampaignDetail() {
                       </TableCell>
                       <TableCell>
                         <Badge className={lb.className}>{lb.label}</Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {cl.template_index != null ? `#${cl.template_index + 1}` : "-"}
                       </TableCell>
                       <TableCell className="text-muted-foreground whitespace-nowrap">
                         {cl.sent_at ? formatDate(cl.sent_at) : "-"}

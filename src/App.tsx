@@ -15,6 +15,7 @@ import Integrations from "./pages/Integrations";
 import TeamMembers from "./pages/TeamMembers";
 import UploadXlsx from "./pages/UploadXlsx";
 import OutboundLeads from "./pages/OutboundLeads";
+import ImportOutboundLeads from "./pages/ImportOutboundLeads";
 import Prompts from "./pages/Prompts";
 import Campaigns from "./pages/Campaigns";
 import CampaignDetail from "./components/campaigns/CampaignDetail";
@@ -115,6 +116,13 @@ const App = () => (
                 <ProtectedRoute>
                   <DashboardLayout>
                     <OutboundLeads />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/outbound-leads/import" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ImportOutboundLeads />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />

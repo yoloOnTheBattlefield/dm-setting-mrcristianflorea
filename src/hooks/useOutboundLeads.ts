@@ -50,19 +50,40 @@ export function useOutboundLeads(params: {
   });
 }
 
-interface ImportXlsxResponse {
+export interface ImportJobStartResponse {
+  jobId: string;
   total: number;
+}
+
+export interface ImportJobStatus {
+  status: "importing" | "done" | "error";
+  step: string;
+  total: number;
+  processed: number;
   imported: number;
   skipped: number;
+  campaignLeadsCreated: number;
   errors?: { username: string; error: string }[];
 }
 
-export function useImportOutboundLeads() {
-  const queryClient = useQueryClient();
+export function useStartImport() {
   return useMutation({
-    mutationFn: async (file: File): Promise<ImportXlsxResponse> => {
+    mutationFn: async ({
+      file,
+      promptId,
+      campaignId,
+      columnMapping,
+    }: {
+      file: File;
+      promptId?: string;
+      campaignId?: string;
+      columnMapping?: Record<string, string | null>;
+    }): Promise<ImportJobStartResponse> => {
       const formData = new FormData();
       formData.append("file", file);
+      if (promptId) formData.append("promptId", promptId);
+      if (campaignId) formData.append("campaignId", campaignId);
+      if (columnMapping) formData.append("columnMapping", JSON.stringify(columnMapping));
       const res = await fetchWithAuth(`${LEADS_URL}/import-xlsx`, {
         method: "POST",
         body: formData,
@@ -73,10 +94,35 @@ export function useImportOutboundLeads() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
-      queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
+  });
+}
+
+export function useImportStatus(jobId: string | null) {
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: ["import-status", jobId],
+    queryFn: async (): Promise<ImportJobStatus> => {
+      const res = await fetchWithAuth(
+        `${LEADS_URL}/import-xlsx/status/${jobId}`,
+      );
+      if (!res.ok) throw new Error("Failed to fetch import status");
+      const data: ImportJobStatus = await res.json();
+      // Invalidate lead queries when done
+      if (data.status === "done") {
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+        queryClient.invalidateQueries({ queryKey: ["campaign-stats"] });
+      }
+      return data;
     },
+    enabled: !!jobId,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (data?.status === "done" || data?.status === "error") return false;
+      return 500;
+    },
+    refetchOnWindowFocus: false,
   });
 }
 

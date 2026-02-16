@@ -18,7 +18,10 @@ export interface OutboundFunnelData {
 }
 
 export interface MessagePerformance {
-  message: string;
+  campaign_id: string | null;
+  campaign_name: string;
+  template_index: number | null;
+  template: string;
   sent: number;
   replied: number;
   reply_rate: number;

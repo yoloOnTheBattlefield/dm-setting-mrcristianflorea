@@ -226,7 +226,8 @@ export default function OutboundAnalytics() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[40%]">Message</TableHead>
+                      <TableHead>Campaign</TableHead>
+                      <TableHead className="w-[35%]">Template</TableHead>
                       <TableHead className="text-right">Sent</TableHead>
                       <TableHead className="text-right">Replied</TableHead>
                       <TableHead className="text-right">Reply Rate</TableHead>
@@ -237,15 +238,25 @@ export default function OutboundAnalytics() {
                   <TableBody>
                     {messages.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
+                        <TableCell colSpan={7} className="h-24 text-center">
                           No message data available.
                         </TableCell>
                       </TableRow>
                     ) : (
                       messages.map((m, i) => (
                         <TableRow key={i}>
+                          <TableCell className="text-sm whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <span>{m.campaign_name}</span>
+                              {m.template_index != null && (
+                                <Badge variant="outline" className="text-[10px] font-normal">
+                                  #{m.template_index + 1}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="font-mono text-xs max-w-[400px] truncate">
-                            {m.message}
+                            {m.template}
                           </TableCell>
                           <TableCell className="text-right">{m.sent}</TableCell>
                           <TableCell className="text-right">{m.replied}</TableCell>
