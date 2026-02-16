@@ -33,7 +33,6 @@ export function useOutboundLeads(params: {
     queryKey: ["outbound-leads", params.page, params.limit, params.promptId],
     queryFn: async (): Promise<OutboundLeadsResponse> => {
       const sp = new URLSearchParams({
-        qualified: "true",
         isMessaged: "false",
         limit: String(params.limit),
         page: String(params.page),
@@ -130,7 +129,6 @@ export async function fetchAllMatchingLeadIds(
   promptFilter?: string
 ): Promise<string[]> {
   const sp = new URLSearchParams({
-    qualified: "true",
     isMessaged: "false",
     limit: "10000",
     page: "1",

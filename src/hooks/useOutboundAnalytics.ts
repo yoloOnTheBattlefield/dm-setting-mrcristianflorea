@@ -9,7 +9,6 @@ const API_URL = import.meta.env.DEV
 
 export interface OutboundFunnelData {
   total: number;
-  qualified: number;
   messaged: number;
   replied: number;
   booked: number;

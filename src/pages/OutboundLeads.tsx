@@ -8,8 +8,6 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  Check,
-  X,
   MessageSquare,
   Users,
   Send,
@@ -71,7 +69,6 @@ interface OutboundLead {
   source: string;
   scrapeDate?: string;
   ig?: string | null;
-  qualified?: boolean;
   promptId?: string;
   promptLabel?: string;
   isMessaged?: boolean | null;
@@ -96,7 +93,6 @@ interface PaginatedResponse {
 
 interface FunnelStats {
   total: number;
-  qualified: number;
   messaged: number;
   replied: number;
   booked: number;
@@ -104,9 +100,16 @@ interface FunnelStats {
   contract_value: number;
 }
 
+async function fetchSources(): Promise<string[]> {
+  const response = await fetchWithAuth(`${API_URL}/sources`);
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.sources || [];
+}
+
 async function fetchOutboundLeads(params: {
   source?: string;
-  qualified?: string;
+  isMessaged?: string;
   replied?: string;
   booked?: string;
   search?: string;
@@ -116,11 +119,12 @@ async function fetchOutboundLeads(params: {
 }): Promise<PaginatedResponse> {
   const searchParams = new URLSearchParams();
   if (params.source) searchParams.append("source", params.source);
-  if (params.qualified) searchParams.append("qualified", params.qualified);
+  if (params.isMessaged) searchParams.append("isMessaged", params.isMessaged);
   if (params.replied) searchParams.append("replied", params.replied);
   if (params.booked) searchParams.append("booked", params.booked);
   if (params.search) searchParams.append("search", params.search);
-  if (params.promptLabel) searchParams.append("promptLabel", params.promptLabel);
+  if (params.promptLabel)
+    searchParams.append("promptLabel", params.promptLabel);
   searchParams.append("page", String(params.page));
   searchParams.append("limit", String(params.limit));
 
@@ -131,13 +135,14 @@ async function fetchOutboundLeads(params: {
 
 async function fetchFunnelStats(): Promise<FunnelStats> {
   const response = await fetchWithAuth(`${API_URL}/stats`);
-  if (!response.ok) throw new Error(`Failed to fetch stats: ${response.status}`);
+  if (!response.ok)
+    throw new Error(`Failed to fetch stats: ${response.status}`);
   return response.json();
 }
 
 async function patchOutboundLead(
   id: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
 ): Promise<void> {
   const response = await fetchWithAuth(`${API_URL}/${id}`, {
     method: "PATCH",
@@ -183,14 +188,26 @@ export default function OutboundLeads() {
   const { data: promptOptions = [] } = usePrompts();
 
   const [source, setSource] = useState(searchParams.get("source") || "all");
-  const [qualified, setQualified] = useState(searchParams.get("qualified") || "all");
-  const [repliedFilter, setRepliedFilter] = useState(searchParams.get("replied") || "all");
-  const [bookedFilter, setBookedFilter] = useState(searchParams.get("booked") || "all");
-  const [promptFilter, setPromptFilter] = useState(searchParams.get("promptLabel") || "all");
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get("search") || "");
+  const [messagedFilter, setMessagedFilter] = useState(
+    searchParams.get("isMessaged") || "all",
+  );
+  const [repliedFilter, setRepliedFilter] = useState(
+    searchParams.get("replied") || "all",
+  );
+  const [bookedFilter, setBookedFilter] = useState(
+    searchParams.get("booked") || "all",
+  );
+  const [promptFilter, setPromptFilter] = useState(
+    searchParams.get("promptLabel") || "all",
+  );
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get("search") || "",
+  );
+  const [debouncedSearch, setDebouncedSearch] = useState(
+    searchParams.get("search") || "",
+  );
   const [currentPage, setCurrentPage] = useState(
-    parseInt(searchParams.get("page") || "1", 10)
+    parseInt(searchParams.get("page") || "1", 10),
   );
   const limit = 20;
   const navigate = useNavigate();
@@ -204,7 +221,15 @@ export default function OutboundLeads() {
   useEffect(() => {
     setSelectedIds(new Set());
     setSelectAll(false);
-  }, [currentPage, source, qualified, repliedFilter, bookedFilter, promptFilter, debouncedSearch]);
+  }, [
+    currentPage,
+    source,
+    messagedFilter,
+    repliedFilter,
+    bookedFilter,
+    promptFilter,
+    debouncedSearch,
+  ]);
 
   // DM dialog state
   const [editingLead, setEditingLead] = useState<OutboundLead | null>(null);
@@ -221,26 +246,42 @@ export default function OutboundLeads() {
   // Reset page on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [source, qualified, repliedFilter, bookedFilter, promptFilter, debouncedSearch]);
+  }, [
+    source,
+    messagedFilter,
+    repliedFilter,
+    bookedFilter,
+    promptFilter,
+    debouncedSearch,
+  ]);
 
   // Sync URL params
   useEffect(() => {
     const params = new URLSearchParams();
     if (source !== "all") params.set("source", source);
-    if (qualified !== "all") params.set("qualified", qualified);
+    if (messagedFilter !== "all") params.set("isMessaged", messagedFilter);
     if (repliedFilter !== "all") params.set("replied", repliedFilter);
     if (bookedFilter !== "all") params.set("booked", bookedFilter);
     if (promptFilter !== "all") params.set("promptLabel", promptFilter);
     if (debouncedSearch) params.set("search", debouncedSearch);
     if (currentPage !== 1) params.set("page", String(currentPage));
     setSearchParams(params, { replace: true });
-  }, [source, qualified, repliedFilter, bookedFilter, promptFilter, debouncedSearch, currentPage, setSearchParams]);
+  }, [
+    source,
+    messagedFilter,
+    repliedFilter,
+    bookedFilter,
+    promptFilter,
+    debouncedSearch,
+    currentPage,
+    setSearchParams,
+  ]);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       "outbound-leads",
       source === "all" ? undefined : source,
-      qualified === "all" ? undefined : qualified,
+      messagedFilter === "all" ? undefined : messagedFilter,
       repliedFilter === "all" ? undefined : repliedFilter,
       bookedFilter === "all" ? undefined : bookedFilter,
       promptFilter === "all" ? undefined : promptFilter,
@@ -250,7 +291,7 @@ export default function OutboundLeads() {
     queryFn: () =>
       fetchOutboundLeads({
         source: source === "all" ? undefined : source,
-        qualified: qualified === "all" ? undefined : qualified,
+        isMessaged: messagedFilter === "all" ? undefined : messagedFilter,
         replied: repliedFilter === "all" ? undefined : repliedFilter,
         booked: bookedFilter === "all" ? undefined : bookedFilter,
         promptLabel: promptFilter === "all" ? undefined : promptFilter,
@@ -261,6 +302,14 @@ export default function OutboundLeads() {
     staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
   });
+
+  const { data: sourcesData } = useQuery({
+    queryKey: ["outbound-leads-sources"],
+    queryFn: fetchSources,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  });
+  const sourceOptions = sourcesData || [];
 
   const { data: funnelStats } = useQuery({
     queryKey: ["outbound-leads-stats"],
@@ -300,13 +349,20 @@ export default function OutboundLeads() {
   const currentFilters = useCallback(() => {
     const f: Record<string, string> = {};
     if (source !== "all") f.source = source;
-    if (qualified !== "all") f.qualified = qualified;
+    if (messagedFilter !== "all") f.isMessaged = messagedFilter;
     if (repliedFilter !== "all") f.replied = repliedFilter;
     if (bookedFilter !== "all") f.booked = bookedFilter;
     if (promptFilter !== "all") f.promptLabel = promptFilter;
     if (debouncedSearch) f.search = debouncedSearch;
     return f;
-  }, [source, qualified, repliedFilter, bookedFilter, promptFilter, debouncedSearch]);
+  }, [
+    source,
+    messagedFilter,
+    repliedFilter,
+    bookedFilter,
+    promptFilter,
+    debouncedSearch,
+  ]);
 
   const handleBulkDelete = useCallback(async () => {
     const count = selectAll ? (pagination?.total ?? 0) : selectedIds.size;
@@ -316,7 +372,10 @@ export default function OutboundLeads() {
       setIsDeleting(true);
       let result: { deleted: number };
       if (selectAll) {
-        result = await bulkDeleteLeads({ all: true, filters: currentFilters() });
+        result = await bulkDeleteLeads({
+          all: true,
+          filters: currentFilters(),
+        });
       } else {
         result = await bulkDeleteLeads({ ids: Array.from(selectedIds) });
       }
@@ -361,7 +420,7 @@ export default function OutboundLeads() {
         });
       }
     },
-    [queryClient, toast]
+    [queryClient, toast],
   );
 
   const toggleField = useCallback(
@@ -379,7 +438,7 @@ export default function OutboundLeads() {
         });
       }
     },
-    [queryClient, toast]
+    [queryClient, toast],
   );
 
   const saveContractValue = useCallback(
@@ -399,14 +458,14 @@ export default function OutboundLeads() {
         });
       }
     },
-    [queryClient, toast]
+    [queryClient, toast],
   );
 
   const openDmDialog = (lead: OutboundLead) => {
     setEditingLead(lead);
     setDmMessage(lead.message || "");
     setDmDate(
-      lead.dmDate ? new Date(lead.dmDate).toISOString().slice(0, 16) : ""
+      lead.dmDate ? new Date(lead.dmDate).toISOString().slice(0, 16) : "",
     );
   };
 
@@ -477,22 +536,11 @@ export default function OutboundLeads() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sources</SelectItem>
-                  {/* Sources are dynamic from data, so we just use a text approach */}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Qualified filter */}
-            <div className="flex flex-col gap-2 w-40">
-              <Label>Qualified</Label>
-              <Select value={qualified} onValueChange={setQualified}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="true">Qualified</SelectItem>
-                  <SelectItem value="false">Not Qualified</SelectItem>
+                  {sourceOptions.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      @{s}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -511,6 +559,21 @@ export default function OutboundLeads() {
                       {p.label}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Messaged filter */}
+            <div className="flex flex-col gap-2 w-36">
+              <Label>Messaged</Label>
+              <Select value={messagedFilter} onValueChange={setMessagedFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="true">Yes</SelectItem>
+                  <SelectItem value="false">No</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -567,18 +630,33 @@ export default function OutboundLeads() {
       {funnelStats && (
         <div className="px-6 pt-4">
           <div className="flex items-center gap-2">
-            <FunnelCard label="Qualified" value={funnelStats.qualified} icon={<Users className="h-4 w-4 text-blue-400" />} />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-            <FunnelCard label="Messaged" value={funnelStats.messaged} icon={<Send className="h-4 w-4 text-violet-400" />} />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-            <FunnelCard label="Replied" value={funnelStats.replied} icon={<MessageCircle className="h-4 w-4 text-yellow-400" />} />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-            <FunnelCard label="Booked" value={funnelStats.booked} icon={<CalendarCheck className="h-4 w-4 text-green-400" />} />
+            <FunnelCard
+              label="Total"
+              value={funnelStats.total}
+              icon={<Users className="h-4 w-4 text-blue-400" />}
+            />
             <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
             <FunnelCard
-              label="Revenue"
+              label="Messaged"
+              value={funnelStats.messaged}
+              icon={<Send className="h-4 w-4 text-violet-400" />}
+            />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <FunnelCard
+              label="Replied"
+              value={funnelStats.replied}
+              icon={<MessageCircle className="h-4 w-4 text-yellow-400" />}
+            />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <FunnelCard
+              label="Booked"
+              value={funnelStats.booked}
+              icon={<CalendarCheck className="h-4 w-4 text-green-400" />}
+            />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <FunnelCard
+              label={`Revenue (${funnelStats.contracts} deal${funnelStats.contracts !== 1 ? "s" : ""})`}
               value={`$${funnelStats.contract_value.toLocaleString()}`}
-              sub={`${funnelStats.contracts} deal${funnelStats.contracts !== 1 ? "s" : ""}`}
               icon={<DollarSign className="h-4 w-4 text-emerald-400" />}
             />
           </div>
@@ -592,7 +670,9 @@ export default function OutboundLeads() {
             <AlertCircle className="h-12 w-12 text-destructive mb-4" />
             <h2 className="text-lg font-semibold mb-2">Failed to load data</h2>
             <p className="text-muted-foreground mb-4">
-              {error instanceof Error ? error.message : "An unknown error occurred"}
+              {error instanceof Error
+                ? error.message
+                : "An unknown error occurred"}
             </p>
             <Button onClick={() => refetch()} variant="outline">
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -609,16 +689,19 @@ export default function OutboundLeads() {
                     ? `All ${pagination?.total ?? 0} leads selected`
                     : `${selectedIds.size} selected`}
                 </span>
-                {!selectAll && selectedIds.size === leads.length && pagination && pagination.total > leads.length && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="text-xs h-auto p-0"
-                    onClick={() => setSelectAll(true)}
-                  >
-                    Select all {pagination.total} matching leads
-                  </Button>
-                )}
+                {!selectAll &&
+                  selectedIds.size === leads.length &&
+                  pagination &&
+                  pagination.total > leads.length && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="text-xs h-auto p-0"
+                      onClick={() => setSelectAll(true)}
+                    >
+                      Select all {pagination.total} matching leads
+                    </Button>
+                  )}
                 {selectAll && (
                   <Button
                     variant="link"
@@ -640,7 +723,9 @@ export default function OutboundLeads() {
                     disabled={isDeleting}
                   >
                     <Trash2 className="h-4 w-4 mr-1.5" />
-                    {isDeleting ? "Deleting..." : `Delete ${selectAll ? (pagination?.total ?? 0) : selectedIds.size}`}
+                    {isDeleting
+                      ? "Deleting..."
+                      : `Delete ${selectAll ? (pagination?.total ?? 0) : selectedIds.size}`}
                   </Button>
                 </div>
               </div>
@@ -652,7 +737,11 @@ export default function OutboundLeads() {
                   <TableRow>
                     <TableHead className="w-10">
                       <Checkbox
-                        checked={leads.length > 0 && (selectAll || leads.every((l) => selectedIds.has(l._id)))}
+                        checked={
+                          leads.length > 0 &&
+                          (selectAll ||
+                            leads.every((l) => selectedIds.has(l._id)))
+                        }
                         onCheckedChange={toggleSelectPage}
                       />
                     </TableHead>
@@ -661,7 +750,6 @@ export default function OutboundLeads() {
                     <TableHead className="text-right">Followers</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Prompt</TableHead>
-                    <TableHead>Qualified</TableHead>
                     <TableHead>Messaged</TableHead>
                     <TableHead>Replied</TableHead>
                     <TableHead>Booked</TableHead>
@@ -672,13 +760,20 @@ export default function OutboundLeads() {
                 <TableBody>
                   {leads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={12} className="h-24 text-center">
+                      <TableCell colSpan={11} className="h-24 text-center">
                         No outbound leads found.
                       </TableCell>
                     </TableRow>
                   ) : (
                     leads.map((lead) => (
-                      <TableRow key={lead._id} data-state={selectedIds.has(lead._id) || selectAll ? "selected" : undefined}>
+                      <TableRow
+                        key={lead._id}
+                        data-state={
+                          selectedIds.has(lead._id) || selectAll
+                            ? "selected"
+                            : undefined
+                        }
+                      >
                         <TableCell>
                           <Checkbox
                             checked={selectAll || selectedIds.has(lead._id)}
@@ -696,7 +791,10 @@ export default function OutboundLeads() {
                         </TableCell>
                         <TableCell className="font-medium">
                           <a
-                            href={lead.profileLink || `https://instagram.com/${lead.username}`}
+                            href={
+                              lead.profileLink ||
+                              `https://instagram.com/${lead.username}`
+                            }
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-primary hover:underline"
@@ -716,13 +814,6 @@ export default function OutboundLeads() {
                             <Badge variant="outline">{lead.promptLabel}</Badge>
                           ) : (
                             <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {lead.qualified ? (
-                            <Check className="h-4 w-4 text-stage-booked" />
-                          ) : (
-                            <X className="h-4 w-4 text-muted-foreground" />
                           )}
                         </TableCell>
                         <TableCell>
@@ -749,9 +840,12 @@ export default function OutboundLeads() {
                             className="w-24 h-7 text-xs"
                             placeholder="-"
                             defaultValue={lead.contract_value ?? ""}
-                            onBlur={(e) => saveContractValue(lead, e.target.value)}
+                            onBlur={(e) =>
+                              saveContractValue(lead, e.target.value)
+                            }
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                              if (e.key === "Enter")
+                                (e.target as HTMLInputElement).blur();
                             }}
                           />
                         </TableCell>
@@ -775,11 +869,10 @@ export default function OutboundLeads() {
             {pagination && pagination.totalPages > 1 && (
               <div className="flex items-center justify-between border-t pt-4 mt-4">
                 <div className="text-sm text-muted-foreground">
-                  Showing{" "}
-                  {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                  Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
                   {Math.min(
                     pagination.page * pagination.limit,
-                    pagination.total
+                    pagination.total,
                   )}{" "}
                   of {pagination.total} leads
                 </div>
@@ -830,7 +923,7 @@ export default function OutboundLeads() {
                             {pageNum}
                           </Button>
                         );
-                      }
+                      },
                     )}
                   </div>
 
@@ -839,7 +932,7 @@ export default function OutboundLeads() {
                     size="sm"
                     onClick={() =>
                       setCurrentPage((prev) =>
-                        Math.min(pagination.totalPages, prev + 1)
+                        Math.min(pagination.totalPages, prev + 1),
                       )
                     }
                     disabled={pagination.page === pagination.totalPages}
@@ -861,9 +954,7 @@ export default function OutboundLeads() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              DM Details — @{editingLead?.username}
-            </DialogTitle>
+            <DialogTitle>DM Details — @{editingLead?.username}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-1.5">
@@ -898,7 +989,6 @@ export default function OutboundLeads() {
           </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

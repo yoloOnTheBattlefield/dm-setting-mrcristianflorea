@@ -36,7 +36,6 @@ import {
   CalendarCheck,
   DollarSign,
   ArrowRight,
-  Filter,
 } from "lucide-react";
 
 function rateColor(rate: number | undefined | null) {
@@ -146,20 +145,13 @@ export default function OutboundAnalytics() {
                   <FunnelCard
                     label="Total"
                     value={funnel.total}
-                    icon={<Filter className="h-4 w-4 text-slate-400" />}
-                  />
-                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <FunnelCard
-                    label="Qualified"
-                    value={funnel.qualified}
-                    sub={pct(funnel.qualified, funnel.total)}
                     icon={<Users className="h-4 w-4 text-blue-400" />}
                   />
                   <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   <FunnelCard
                     label="Messaged"
                     value={funnel.messaged}
-                    sub={pct(funnel.messaged, funnel.qualified)}
+                    sub={pct(funnel.messaged, funnel.total)}
                     icon={<Send className="h-4 w-4 text-violet-400" />}
                   />
                   <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -189,14 +181,10 @@ export default function OutboundAnalytics() {
                 <Card>
                   <CardContent className="py-4 px-6">
                     <h3 className="text-sm font-medium mb-3">Stage Conversion Rates</h3>
-                    <div className="grid grid-cols-5 gap-4 text-center">
+                    <div className="grid grid-cols-4 gap-4 text-center">
                       <div>
-                        <p className="text-xs text-muted-foreground">Total → Qualified</p>
-                        <p className="text-lg font-bold">{pct(funnel.qualified, funnel.total)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Qualified → Messaged</p>
-                        <p className="text-lg font-bold">{pct(funnel.messaged, funnel.qualified)}</p>
+                        <p className="text-xs text-muted-foreground">Total → Messaged</p>
+                        <p className="text-lg font-bold">{pct(funnel.messaged, funnel.total)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Messaged → Replied</p>
