@@ -13,6 +13,7 @@ interface FetchLeadsParams {
   search?: string;
   page?: number;
   limit?: number;
+  accountId?: string;
 }
 
 interface PaginationInfo {
@@ -34,6 +35,7 @@ async function fetchRawLeads({
   search,
   page = 1,
   limit = 20,
+  accountId,
 }: FetchLeadsParams = {}): Promise<LeadsResponse> {
   const params = new URLSearchParams();
 
@@ -51,6 +53,10 @@ async function fetchRawLeads({
 
   if (search) {
     params.append("search", search);
+  }
+
+  if (accountId) {
+    params.append("account_id", accountId);
   }
 
   params.append("page", page.toString());
@@ -77,6 +83,7 @@ export function useRawLeads(params?: FetchLeadsParams) {
       params?.search,
       params?.page,
       params?.limit,
+      params?.accountId,
     ],
     queryFn: () => fetchRawLeads(params),
     staleTime: 1000 * 60 * 5,

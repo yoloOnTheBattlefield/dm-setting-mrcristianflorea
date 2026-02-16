@@ -85,7 +85,7 @@ export default function AllContacts() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedStatuses, startDate, endDate, debouncedSearchQuery]);
+  }, [selectedAccount, selectedStatuses, startDate, endDate, debouncedSearchQuery]);
 
   // Update URL params when state changes
   useEffect(() => {
@@ -131,6 +131,7 @@ export default function AllContacts() {
     search: debouncedSearchQuery || undefined,
     page: currentPage,
     limit: itemsPerPage,
+    accountId: selectedAccount !== "all" ? selectedAccount : undefined,
   });
 
   const contacts = data?.leads || [];
