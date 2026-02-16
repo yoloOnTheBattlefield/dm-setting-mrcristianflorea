@@ -20,6 +20,7 @@ interface FetchAnalyticsParams {
   startDate?: string;
   endDate?: string;
   source?: SourceFilter;
+  accountId?: string;
 }
 
 interface AnalyticsResponse {
@@ -37,6 +38,7 @@ async function fetchAnalytics({
   startDate,
   endDate,
   source,
+  accountId,
 }: FetchAnalyticsParams = {}): Promise<AnalyticsResponse> {
   const params = new URLSearchParams();
 
@@ -52,6 +54,10 @@ async function fetchAnalytics({
     params.append("source", source);
   }
 
+  if (accountId) {
+    params.append("account_id", accountId);
+  }
+
   const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL;
   const response = await fetchWithAuth(url);
 
@@ -65,7 +71,7 @@ async function fetchAnalytics({
 
 export function useAnalytics(params?: FetchAnalyticsParams) {
   return useQuery({
-    queryKey: ["analytics", params?.startDate, params?.endDate, params?.source],
+    queryKey: ["analytics", params?.startDate, params?.endDate, params?.source, params?.accountId],
     queryFn: () => fetchAnalytics(params),
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,

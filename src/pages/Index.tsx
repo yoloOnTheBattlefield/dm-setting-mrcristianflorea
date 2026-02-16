@@ -55,6 +55,7 @@ export default function Index() {
     startDate,
     endDate,
     source: effectiveSource,
+    accountId: selectedAccount !== "all" ? selectedAccount : undefined,
   });
 
   const isOutbound = effectiveSource === "outbound";
