@@ -117,9 +117,10 @@ export function LeadsRadarChart({ data, source = "all" }: LeadsRadarChartProps) 
   const colorA = metricOptions.find((o) => o.value === metricA)!.color;
   const colorB = metricOptions.find((o) => o.value === metricB)!.color;
 
-  // Format labels and skip every other if too many
+  // Cap to last 12 entries max for radar readability, then format labels
   const chartData = useMemo(() => {
-    return data.map((d) => ({
+    const capped = data.length > 12 ? data.slice(-12) : data;
+    return capped.map((d) => ({
       ...d,
       label: formatLabel(d.month),
     }));
