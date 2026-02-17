@@ -44,7 +44,9 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeamMembers, useAddTeamMember, useUpdateTeamMember, useDeleteTeamMember } from "@/hooks/useTeamMembers";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { useClientTrackingEvents } from "@/hooks/useTracking";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Plus, Trash2, RefreshCw } from "lucide-react";
 
 interface ClientData {
   account_id: string;
@@ -78,6 +80,7 @@ export default function ClientDetail() {
   const addMember = useAddTeamMember();
   const updateMember = useUpdateTeamMember();
   const deleteMember = useDeleteTeamMember();
+  const { data: trackingData, isLoading: isTrackingLoading, refetch: refetchTracking } = useClientTrackingEvents(client?.account_id);
 
   // Fetch client data
   useEffect(() => {
@@ -494,6 +497,83 @@ export default function ClientDetail() {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Website Tracking Events */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Website Tracking Events</CardTitle>
+              <CardDescription>
+                Recent tracking activity for this client
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchTracking()}
+              disabled={isTrackingLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isTrackingLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isTrackingLoading ? (
+              <p className="text-sm text-muted-foreground">Loading tracking events...</p>
+            ) : !trackingData?.events || trackingData.events.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No tracking events recorded for this client yet.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Event</TableHead>
+                    <TableHead>Lead ID</TableHead>
+                    <TableHead>URL</TableHead>
+                    <TableHead>Referrer</TableHead>
+                    <TableHead>Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trackingData.events.map((evt) => (
+                    <TableRow key={evt._id}>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            evt.event_type === "conversion"
+                              ? "default"
+                              : evt.event_type === "first_visit"
+                                ? "secondary"
+                                : "outline"
+                          }
+                        >
+                          {evt.event_type.replace(/_/g, " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs max-w-[150px] truncate">
+                        {evt.lead_id}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate text-xs" title={evt.url || ""}>
+                        {evt.url || "—"}
+                      </TableCell>
+                      <TableCell className="max-w-[150px] truncate text-xs" title={evt.referrer || ""}>
+                        {evt.referrer || "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                        {new Date(evt.createdAt).toLocaleDateString()}{" "}
+                        {new Date(evt.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </TableCell>
                     </TableRow>
                   ))}

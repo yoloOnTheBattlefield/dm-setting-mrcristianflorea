@@ -60,3 +60,19 @@ export function useTrackingEvents(limit = 5) {
     refetchOnWindowFocus: false,
   });
 }
+
+export function useClientTrackingEvents(accountId: string | undefined, limit = 20) {
+  return useQuery({
+    queryKey: ["tracking-events", "client", accountId, limit],
+    queryFn: async (): Promise<{ events: TrackingEvent[] }> => {
+      const res = await fetchWithAuth(
+        `${API_URL}/tracking/events?account_id=${accountId}&limit=${limit}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch client tracking events");
+      return res.json();
+    },
+    enabled: !!accountId,
+    staleTime: 1000 * 30,
+    refetchOnWindowFocus: false,
+  });
+}
