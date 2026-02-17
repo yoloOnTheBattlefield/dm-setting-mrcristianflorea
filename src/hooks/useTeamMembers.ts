@@ -19,8 +19,9 @@ interface AddTeamMemberBody {
   has_outbound?: boolean;
 }
 
-async function fetchTeamMembers(): Promise<TeamMember[]> {
-  const response = await fetchWithAuth(TEAM_URL);
+async function fetchTeamMembers(accountId?: string): Promise<TeamMember[]> {
+  const url = accountId ? `${TEAM_URL}?account_id=${accountId}` : TEAM_URL;
+  const response = await fetchWithAuth(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch team members: ${response.status}`);
@@ -68,10 +69,10 @@ async function updateTeamMember({ id, body }: { id: string; body: { has_outbound
   }
 }
 
-export function useTeamMembers() {
+export function useTeamMembers(accountId?: string) {
   return useQuery({
-    queryKey: ["teamMembers"],
-    queryFn: () => fetchTeamMembers(),
+    queryKey: ["teamMembers", accountId],
+    queryFn: () => fetchTeamMembers(accountId),
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });

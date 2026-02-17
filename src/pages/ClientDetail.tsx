@@ -74,7 +74,7 @@ export default function ClientDetail() {
     password: "",
     has_outbound: false,
   });
-  const { data: teamMembers = [], isLoading: isTeamLoading } = useTeamMembers();
+  const { data: teamMembers = [], isLoading: isTeamLoading } = useTeamMembers(client?.account_id);
   const addMember = useAddTeamMember();
   const updateMember = useUpdateTeamMember();
   const deleteMember = useDeleteTeamMember();
