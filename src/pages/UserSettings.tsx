@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAccounts } from "@/hooks/useAccounts";
-import { fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 import { AppearanceCard } from "@/components/settings/appearance-card";
 
 const LEADS_API_URL = `${API_URL}/accounts/leads/generate`;
