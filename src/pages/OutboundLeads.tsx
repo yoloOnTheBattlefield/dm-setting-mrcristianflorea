@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertCircle,
   RefreshCw,
@@ -273,7 +273,7 @@ export default function OutboundLeads() {
     setSearchParams,
   ]);
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: [
       "outbound-leads",
       source === "all" ? undefined : source,
@@ -295,6 +295,7 @@ export default function OutboundLeads() {
         page: currentPage,
         limit,
       }),
+    placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
   });
@@ -489,20 +490,15 @@ export default function OutboundLeads() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <DashboardSkeleton />
-      </div>
-    );
-  }
+  const showTableSkeleton = isLoading;
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col min-w-0">
       {/* Sticky header with filters */}
       <div className="sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-6 py-4 flex items-end justify-between">
-          <div className="flex items-center gap-3">
+        <div className="px-6 py-4 space-y-3">
+          {/* Row 1: Title + Import */}
+          <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">
                 Outbound Leads
@@ -514,7 +510,6 @@ export default function OutboundLeads() {
             <Button
               variant="outline"
               size="sm"
-              className="ml-2"
               onClick={() => navigate("/outbound-leads/import")}
             >
               <Upload className="h-4 w-4 mr-1.5" />
@@ -522,10 +517,11 @@ export default function OutboundLeads() {
             </Button>
           </div>
 
-          <div className="flex gap-4 items-end">
+          {/* Row 2: Filters */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {/* Source filter */}
-            <div className="flex flex-col gap-2 w-48">
-              <Label>Source</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Source</Label>
               <Select value={source} onValueChange={setSource}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Sources" />
@@ -542,8 +538,8 @@ export default function OutboundLeads() {
             </div>
 
             {/* Prompt filter */}
-            <div className="flex flex-col gap-2 w-48">
-              <Label>Prompt</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Prompt</Label>
               <Select value={promptFilter} onValueChange={setPromptFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Prompts" />
@@ -560,8 +556,8 @@ export default function OutboundLeads() {
             </div>
 
             {/* Messaged filter */}
-            <div className="flex flex-col gap-2 w-36">
-              <Label>Messaged</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Messaged</Label>
               <Select value={messagedFilter} onValueChange={setMessagedFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All" />
@@ -575,8 +571,8 @@ export default function OutboundLeads() {
             </div>
 
             {/* Replied filter */}
-            <div className="flex flex-col gap-2 w-32">
-              <Label>Replied</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Replied</Label>
               <Select value={repliedFilter} onValueChange={setRepliedFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All" />
@@ -590,8 +586,8 @@ export default function OutboundLeads() {
             </div>
 
             {/* Booked filter */}
-            <div className="flex flex-col gap-2 w-32">
-              <Label>Booked</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Booked</Label>
               <Select value={bookedFilter} onValueChange={setBookedFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All" />
@@ -605,8 +601,8 @@ export default function OutboundLeads() {
             </div>
 
             {/* Search */}
-            <div className="flex flex-col gap-2 w-64">
-              <Label>Search</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Search</Label>
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -625,31 +621,31 @@ export default function OutboundLeads() {
       {/* Funnel */}
       {funnelStats && (
         <div className="px-6 pt-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full">
             <FunnelCard
               label="Total"
               value={funnelStats.total}
               icon={<Users className="h-4 w-4 text-blue-400" />}
             />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
             <FunnelCard
               label="Messaged"
               value={funnelStats.messaged}
               icon={<Send className="h-4 w-4 text-violet-400" />}
             />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
             <FunnelCard
               label="Replied"
               value={funnelStats.replied}
               icon={<MessageCircle className="h-4 w-4 text-yellow-400" />}
             />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
             <FunnelCard
               label="Booked"
               value={funnelStats.booked}
               icon={<CalendarCheck className="h-4 w-4 text-green-400" />}
             />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
             <FunnelCard
               label={`Revenue (${funnelStats.contracts} deal${funnelStats.contracts !== 1 ? "s" : ""})`}
               value={`$${funnelStats.contract_value.toLocaleString()}`}
@@ -727,7 +723,12 @@ export default function OutboundLeads() {
               </div>
             )}
 
-            <div className="rounded-lg border bg-card">
+            <div className={`rounded-lg border bg-card overflow-x-auto relative${isFetching && !showTableSkeleton ? " opacity-60 pointer-events-none" : ""}`}>
+              {isFetching && !showTableSkeleton && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -739,6 +740,7 @@ export default function OutboundLeads() {
                             leads.every((l) => selectedIds.has(l._id)))
                         }
                         onCheckedChange={toggleSelectPage}
+                        disabled={showTableSkeleton}
                       />
                     </TableHead>
                     <TableHead>Username</TableHead>
@@ -754,7 +756,23 @@ export default function OutboundLeads() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leads.length === 0 ? (
+                  {showTableSkeleton ? (
+                    Array.from({ length: 10 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                        <TableCell><Skeleton className="h-7 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : leads.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={11} className="h-24 text-center">
                         No outbound leads found.
@@ -1003,11 +1021,11 @@ function FunnelCard({
   return (
     <Card className="flex-1 min-w-0">
       <CardContent className="py-3 px-4 flex items-center gap-3">
-        {icon}
+        <div className="shrink-0">{icon}</div>
         <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="text-lg font-bold leading-tight">{value}</p>
-          {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
+          <p className="text-xs text-muted-foreground truncate">{label}</p>
+          <p className="text-lg font-bold leading-tight truncate">{value}</p>
+          {sub && <p className="text-[10px] text-muted-foreground truncate">{sub}</p>}
         </div>
       </CardContent>
     </Card>

@@ -28,7 +28,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col min-w-0">
           {children}
         </div>
       </SidebarInset>
