@@ -504,7 +504,7 @@ export default function OutboundLeads() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Sticky header with filters */}
-      <div className="sticky top-16 z-50 bg-[#0b0b0b] border-b border-white/10">
+      <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4 flex items-end justify-between">
           <div className="flex items-center gap-3">
             <div>

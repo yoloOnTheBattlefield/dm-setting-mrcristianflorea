@@ -130,7 +130,7 @@ export default function Campaigns() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Sticky Header */}
-      <div className="sticky top-16 z-50 bg-[#0b0b0b] border-b border-white/10">
+      <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">

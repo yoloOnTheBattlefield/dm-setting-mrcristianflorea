@@ -331,7 +331,7 @@ export default function OutboundAccounts() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Header */}
-      <div className="sticky top-16 z-50 bg-[#0b0b0b] border-b border-white/10">
+      <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Outbound Accounts</h2>

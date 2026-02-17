@@ -11,6 +11,17 @@
     <meta property="og:type" content="website" />
 
     <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function(){
+        try {
+          var k = 'dm-pipeline-theme';
+          var t = localStorage.getItem(k);
+          if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
 
   <body>

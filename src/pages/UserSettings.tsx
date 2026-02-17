@@ -21,6 +21,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAccounts } from "@/hooks/useAccounts";
 import { fetchWithAuth } from "@/lib/api";
+import { AppearanceCard } from "@/components/settings/appearance-card";
 
 const API_URL = import.meta.env.DEV
   ? "http://localhost:3000/accounts"
@@ -196,6 +197,8 @@ export default function UserSettings() {
       </div>
 
       <div className="grid gap-4">
+        <AppearanceCard />
+
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>

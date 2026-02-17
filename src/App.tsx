@@ -32,7 +32,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider attribute="class" forcedTheme="dark" storageKey="dm-pipeline-theme">
+  <ThemeProvider attribute="class" defaultTheme="dark" storageKey="dm-pipeline-theme">
     <AuthProvider>
       <SocketProvider>
       <QueryClientProvider client={queryClient}>

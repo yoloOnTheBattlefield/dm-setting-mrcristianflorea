@@ -126,7 +126,7 @@ export default function SenderAccountsBar() {
 
   if (isLoading) {
     return (
-      <div className="px-6 py-3 border-b border-white/10 flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="px-6 py-3 border-b border-border flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
         Loading senders...
       </div>
@@ -135,7 +135,7 @@ export default function SenderAccountsBar() {
 
   return (
     <>
-      <div className="px-6 py-3 border-b border-white/10 flex items-center gap-3 overflow-x-auto">
+      <div className="px-6 py-3 border-b border-border flex items-center gap-3 overflow-x-auto">
         <span className="text-xs text-muted-foreground shrink-0 font-medium uppercase tracking-wider">
           Senders
         </span>
@@ -143,7 +143,7 @@ export default function SenderAccountsBar() {
           <button
             key={s._id}
             onClick={() => openEdit(s)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20 transition-colors bg-card shrink-0"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border hover:border-primary/30 transition-colors bg-card shrink-0"
           >
             <span
               className={`h-2 w-2 rounded-full shrink-0 ${
@@ -158,7 +158,7 @@ export default function SenderAccountsBar() {
         ))}
         <button
           onClick={openAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-white/20 hover:border-white/30 transition-colors text-muted-foreground hover:text-foreground shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-border hover:border-primary/30 transition-colors text-muted-foreground hover:text-foreground shrink-0"
         >
           <Plus className="h-3.5 w-3.5" />
           <span className="text-sm">Connect Account</span>
