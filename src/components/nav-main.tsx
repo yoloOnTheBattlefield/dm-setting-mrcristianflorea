@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronRight, type LucideIcon } from "lucide-react"
+import { Link, useLocation } from "react-router-dom"
 
 import {
   Collapsible,
@@ -33,16 +34,23 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const { pathname } = useLocation()
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) =>
-          item.items && item.items.length > 0 ? (
+        {items.map((item) => {
+          // Auto-open sections that contain the current route
+          const hasActiveChild = item.items?.some(
+            (sub) => sub.url !== "#" && pathname.startsWith(sub.url)
+          )
+
+          return item.items && item.items.length > 0 ? (
             <Collapsible
               key={item.title}
               asChild
-              defaultOpen={item.isActive}
+              defaultOpen={hasActiveChild || item.isActive}
               className="group/collapsible"
               disabled={item.disabled}
             >
@@ -58,10 +66,10 @@ export function NavMain({
                   <SidebarMenuSub>
                     {item.items?.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton asChild>
-                          <a href={subItem.url}>
+                        <SidebarMenuSubButton asChild isActive={subItem.url !== "#" && pathname === subItem.url}>
+                          <Link to={subItem.url}>
                             <span>{subItem.title}</span>
-                          </a>
+                          </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}
@@ -71,22 +79,22 @@ export function NavMain({
             </Collapsible>
           ) : (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild={!item.disabled} tooltip={item.title} disabled={item.disabled} className={item.disabled ? "opacity-50 cursor-not-allowed" : ""}>
+              <SidebarMenuButton asChild={!item.disabled} tooltip={item.title} disabled={item.disabled} className={item.disabled ? "opacity-50 cursor-not-allowed" : ""} isActive={item.url !== "#" && pathname === item.url}>
                 {item.disabled ? (
                   <>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
                   </>
                 ) : (
-                  <a href={item.url}>
+                  <Link to={item.url}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
-                  </a>
+                  </Link>
                 )}
               </SidebarMenuButton>
             </SidebarMenuItem>
           )
-        )}
+        })}
       </SidebarMenu>
     </SidebarGroup>
   )

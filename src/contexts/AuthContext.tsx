@@ -11,13 +11,14 @@ interface User {
   role?: number
   api_key?: string
   has_outbound?: boolean
+  has_research?: boolean
 }
 
 interface AuthContextType {
   isAuthenticated: boolean
   user: User | null
   loading: boolean
-  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string) => void
+  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean) => void
   updateUser: (updates: Partial<User>) => void
   logout: () => void
 }
@@ -37,12 +38,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("token")
     if (authStatus === "true" && userDataString && token) {
       setIsAuthenticated(true)
-      setUser(JSON.parse(userDataString))
+      const parsed = JSON.parse(userDataString)
+      // Default has_research to true until backend controls it
+      if (parsed.has_research === undefined) parsed.has_research = true
+      setUser(parsed)
     }
     setLoading(false)
   }, [])
 
-  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string) => {
+  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean) => {
     const fullName = firstName && lastName
       ? `${firstName} ${lastName}`
       : firstName || email.split('@')[0]
@@ -58,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role,
       api_key,
       has_outbound,
+      has_research: has_research ?? true,
     }
 
     localStorage.setItem("isAuthenticated", "true")

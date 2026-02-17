@@ -22,6 +22,15 @@ import CampaignDetail from "./components/campaigns/CampaignDetail";
 import CampaignAddLeads from "./pages/CampaignAddLeads";
 import OutboundAccounts from "./pages/OutboundAccounts";
 import OutboundAnalytics from "./pages/OutboundAnalytics";
+import ResearchOverview from "./pages/research/ResearchOverview";
+import ResearchCompetitors from "./pages/research/Competitors";
+import ResearchCompetitorDetail from "./pages/research/CompetitorDetail";
+import ResearchPostsLibrary from "./pages/research/PostsLibrary";
+import CommentsIntel from "./pages/research/CommentsIntel";
+import LeadMagnetTracker from "./pages/research/LeadMagnetTracker";
+import IdeasBank from "./pages/research/IdeasBank";
+import ResearchAlerts from "./pages/research/Alerts";
+import ResearchReports from "./pages/research/Reports";
 import { LoginForm } from "@/components/login-form";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -167,6 +176,15 @@ const App = () => (
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/research" element={<ProtectedRoute><DashboardLayout><ResearchOverview /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/research/competitors" element={<ProtectedRoute><DashboardLayout><ResearchCompetitors /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/research/competitors/:id" element={<ProtectedRoute><DashboardLayout><ResearchCompetitorDetail /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/research/posts" element={<ProtectedRoute><DashboardLayout><ResearchPostsLibrary /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/research/comments" element={<ProtectedRoute><DashboardLayout><CommentsIntel /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/research/lead-magnets" element={<ProtectedRoute><DashboardLayout><LeadMagnetTracker /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/research/ideas" element={<ProtectedRoute><DashboardLayout><IdeasBank /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/research/alerts" element={<ProtectedRoute><DashboardLayout><ResearchAlerts /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/research/reports" element={<ProtectedRoute><DashboardLayout><ResearchReports /></DashboardLayout></ProtectedRoute>} />
               <Route path="/login" element={
                 <div className="flex min-h-screen items-center justify-center">
                   <LoginForm />

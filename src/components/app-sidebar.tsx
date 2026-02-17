@@ -4,6 +4,7 @@ import {
   MessageSquare,
   Send,
   Settings2,
+  Telescope,
   TrendingUp,
   Users,
   UserPlus,
@@ -149,8 +150,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       )
     }
 
+    // Add research nav items for users with research access
+    if (user?.has_research) {
+      // Insert before Settings (last item)
+      items.splice(items.length - 1, 0,
+        {
+          title: "Research",
+          url: "#",
+          icon: Telescope,
+          items: [
+            { title: "Overview", url: "/research" },
+            { title: "Competitors", url: "/research/competitors" },
+            { title: "Posts Library", url: "/research/posts" },
+            { title: "Comments Intel", url: "/research/comments" },
+            { title: "Lead Magnets", url: "/research/lead-magnets" },
+            { title: "Ideas Bank", url: "/research/ideas" },
+            { title: "Alerts", url: "/research/alerts" },
+            { title: "Reports", url: "/research/reports" },
+          ],
+        },
+      )
+    }
+
     return items
-  }, [user?.role, user?.has_outbound])
+  }, [user?.role, user?.has_outbound, user?.has_research])
 
   return (
     <Sidebar collapsible="icon" {...props}>
