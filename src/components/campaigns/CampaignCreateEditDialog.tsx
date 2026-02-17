@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateCampaign, useUpdateCampaign, type Campaign } from "@/hooks/useCampaigns";
-import type { SenderAccount } from "@/hooks/useSenderAccounts";
+import type { OutboundAccount } from "@/hooks/useOutboundAccounts";
+import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -43,14 +44,14 @@ interface CampaignCreateEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campaign: Campaign | null;
-  senders: SenderAccount[];
+  outboundAccounts: OutboundAccount[];
 }
 
 interface FormData {
   name: string;
   mode: "auto" | "manual";
   messages: string[];
-  sender_ids: string[];
+  outbound_account_ids: string[];
   active_hours_start: number;
   active_hours_end: number;
   min_delay_seconds: number;
@@ -63,7 +64,7 @@ const DEFAULT_FORM: FormData = {
   name: "",
   mode: "auto",
   messages: [""],
-  sender_ids: [],
+  outbound_account_ids: [],
   active_hours_start: 9,
   active_hours_end: 21,
   min_delay_seconds: 60,
@@ -76,7 +77,7 @@ export default function CampaignCreateEditDialog({
   open,
   onOpenChange,
   campaign,
-  senders,
+  outboundAccounts,
 }: CampaignCreateEditDialogProps) {
   const { toast } = useToast();
   const createMutation = useCreateCampaign();
@@ -92,7 +93,7 @@ export default function CampaignCreateEditDialog({
           name: campaign.name,
           mode: campaign.mode || "auto",
           messages: campaign.messages.length > 0 ? [...campaign.messages] : [""],
-          sender_ids: [...campaign.sender_ids],
+          outbound_account_ids: [...campaign.outbound_account_ids],
           active_hours_start: campaign.schedule.active_hours_start,
           active_hours_end: campaign.schedule.active_hours_end,
           min_delay_seconds: campaign.schedule.min_delay_seconds,
@@ -125,12 +126,12 @@ export default function CampaignCreateEditDialog({
     }));
   };
 
-  const toggleSender = (senderId: string) => {
+  const toggleOutboundAccount = (accountId: string) => {
     setForm((prev) => ({
       ...prev,
-      sender_ids: prev.sender_ids.includes(senderId)
-        ? prev.sender_ids.filter((id) => id !== senderId)
-        : [...prev.sender_ids, senderId],
+      outbound_account_ids: prev.outbound_account_ids.includes(accountId)
+        ? prev.outbound_account_ids.filter((id) => id !== accountId)
+        : [...prev.outbound_account_ids, accountId],
     }));
   };
 
@@ -144,7 +145,7 @@ export default function CampaignCreateEditDialog({
       name: form.name.trim(),
       mode: form.mode,
       messages: form.messages.filter((m) => m.trim()),
-      sender_ids: form.sender_ids,
+      outbound_account_ids: form.outbound_account_ids,
       schedule: {
         active_hours_start: form.active_hours_start,
         active_hours_end: form.active_hours_end,
@@ -241,24 +242,35 @@ export default function CampaignCreateEditDialog({
               </Button>
             </div>
 
-            {/* Senders */}
+            {/* Outbound Accounts */}
             <div className="space-y-2">
-              <Label>Sender Accounts</Label>
-              {senders.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No sender accounts available.</p>
+              <Label>Outbound Accounts</Label>
+              {outboundAccounts.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No outbound accounts available.</p>
               ) : (
                 <div className="space-y-1.5 border rounded-md p-3">
-                  {senders.map((s) => (
-                    <label key={s._id} className="flex items-center gap-2 cursor-pointer">
+                  {outboundAccounts.map((a) => (
+                    <label key={a._id} className="flex items-center gap-2 cursor-pointer">
                       <Checkbox
-                        checked={form.sender_ids.includes(s._id)}
-                        onCheckedChange={() => toggleSender(s._id)}
+                        checked={form.outbound_account_ids.includes(a._id)}
+                        onCheckedChange={() => toggleOutboundAccount(a._id)}
                       />
-                      <span
-                        className={`h-2 w-2 rounded-full ${s.status === "online" ? "bg-green-400" : "bg-zinc-500"}`}
-                      />
-                      <span className="text-sm">@{s.ig_username}</span>
-                      <span className="text-xs text-muted-foreground ml-auto">{s.daily_limit}/day</span>
+                      <span className="text-sm">@{a.username}</span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${
+                          a.status === "ready"
+                            ? "text-green-400 border-green-500/30"
+                            : a.status === "warming"
+                            ? "text-yellow-400 border-yellow-500/30"
+                            : "text-zinc-400 border-zinc-500/30"
+                        }`}
+                      >
+                        {a.status}
+                      </Badge>
+                      {a.linked_sender_status === "online" && (
+                        <span className="h-2 w-2 rounded-full bg-green-400 ml-auto" title="Browser connected" />
+                      )}
                     </label>
                   ))}
                 </div>

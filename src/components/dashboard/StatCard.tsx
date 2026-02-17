@@ -5,7 +5,7 @@ interface StatCardProps {
   value: string | number;
   subValue?: string;
   trend?: "up" | "down" | "neutral";
-  variant?: "default" | "created" | "link-sent" | "booked" | "ghosted" | "fup";
+  variant?: "default" | "created" | "link-sent" | "link-clicked" | "booked" | "ghosted" | "fup";
   className?: string;
   onClick?: () => void;
   disabled?: boolean;
@@ -15,6 +15,7 @@ const variantStyles = {
   default: "border-border",
   created: "border-l-4 border-l-stage-created",
   "link-sent": "border-l-4 border-l-stage-link-sent",
+  "link-clicked": "border-l-4 border-l-stage-link-clicked",
   booked: "border-l-4 border-l-stage-booked",
   ghosted: "border-l-4 border-l-stage-ghosted",
   fup: "border-l-4 border-l-stage-fup",

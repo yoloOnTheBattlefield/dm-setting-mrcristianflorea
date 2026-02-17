@@ -29,7 +29,7 @@ export interface Campaign {
   mode: "auto" | "manual";
   status: "draft" | "active" | "paused" | "completed";
   messages: string[];
-  sender_ids: string[];
+  outbound_account_ids: string[];
   schedule: CampaignSchedule;
   daily_limit_per_sender: number;
   stats: CampaignStats;
@@ -152,7 +152,7 @@ export function useCreateCampaign() {
       name: string;
       mode?: "auto" | "manual";
       messages?: string[];
-      sender_ids?: string[];
+      outbound_account_ids?: string[];
       schedule?: Partial<CampaignSchedule>;
       daily_limit_per_sender?: number;
     }) => {
@@ -180,7 +180,7 @@ export function useUpdateCampaign() {
         name?: string;
         mode?: "auto" | "manual";
         messages?: string[];
-        sender_ids?: string[];
+        outbound_account_ids?: string[];
         schedule?: Partial<CampaignSchedule>;
         daily_limit_per_sender?: number;
       };

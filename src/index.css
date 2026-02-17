@@ -40,6 +40,7 @@
     --stage-created: 220 70% 55%;
     --stage-qualified: 45 95% 55%;
     --stage-link-sent: 280 65% 60%;
+    --stage-link-clicked: 35 90% 55%;
     --stage-booked: 160 70% 45%;
     --stage-ghosted: 0 75% 60%;
     --stage-fup: 200 85% 55%;
@@ -95,6 +96,7 @@
     --stage-created: 220 75% 60%;
     --stage-qualified: 45 90% 60%;
     --stage-link-sent: 280 70% 65%;
+    --stage-link-clicked: 35 85% 60%;
     --stage-booked: 160 65% 50%;
     --stage-ghosted: 0 70% 55%;
     --stage-fup: 200 80% 60%;
@@ -157,6 +159,10 @@
     color: hsl(var(--stage-link-sent));
   }
 
+  .text-stage-link-clicked {
+    color: hsl(var(--stage-link-clicked));
+  }
+
   .text-stage-booked {
     color: hsl(var(--stage-booked));
   }
@@ -179,6 +185,10 @@
 
   .bg-stage-link-sent {
     background-color: hsl(var(--stage-link-sent));
+  }
+
+  .bg-stage-link-clicked {
+    background-color: hsl(var(--stage-link-clicked));
   }
 
   .bg-stage-booked {

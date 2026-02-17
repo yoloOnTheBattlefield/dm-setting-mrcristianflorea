@@ -8,13 +8,17 @@ const API_URL = import.meta.env.DEV
 export interface SenderAccount {
   _id: string;
   account_id: string;
-  ig_username: string;
+  ig_username: string | null;
   display_name: string | null;
+  browser_id: string | null;
+  outbound_account_id: string | null;
   daily_limit: number;
-  status: "online" | "offline";
+  status: "online" | "offline" | "restricted";
   last_seen: string | null;
   socket_id: string | null;
   upcomingTask: { target: string; type: string; status: string } | null;
+  outbound_account: { _id: string; username: string; status: string } | null;
+  link_status: "linked" | "not_linked";
   createdAt: string;
   updatedAt: string;
 }

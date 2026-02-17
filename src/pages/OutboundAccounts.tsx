@@ -44,6 +44,8 @@ import {
   useCreateOutboundAccount,
   useUpdateOutboundAccount,
   useDeleteOutboundAccount,
+  useGenerateToken,
+  useRevokeToken,
   type OutboundAccount,
 } from "@/hooks/useOutboundAccounts";
 import {
@@ -71,6 +73,8 @@ import {
   Mail,
   Lock,
   ShieldEllipsis,
+  Link2,
+  Unlink,
 } from "lucide-react";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
@@ -164,6 +168,8 @@ export default function OutboundAccounts() {
   const createMutation = useCreateOutboundAccount();
   const updateMutation = useUpdateOutboundAccount();
   const deleteMutation = useDeleteOutboundAccount();
+  const generateToken = useGenerateToken();
+  const revokeToken = useRevokeToken();
 
   const isEdit = !!editingAccount;
 
@@ -417,13 +423,14 @@ export default function OutboundAccounts() {
                     <TableHead>AI Setter</TableHead>
                     <TableHead>Blacklisted</TableHead>
                     <TableHead>Notes</TableHead>
+                    <TableHead>Token</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {accounts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center">
+                      <TableCell colSpan={9} className="h-24 text-center">
                         <div className="flex flex-col items-center gap-2">
                           <p className="text-muted-foreground">No outbound accounts found.</p>
                           <Button variant="outline" size="sm" onClick={openAdd}>
@@ -485,6 +492,69 @@ export default function OutboundAccounts() {
                           </TableCell>
                           <TableCell className="text-muted-foreground max-w-[120px] truncate text-xs">
                             {a.notes || "-"}
+                          </TableCell>
+                          <TableCell>
+                            {a.browser_token ? (
+                              <div className="flex items-center gap-1">
+                                {a.linked_sender_status ? (
+                                  <Badge className={
+                                    a.linked_sender_status === "online"
+                                      ? "bg-green-500/15 text-green-400 border-green-500/30 text-[10px]"
+                                      : "bg-zinc-500/15 text-zinc-400 border-zinc-500/30 text-[10px]"
+                                  }>
+                                    <Link2 className="h-3 w-3 mr-1" />
+                                    {a.linked_sender_status === "online" ? "Online" : "Offline"}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                                    Token ready
+                                  </Badge>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(a.browser_token!, "Browser Token")}
+                                  title="Copy Token"
+                                >
+                                  <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      await revokeToken.mutateAsync(a._id);
+                                      toast({ title: "Revoked", description: `Token revoked for @${a.username}` });
+                                    } catch (err) {
+                                      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to revoke", variant: "destructive" });
+                                    }
+                                  }}
+                                  disabled={revokeToken.isPending}
+                                  title="Revoke Token"
+                                >
+                                  <Unlink className="h-3.5 w-3.5 text-red-400" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs"
+                                onClick={async () => {
+                                  try {
+                                    const result = await generateToken.mutateAsync(a._id);
+                                    navigator.clipboard.writeText(result.browser_token);
+                                    toast({ title: "Token Generated", description: "Token copied to clipboard. Give this to your VA." });
+                                  } catch (err) {
+                                    toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to generate", variant: "destructive" });
+                                  }
+                                }}
+                                disabled={generateToken.isPending}
+                              >
+                                <Link2 className="h-3 w-3 mr-1" />
+                                Generate
+                              </Button>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">

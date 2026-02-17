@@ -45,6 +45,8 @@ export interface FunnelMetrics {
   totalContacts: number;
   linkSentCount: number;
   linkSentRate: number;
+  linkClickedCount: number;
+  linkClickedRate: number;
   bookedCount: number;
   bookingRate: number;
   ghostedCount: number;
@@ -123,5 +125,6 @@ export interface TeamMember {
   first_name: string;
   last_name: string;
   role: number;
+  has_outbound?: boolean;
   ghl?: string;
 }

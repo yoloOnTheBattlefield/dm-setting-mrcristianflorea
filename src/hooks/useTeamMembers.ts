@@ -2,9 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TeamMember } from "@/lib/types";
 import { fetchWithAuth } from "@/lib/api";
 
-const API_URL = import.meta.env.DEV
+const TEAM_URL = import.meta.env.DEV
   ? "http://localhost:3000/accounts/team"
   : "https://quddify-server.vercel.app/accounts/team";
+
+const ACCOUNTS_URL = import.meta.env.DEV
+  ? "http://localhost:3000/accounts"
+  : "https://quddify-server.vercel.app/accounts";
 
 interface AddTeamMemberBody {
   email: string;
@@ -12,10 +16,11 @@ interface AddTeamMemberBody {
   first_name: string;
   last_name: string;
   role: number;
+  has_outbound?: boolean;
 }
 
 async function fetchTeamMembers(): Promise<TeamMember[]> {
-  const response = await fetchWithAuth(API_URL);
+  const response = await fetchWithAuth(TEAM_URL);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch team members: ${response.status}`);
@@ -25,7 +30,7 @@ async function fetchTeamMembers(): Promise<TeamMember[]> {
 }
 
 async function addTeamMember(body: AddTeamMemberBody): Promise<TeamMember> {
-  const response = await fetchWithAuth(API_URL, {
+  const response = await fetchWithAuth(TEAM_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -40,13 +45,26 @@ async function addTeamMember(body: AddTeamMemberBody): Promise<TeamMember> {
 }
 
 async function deleteTeamMember(id: string): Promise<void> {
-  const response = await fetchWithAuth(`${API_URL}/${id}`, {
+  const response = await fetchWithAuth(`${TEAM_URL}/${id}`, {
     method: "DELETE",
   });
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     throw new Error(data.message || `Failed to delete team member: ${response.status}`);
+  }
+}
+
+async function updateTeamMember({ id, body }: { id: string; body: { has_outbound?: boolean } }): Promise<void> {
+  const response = await fetchWithAuth(`${ACCOUNTS_URL}/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || `Failed to update team member: ${response.status}`);
   }
 }
 
@@ -64,6 +82,17 @@ export function useAddTeamMember() {
 
   return useMutation({
     mutationFn: addTeamMember,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
+    },
+  });
+}
+
+export function useUpdateTeamMember() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateTeamMember,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
     },

@@ -50,6 +50,8 @@ export default {
   			stage: {
   				created: 'hsl(var(--stage-created))',
   				qualified: 'hsl(var(--stage-qualified))',
+  				'link-sent': 'hsl(var(--stage-link-sent))',
+  				'link-clicked': 'hsl(var(--stage-link-clicked))',
   				booked: 'hsl(var(--stage-booked))',
   				ghosted: 'hsl(var(--stage-ghosted))',
   				fup: 'hsl(var(--stage-fup))'

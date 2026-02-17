@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
-import { useSenderAccounts } from "@/hooks/useSenderAccounts";
+import { useOutboundAccounts } from "@/hooks/useOutboundAccounts";
 import { fetchWithAuth } from "@/lib/api";
 import { type Campaign } from "@/hooks/useCampaigns";
 import CampaignList from "@/components/campaigns/CampaignList";
@@ -40,8 +40,8 @@ export default function Campaigns() {
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [createEditOpen, setCreateEditOpen] = useState(false);
 
-  const { data: sendersData } = useSenderAccounts();
-  const senders = sendersData?.senders ?? [];
+  const { data: outboundData } = useOutboundAccounts({ page: 1, limit: 100 });
+  const outboundAccounts = outboundData?.accounts ?? [];
 
   // Socket listeners for real-time updates
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function Campaigns() {
     };
 
     const onSenderChange = () => {
-      queryClient.invalidateQueries({ queryKey: ["sender-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
     };
 
     const onTaskUpdate = () => {
@@ -173,7 +173,7 @@ export default function Campaigns() {
 
       {/* Campaign List */}
       <CampaignList
-        senders={senders}
+        outboundAccounts={outboundAccounts}
         onCreateCampaign={() => {
           setEditingCampaign(null);
           setCreateEditOpen(true);
@@ -189,7 +189,7 @@ export default function Campaigns() {
         open={createEditOpen}
         onOpenChange={setCreateEditOpen}
         campaign={editingCampaign}
-        senders={senders}
+        outboundAccounts={outboundAccounts}
       />
     </div>
   );

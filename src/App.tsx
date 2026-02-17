@@ -20,7 +20,6 @@ import Prompts from "./pages/Prompts";
 import Campaigns from "./pages/Campaigns";
 import CampaignDetail from "./components/campaigns/CampaignDetail";
 import CampaignAddLeads from "./pages/CampaignAddLeads";
-import Senders from "./pages/Senders";
 import OutboundAccounts from "./pages/OutboundAccounts";
 import OutboundAnalytics from "./pages/OutboundAnalytics";
 import { LoginForm } from "@/components/login-form";
@@ -130,13 +129,6 @@ const App = () => (
                 <ProtectedRoute>
                   <DashboardLayout>
                     <Prompts />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/senders" element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <Senders />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />

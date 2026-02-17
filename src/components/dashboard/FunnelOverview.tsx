@@ -32,11 +32,13 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
     ? [
         { key: "totalContacts", label: "Total Contacts", value: metrics.totalContacts, color: "hsl(var(--stage-created))" },
         { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
+        { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
         { key: "booked", label: "Booked", value: metrics.bookedCount, color: "hsl(var(--stage-booked))" },
       ]
     : [
         { key: "combinedContacts", label: "Combined Contacts", value: safe(metrics.combinedContacts), color: "hsl(var(--stage-created))" },
         { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
+        { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
         { key: "combinedBooked", label: "Combined Booked", value: safe(metrics.combinedBooked), color: "hsl(var(--stage-booked))" },
       ];
 
@@ -104,7 +106,7 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
             />
           </div>
         ) : isInbound ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
             <StatCard
               label="Total Contacts"
               value={metrics.totalContacts}
@@ -122,6 +124,14 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
               disabled={!enabledStages.linkSent}
             />
             <StatCard
+              label="Link Clicked"
+              value={safe(metrics.linkClickedCount)}
+              subValue={`${safe(metrics.linkClickedRate).toFixed(1)}% of sent`}
+              variant="link-clicked"
+              onClick={() => toggleStage("linkClicked")}
+              disabled={!enabledStages.linkClicked}
+            />
+            <StatCard
               label="Booked"
               value={metrics.bookedCount}
               subValue={`${metrics.bookingRate.toFixed(1)}% of total`}
@@ -129,20 +139,6 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
               trend={metrics.bookingRate > 40 ? "up" : "neutral"}
               onClick={() => toggleStage("booked")}
               disabled={!enabledStages.booked}
-            />
-            <StatCard
-              label="Ghosted"
-              value={metrics.ghostedCount}
-              subValue={`${metrics.ghostRate.toFixed(1)}% rate`}
-              variant="ghosted"
-              trend={metrics.ghostRate < 20 ? "up" : "down"}
-            />
-            <StatCard
-              label="FUP Recovery"
-              value={metrics.fupToBookedCount}
-              subValue={`${metrics.recoveryRate.toFixed(1)}% of ${metrics.fupCount} FUPs`}
-              variant="fup"
-              trend={metrics.recoveryRate > 25 ? "up" : "neutral"}
             />
           </div>
         ) : (
@@ -164,6 +160,14 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
               disabled={!enabledStages.linkSent}
             />
             <StatCard
+              label="Link Clicked"
+              value={safe(metrics.linkClickedCount)}
+              subValue={`${safe(metrics.linkClickedRate).toFixed(1)}% of sent`}
+              variant="link-clicked"
+              onClick={() => toggleStage("linkClicked")}
+              disabled={!enabledStages.linkClicked}
+            />
+            <StatCard
               label="Combined Booked"
               value={safe(metrics.combinedBooked)}
               subValue={`${metrics.bookedCount} in + ${safe(metrics.obBooked)} out`}
@@ -175,12 +179,6 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
               label="OB Reply Rate"
               value={pct(metrics.obReplyRate)}
               variant="default"
-            />
-            <StatCard
-              label="Ghosted"
-              value={metrics.ghostedCount}
-              subValue={`${metrics.ghostRate.toFixed(1)}% rate`}
-              variant="ghosted"
             />
             <StatCard
               label="OB Revenue"

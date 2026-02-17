@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardContent,
@@ -40,7 +41,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTeamMembers, useAddTeamMember, useDeleteTeamMember } from "@/hooks/useTeamMembers";
+import { useTeamMembers, useAddTeamMember, useUpdateTeamMember, useDeleteTeamMember } from "@/hooks/useTeamMembers";
 import { Plus, Trash2 } from "lucide-react";
 
 export default function TeamMembers() {
@@ -55,10 +56,12 @@ export default function TeamMembers() {
     last_name: "",
     email: "",
     password: "",
+    has_outbound: false,
   });
 
   const { data: teamMembers = [], isLoading } = useTeamMembers();
   const addMember = useAddTeamMember();
+  const updateMember = useUpdateTeamMember();
   const deleteMember = useDeleteTeamMember();
 
   const handleAddMember = async () => {
@@ -69,14 +72,28 @@ export default function TeamMembers() {
         first_name: newMember.first_name,
         last_name: newMember.last_name,
         role: 2,
+        has_outbound: newMember.has_outbound,
       });
       toast({ title: "Success", description: "Team member added" });
-      setNewMember({ first_name: "", last_name: "", email: "", password: "" });
+      setNewMember({ first_name: "", last_name: "", email: "", password: "", has_outbound: false });
       setAddDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to add team member",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleOutbound = async (memberId: string, current: boolean) => {
+    try {
+      await updateMember.mutateAsync({ id: memberId, body: { has_outbound: !current } });
+      toast({ title: "Updated", description: `Outbound access ${!current ? "enabled" : "disabled"}` });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update",
         variant: "destructive",
       });
     }
@@ -173,6 +190,21 @@ export default function TeamMembers() {
                       }
                     />
                   </div>
+                  <div className="flex items-center justify-between rounded-md border p-3">
+                    <div>
+                      <Label htmlFor="tm-outbound">Outbound Access</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Allow this member to access outbound campaigns and accounts
+                      </p>
+                    </div>
+                    <Switch
+                      id="tm-outbound"
+                      checked={newMember.has_outbound}
+                      onCheckedChange={(checked) =>
+                        setNewMember((prev) => ({ ...prev, has_outbound: checked }))
+                      }
+                    />
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button
@@ -204,6 +236,7 @@ export default function TeamMembers() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Outbound</TableHead>
                   {canManage && <TableHead className="w-[80px]">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -217,32 +250,41 @@ export default function TeamMembers() {
                     <TableCell className="text-muted-foreground">
                       {member.role === 0 || member.role === 1 ? "Team Owner" : "Team Member"}
                     </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={!!member.has_outbound}
+                        onCheckedChange={() => handleToggleOutbound(member._id, !!member.has_outbound)}
+                        disabled={!canManage || updateMember.isPending}
+                      />
+                    </TableCell>
                     {canManage && (
                       <TableCell>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remove team member?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently remove {member.first_name} {member.last_name} from your account. This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteMember(member._id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Remove
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        {member._id !== user?.id && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove team member?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently remove {member.first_name} {member.last_name} from your account. This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteMember(member._id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Remove
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { CumulativeBooking, SourceFilter } from "@/lib/types";
 import {
   AreaChart,
@@ -8,18 +9,46 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfWeek, startOfMonth } from "date-fns";
 
 interface CumulativeBookingsChartProps {
   data: CumulativeBooking[];
   source: SourceFilter;
 }
 
+/** For cumulative data, take the last (highest) entry per bucket */
+function sampleCumulative(data: CumulativeBooking[], mode: "week" | "month"): CumulativeBooking[] {
+  const buckets = new Map<string, CumulativeBooking>();
+  for (const d of data) {
+    const date = parseISO(d.date);
+    const key = mode === "week"
+      ? startOfWeek(date, { weekStartsOn: 1 }).toISOString().slice(0, 10)
+      : startOfMonth(date).toISOString().slice(0, 10);
+    // Last entry per bucket wins (data is chronological, so later entries overwrite)
+    buckets.set(key, { ...d, date: key });
+  }
+  return Array.from(buckets.values());
+}
+
 export function CumulativeBookingsChart({ data, source }: CumulativeBookingsChartProps) {
-  const formattedData = data.map((d) => ({
-    ...d,
-    displayDate: format(parseISO(d.date), "MMM d"),
-  }));
+  const formattedData = useMemo(() => {
+    let sampled: CumulativeBooking[];
+    let fmt: string;
+    if (data.length > 180) {
+      sampled = sampleCumulative(data, "month");
+      fmt = "MMM yyyy";
+    } else if (data.length > 60) {
+      sampled = sampleCumulative(data, "week");
+      fmt = "MMM d";
+    } else {
+      sampled = data;
+      fmt = "MMM d";
+    }
+    return sampled.map((d) => ({
+      ...d,
+      displayDate: format(parseISO(d.date), fmt),
+    }));
+  }, [data]);
 
   const isInbound = source === "inbound";
   const isOutbound = source === "outbound";

@@ -37,7 +37,7 @@ import {
   usePauseCampaign,
   type Campaign,
 } from "@/hooks/useCampaigns";
-import type { SenderAccount } from "@/hooks/useSenderAccounts";
+import type { OutboundAccount } from "@/hooks/useOutboundAccounts";
 import {
   Plus,
   Play,
@@ -68,13 +68,13 @@ function formatDate(dateStr: string) {
 }
 
 interface CampaignListProps {
-  senders: SenderAccount[];
+  outboundAccounts: OutboundAccount[];
   onCreateCampaign: () => void;
   onEditCampaign: (campaign: Campaign) => void;
 }
 
 export default function CampaignList({
-  senders,
+  outboundAccounts,
   onCreateCampaign,
   onEditCampaign,
 }: CampaignListProps) {
@@ -98,7 +98,7 @@ export default function CampaignList({
   const campaigns = data?.campaigns || [];
   const pagination = data?.pagination;
 
-  const senderMap = new Map(senders.map((s) => [s._id, s]));
+  const accountMap = new Map(outboundAccounts.map((a) => [a._id, a]));
 
   const handleDelete = async () => {
     if (!deletingId) return;
@@ -182,7 +182,7 @@ export default function CampaignList({
                   <TableHead>Name</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Mode</TableHead>
-                  <TableHead>Senders</TableHead>
+                  <TableHead>Accounts</TableHead>
                   <TableHead>Progress</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -218,18 +218,18 @@ export default function CampaignList({
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            {c.sender_ids.slice(0, 3).map((sid) => {
-                              const sender = senderMap.get(sid);
+                            {c.outbound_account_ids.slice(0, 3).map((aid) => {
+                              const account = accountMap.get(aid);
                               return (
-                                <Badge key={sid} variant="outline" className="text-[10px]">
-                                  @{sender?.ig_username || "?"}
+                                <Badge key={aid} variant="outline" className="text-[10px]">
+                                  @{account?.username || "?"}
                                 </Badge>
                               );
                             })}
-                            {c.sender_ids.length > 3 && (
-                              <span className="text-xs text-muted-foreground">+{c.sender_ids.length - 3}</span>
+                            {c.outbound_account_ids.length > 3 && (
+                              <span className="text-xs text-muted-foreground">+{c.outbound_account_ids.length - 3}</span>
                             )}
-                            {c.sender_ids.length === 0 && (
+                            {c.outbound_account_ids.length === 0 && (
                               <span className="text-xs text-muted-foreground">None</span>
                             )}
                           </div>

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { DailyVolume, SourceFilter } from "@/lib/types";
 import {
   BarChart,
@@ -8,25 +9,66 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfWeek, startOfMonth } from "date-fns";
 
 interface DailyVolumeChartProps {
   data: DailyVolume[];
   source: SourceFilter;
 }
 
+function aggregateVolume(data: DailyVolume[], mode: "week" | "month"): DailyVolume[] {
+  const buckets = new Map<string, DailyVolume>();
+  for (const d of data) {
+    const date = parseISO(d.date);
+    const key = mode === "week"
+      ? startOfWeek(date, { weekStartsOn: 1 }).toISOString().slice(0, 10)
+      : startOfMonth(date).toISOString().slice(0, 10);
+    const existing = buckets.get(key);
+    if (existing) {
+      existing.created += d.created;
+      existing.link_sent += d.link_sent;
+      existing.booked += d.booked;
+      existing.ghosted += d.ghosted;
+      existing.ob_messaged += d.ob_messaged;
+      existing.ob_replied += d.ob_replied;
+      existing.ob_booked += d.ob_booked;
+    } else {
+      buckets.set(key, { ...d, date: key });
+    }
+  }
+  return Array.from(buckets.values());
+}
+
 export function DailyVolumeChart({ data, source }: DailyVolumeChartProps) {
-  const formattedData = data.map((d) => ({
-    ...d,
-    displayDate: format(parseISO(d.date), "MMM d"),
-  }));
+  const { formattedData, groupLabel } = useMemo(() => {
+    let aggregated: DailyVolume[];
+    let label: string;
+    if (data.length > 180) {
+      aggregated = aggregateVolume(data, "month");
+      label = "Monthly";
+    } else if (data.length > 60) {
+      aggregated = aggregateVolume(data, "week");
+      label = "Weekly";
+    } else {
+      aggregated = data;
+      label = "Daily";
+    }
+    const fmt = label === "Monthly" ? "MMM yyyy" : "MMM d";
+    return {
+      formattedData: aggregated.map((d) => ({
+        ...d,
+        displayDate: format(parseISO(d.date), fmt),
+      })),
+      groupLabel: label,
+    };
+  }, [data]);
 
   const isInbound = source === "inbound";
   const isOutbound = source === "outbound";
 
   return (
     <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm">
-      <h2 className="mb-1 text-base sm:text-lg font-semibold">Daily Pipeline Volume</h2>
+      <h2 className="mb-1 text-base sm:text-lg font-semibold">{groupLabel} Pipeline Volume</h2>
       <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-muted-foreground">
         Track consistency and identify overload periods
       </p>

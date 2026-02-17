@@ -19,6 +19,8 @@ export interface OutboundAccount {
   isBlacklisted: boolean;
   notes: string | null;
   twoFA: string | null;
+  browser_token: string | null;
+  linked_sender_status: "online" | "offline" | "restricted" | null;
   warmup?: {
     enabled: boolean;
     startDate: string | null;
@@ -145,6 +147,44 @@ export function useDeleteOutboundAccount() {
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await fetchWithAuth(`${API_URL}/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
+    },
+  });
+}
+
+export function useGenerateToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string): Promise<{ browser_token: string }> => {
+      const res = await fetchWithAuth(`${API_URL}/${id}/token`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
+    },
+  });
+}
+
+export function useRevokeToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetchWithAuth(`${API_URL}/${id}/token`, {
         method: "DELETE",
       });
       if (!res.ok) {

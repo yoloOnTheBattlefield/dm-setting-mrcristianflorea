@@ -68,7 +68,7 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
     return Math.max(height, minHeight);
   };
 
-  // Generate trapezoid coordinates for each stage
+  // Generate smooth funnel shape for each stage
   const getTrapezoidPath = (index: number) => {
     const stage = stages[index];
     const leftX = padding.left + index * stageWidth;
@@ -85,12 +85,15 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
     const rightTopY = centerY - nextHeight / 2;
     const rightBottomY = centerY + nextHeight / 2;
 
-    // Create trapezoid path (clockwise from top-left)
+    // Bezier control point offset (how far the curve bows — 40% of stage width)
+    const cp = stageWidth * 0.4;
+
+    // Smooth path: straight left edge, curved top/bottom connecting to next stage
     return `
       M ${leftX},${leftTopY}
-      L ${rightX},${rightTopY}
+      C ${leftX + cp},${leftTopY} ${rightX - cp},${rightTopY} ${rightX},${rightTopY}
       L ${rightX},${rightBottomY}
-      L ${leftX},${leftBottomY}
+      C ${rightX - cp},${rightBottomY} ${leftX + cp},${leftBottomY} ${leftX},${leftBottomY}
       Z
     `;
   };
@@ -196,7 +199,7 @@ export function FunnelAreaChart({ stages }: FunnelAreaChartProps) {
                     fill="none"
                     stroke={isZero ? "rgba(0, 0, 0, 0.3)" : "black"}
                     strokeWidth={isZero ? "1" : "2"}
-                    strokeLinejoin="miter"
+                    strokeLinejoin="round"
                     strokeDasharray={isZero ? "4 2" : "none"}
                     className="pointer-events-none"
                     style={{
