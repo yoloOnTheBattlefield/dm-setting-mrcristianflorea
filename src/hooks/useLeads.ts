@@ -1,10 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ApiLead, Contact, transformApiLead } from "@/lib/types";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/leads"
-  : "https://quddify-server.vercel.app/leads";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 interface FetchLeadsParams {
   startDate?: string;
@@ -22,7 +18,7 @@ async function fetchLeads({ startDate, endDate }: FetchLeadsParams = {}): Promis
     params.append("end_date", endDate);
   }
 
-  const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL;
+  const url = params.toString() ? `${API_URL}/leads?${params.toString()}` : `${API_URL}/leads`;
   const response = await fetchWithAuth(url);
 
   if (!response.ok) {

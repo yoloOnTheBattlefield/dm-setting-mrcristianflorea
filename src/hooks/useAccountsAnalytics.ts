@@ -1,9 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/accounts/analytics"
-  : "https://quddify-server.vercel.app/accounts/analytics";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 interface AccountAnalytics {
   account_id: string;
@@ -36,7 +32,7 @@ async function fetchAccountsAnalytics({
     params.append("end_date", endDate);
   }
 
-  const url = `${API_URL}${params.toString() ? `?${params.toString()}` : ""}`;
+  const url = `${API_URL}/accounts/analytics${params.toString() ? `?${params.toString()}` : ""}`;
   const response = await fetchWithAuth(url);
 
   if (!response.ok) {

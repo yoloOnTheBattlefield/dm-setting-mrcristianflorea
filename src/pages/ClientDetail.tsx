@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -87,12 +87,8 @@ export default function ClientDetail() {
         return;
       }
 
-      const API_URL = import.meta.env.DEV
-        ? "http://localhost:3000/accounts/ghl-webhook"
-        : "https://quddify-server.vercel.app/accounts/ghl-webhook";
-
       try {
-        const response = await fetchWithAuth(`${API_URL}?_id=${id}`);
+        const response = await fetchWithAuth(`${API_URL}/accounts/ghl-webhook?_id=${id}`);
         if (response.ok) {
           const data = await response.json();
           setClient(data);
@@ -204,12 +200,8 @@ export default function ClientDetail() {
 
     setIsGhlSaving(true);
 
-    const API_URL = import.meta.env.DEV
-      ? "http://localhost:3000/accounts/ghl-webhook"
-      : "https://quddify-server.vercel.app/accounts/ghl-webhook";
-
     try {
-      const response = await fetchWithAuth(API_URL, {
+      const response = await fetchWithAuth(`${API_URL}/accounts/ghl-webhook`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

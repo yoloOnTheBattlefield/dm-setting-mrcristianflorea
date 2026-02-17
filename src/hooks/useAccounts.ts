@@ -1,9 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/accounts"
-  : "https://quddify-server.vercel.app/accounts";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 interface Account {
   _id: string;
@@ -16,7 +12,7 @@ interface Account {
 }
 
 async function fetchAccounts(): Promise<Account[]> {
-  const response = await fetchWithAuth(API_URL);
+  const response = await fetchWithAuth(`${API_URL}/accounts`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch accounts: ${response.status}`);

@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 export default function NewClient() {
   const { user } = useAuth();
@@ -40,12 +40,8 @@ export default function NewClient() {
     e.preventDefault();
     setIsLoading(true);
 
-    const API_URL = import.meta.env.DEV
-      ? "http://localhost:3000/register"
-      : "https://quddify-server.vercel.app/register";
-
     try {
-      const response = await fetchWithAuth(API_URL, {
+      const response = await fetchWithAuth(`${API_URL}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

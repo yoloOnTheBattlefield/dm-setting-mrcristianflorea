@@ -1,13 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
-const TASKS_URL = import.meta.env.DEV
-  ? "http://localhost:3000/api/tasks"
-  : "https://quddify-server.vercel.app/api/tasks";
+const TASKS_URL = `${API_URL}/api/tasks`;
 
-const STATS_URL = import.meta.env.DEV
-  ? "http://localhost:3000/api/stats"
-  : "https://quddify-server.vercel.app/api/stats";
+const STATS_URL = `${API_URL}/api/stats`;
 
 export interface Task {
   _id: string;

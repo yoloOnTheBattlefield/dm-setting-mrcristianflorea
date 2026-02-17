@@ -1,9 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/api/sender-accounts"
-  : "https://quddify-server.vercel.app/api/sender-accounts";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 export interface SenderAccount {
   _id: string;
@@ -40,7 +36,7 @@ export function useSenderAccounts(
       const sp = new URLSearchParams();
       if (page) sp.append("page", String(page));
       sp.append("limit", String(limit));
-      const res = await fetchWithAuth(`${API_URL}?${sp.toString()}`);
+      const res = await fetchWithAuth(`${API_URL}/api/sender-accounts?${sp.toString()}`);
       if (!res.ok) throw new Error(`Failed to fetch senders: ${res.status}`);
       return res.json();
     },
@@ -54,7 +50,7 @@ export function useUpdateSenderAccount() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: { display_name?: string; daily_limit?: number } }) => {
-      const res = await fetchWithAuth(`${API_URL}/${id}`, {
+      const res = await fetchWithAuth(`${API_URL}/api/sender-accounts/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
@@ -75,7 +71,7 @@ export function useCreateSenderAccount() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: { ig_username: string; display_name?: string; daily_limit?: number }) => {
-      const res = await fetchWithAuth(API_URL, {
+      const res = await fetchWithAuth(`${API_URL}/api/sender-accounts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -96,7 +92,7 @@ export function useDeleteSenderAccount() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/${id}`, {
+      const res = await fetchWithAuth(`${API_URL}/api/sender-accounts/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {

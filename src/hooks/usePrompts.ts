@@ -1,9 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/prompts"
-  : "https://quddify-server.vercel.app/prompts";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 export interface PromptFilters {
   minFollowers: number;
@@ -47,7 +43,7 @@ interface UpdatePromptBody {
 }
 
 async function fetchPrompts(): Promise<Prompt[]> {
-  const response = await fetchWithAuth(API_URL);
+  const response = await fetchWithAuth(`${API_URL}/prompts`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch prompts: ${response.status}`);
@@ -59,7 +55,7 @@ async function fetchPrompts(): Promise<Prompt[]> {
 }
 
 async function createPrompt(body: CreatePromptBody): Promise<Prompt> {
-  const response = await fetchWithAuth(API_URL, {
+  const response = await fetchWithAuth(`${API_URL}/prompts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -74,7 +70,7 @@ async function createPrompt(body: CreatePromptBody): Promise<Prompt> {
 }
 
 async function updatePrompt({ id, body }: { id: string; body: UpdatePromptBody }): Promise<Prompt> {
-  const response = await fetchWithAuth(`${API_URL}/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/prompts/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -89,7 +85,7 @@ async function updatePrompt({ id, body }: { id: string; body: UpdatePromptBody }
 }
 
 async function deletePrompt(id: string): Promise<void> {
-  const response = await fetchWithAuth(`${API_URL}/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/prompts/${id}`, {
     method: "DELETE",
   });
 

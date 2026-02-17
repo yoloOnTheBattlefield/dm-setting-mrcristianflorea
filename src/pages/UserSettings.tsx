@@ -23,13 +23,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { fetchWithAuth } from "@/lib/api";
 import { AppearanceCard } from "@/components/settings/appearance-card";
 
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/accounts"
-  : "https://quddify-server.vercel.app/accounts";
-
-const LEADS_API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/leads/generate"
-  : "https://quddify-server.vercel.app/leads/generate";
+const LEADS_API_URL = `${API_URL}/accounts/leads/generate`;
 
 export default function UserSettings() {
   const { user, updateUser } = useAuth();
@@ -120,7 +114,7 @@ export default function UserSettings() {
 
     setIsSaving(true);
     try {
-      const response = await fetchWithAuth(`${API_URL}/${user.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/accounts/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -159,7 +153,7 @@ export default function UserSettings() {
 
     setIsChangingPassword(true);
     try {
-      const response = await fetchWithAuth(`${API_URL}/${user.id}/password`, {
+      const response = await fetchWithAuth(`${API_URL}/accounts/${user.id}/password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

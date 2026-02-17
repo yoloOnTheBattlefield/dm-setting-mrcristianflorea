@@ -10,11 +10,7 @@ import {
   SourceFilter,
 } from "@/lib/types";
 import { RadarDataPoint } from "@/components/dashboard/LeadsRadarChart";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/analytics"
-  : "https://quddify-server.vercel.app/analytics";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 interface FetchAnalyticsParams {
   startDate?: string;
@@ -58,7 +54,7 @@ async function fetchAnalytics({
     params.append("account_id", accountId);
   }
 
-  const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL;
+  const url = params.toString() ? `${API_URL}/analytics?${params.toString()}` : `${API_URL}/analytics`;
   const response = await fetchWithAuth(url);
 
   if (!response.ok) {

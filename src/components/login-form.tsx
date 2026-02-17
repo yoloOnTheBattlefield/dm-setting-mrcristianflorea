@@ -1,3 +1,4 @@
+import { API_URL } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,12 +31,8 @@ export function LoginForm({
     e.preventDefault();
     setIsLoading(true);
 
-    const API_URL = import.meta.env.DEV
-      ? "http://localhost:3000/login"
-      : "https://quddify-server.vercel.app/login";
-
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

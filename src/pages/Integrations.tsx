@@ -21,21 +21,17 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 import {
   useTrackingSettings,
   useUpdateTrackingSettings,
   useTrackingEvents,
 } from "@/hooks/useTracking";
-import { Copy, X } from "lucide-react";
+import { Copy, X, CheckCircle2 } from "lucide-react";
 
-const ACCOUNTS_API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/accounts"
-  : "https://quddify-server.vercel.app/accounts";
+const ACCOUNTS_API_URL = `${API_URL}/accounts`;
 
-const SERVER_URL = import.meta.env.DEV
-  ? "http://localhost:3000"
-  : "https://quddify-server.vercel.app";
+const SERVER_URL = API_URL;
 
 export default function Integrations() {
   const { user } = useAuth();
@@ -48,6 +44,9 @@ export default function Integrations() {
   const [openaiToken, setOpenaiToken] = useState("");
   const [savedOpenaiToken, setSavedOpenaiToken] = useState("");
   const [isSavingOpenai, setIsSavingOpenai] = useState(false);
+
+  // Calendly connection status
+  const [calendlyConnected, setCalendlyConnected] = useState(false);
 
   // Tracking state
   const { data: trackingSettings } = useTrackingSettings();
@@ -64,7 +63,7 @@ export default function Integrations() {
     }
   }, [trackingSettings?.tracking_conversion_rules]);
 
-  // Fetch current openai_token from account
+  // Fetch current account data (openai_token, calendly_token)
   useEffect(() => {
     if (!user?.id) return;
     fetchWithAuth(`${ACCOUNTS_API_URL}/${user.id}`)
@@ -73,6 +72,9 @@ export default function Integrations() {
         if (data?.openai_token) {
           setOpenaiToken(data.openai_token);
           setSavedOpenaiToken(data.openai_token);
+        }
+        if (data?.calendly_token) {
+          setCalendlyConnected(true);
         }
       })
       .catch(() => {});
@@ -116,12 +118,8 @@ export default function Integrations() {
 
     setIsSubmitting(true);
 
-    const API_URL = import.meta.env.DEV
-      ? "http://localhost:3000/api/calendly/add"
-      : "https://quddify-server.vercel.app/api/calendly/add";
-
     try {
-      const response = await fetchWithAuth(API_URL, {
+      const response = await fetchWithAuth(`${API_URL}/api/calendly/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -136,6 +134,7 @@ export default function Integrations() {
           title: "Success",
           description: "Calendly token added successfully",
         });
+        setCalendlyConnected(true);
         setIsCalendlyModalOpen(false);
         setCalendlyToken("");
       } else {
@@ -174,10 +173,20 @@ export default function Integrations() {
       {/* OpenAI API Key */}
       <Card>
         <CardHeader>
-          <CardTitle>OpenAI API Key</CardTitle>
-          <CardDescription>
-            Provide your own OpenAI key for lead qualification. Leave empty to use the server default.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>OpenAI API Key</CardTitle>
+              <CardDescription>
+                Provide your own OpenAI key for lead qualification. Leave empty to use the server default.
+              </CardDescription>
+            </div>
+            {savedOpenaiToken && (
+              <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                Connected
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-2">
@@ -479,18 +488,29 @@ export default function Integrations() {
         {/* Calendly Integration Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Calendly</CardTitle>
-            <CardDescription>
-              Connect your Calendly account to sync scheduling data
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Calendly</CardTitle>
+                <CardDescription>
+                  Connect your Calendly account to sync scheduling data
+                </CardDescription>
+              </div>
+              {calendlyConnected && (
+                <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Connected
+                </Badge>
+              )}
+            </div>
           </CardHeader>
 
           <CardContent>
             <Button
               onClick={() => setIsCalendlyModalOpen(true)}
               className="w-full"
+              variant={calendlyConnected ? "outline" : "default"}
             >
-              Connect Calendly
+              {calendlyConnected ? "Reconnect Calendly" : "Connect Calendly"}
             </Button>
           </CardContent>
         </Card>

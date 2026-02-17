@@ -1,9 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/api/outbound-accounts"
-  : "https://quddify-server.vercel.app/api/outbound-accounts";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 export interface OutboundAccount {
   _id: string;
@@ -73,7 +69,7 @@ export function useOutboundAccounts(params: {
       if (params.isBlacklisted) sp.append("isBlacklisted", params.isBlacklisted);
       if (params.isConnectedToAISetter) sp.append("isConnectedToAISetter", params.isConnectedToAISetter);
       if (params.search) sp.append("search", params.search);
-      const res = await fetchWithAuth(`${API_URL}?${sp.toString()}`);
+      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts?${sp.toString()}`);
       if (!res.ok) throw new Error(`Failed to fetch outbound accounts: ${res.status}`);
       return res.json();
     },
@@ -98,7 +94,7 @@ export function useCreateOutboundAccount() {
       notes?: string;
       twoFA?: string;
     }) => {
-      const res = await fetchWithAuth(API_URL, {
+      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -125,7 +121,7 @@ export function useUpdateOutboundAccount() {
       id: string;
       updates: Partial<Omit<OutboundAccount, "_id" | "account_id" | "createdAt" | "updatedAt">>;
     }) => {
-      const res = await fetchWithAuth(`${API_URL}/${id}`, {
+      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
@@ -146,7 +142,7 @@ export function useDeleteOutboundAccount() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/${id}`, {
+      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -165,7 +161,7 @@ export function useGenerateToken() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string): Promise<{ browser_token: string }> => {
-      const res = await fetchWithAuth(`${API_URL}/${id}/token`, {
+      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts/${id}/token`, {
         method: "POST",
       });
       if (!res.ok) {
@@ -184,7 +180,7 @@ export function useRevokeToken() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/${id}/token`, {
+      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts/${id}/token`, {
         method: "DELETE",
       });
       if (!res.ok) {

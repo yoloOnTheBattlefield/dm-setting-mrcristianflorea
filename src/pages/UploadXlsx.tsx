@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 import { usePrompts } from "@/hooks/usePrompts";
 import { useJobs, useCancelJob } from "@/hooks/useJobs";
 import { useJobProgress } from "@/hooks/useJobProgress";
@@ -31,10 +31,6 @@ import {
   Clock,
   ArrowRight,
 } from "lucide-react";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/jobs"
-  : "https://quddify-server.vercel.app/jobs";
 
 const FILENAME_REGEX = /^(follower|following)-of-(.+)-(\d{8})\.xlsx$/;
 
@@ -171,7 +167,7 @@ export default function UploadXlsx() {
         formData.append("columnMapping", JSON.stringify(mapping));
       }
 
-      const response = await fetchWithAuth(API_URL, {
+      const response = await fetchWithAuth(`${API_URL}/jobs`, {
         method: "POST",
         body: formData,
       });

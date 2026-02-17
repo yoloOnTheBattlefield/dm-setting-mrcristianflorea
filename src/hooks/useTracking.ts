@@ -1,9 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/tracking"
-  : "https://quddify-server.vercel.app/tracking";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 export interface TrackingSettings {
   tracking_enabled: boolean;
@@ -25,7 +21,7 @@ export function useTrackingSettings() {
   return useQuery({
     queryKey: ["tracking-settings"],
     queryFn: async (): Promise<TrackingSettings> => {
-      const res = await fetchWithAuth(`${API_URL}/settings`);
+      const res = await fetchWithAuth(`${API_URL}/tracking/settings`);
       if (!res.ok) throw new Error("Failed to fetch tracking settings");
       return res.json();
     },
@@ -38,7 +34,7 @@ export function useUpdateTrackingSettings() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (updates: Partial<TrackingSettings>): Promise<TrackingSettings> => {
-      const res = await fetchWithAuth(`${API_URL}/settings`, {
+      const res = await fetchWithAuth(`${API_URL}/tracking/settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
@@ -56,7 +52,7 @@ export function useTrackingEvents(limit = 5) {
   return useQuery({
     queryKey: ["tracking-events", limit],
     queryFn: async (): Promise<{ events: TrackingEvent[] }> => {
-      const res = await fetchWithAuth(`${API_URL}/events?limit=${limit}`);
+      const res = await fetchWithAuth(`${API_URL}/tracking/events?limit=${limit}`);
       if (!res.ok) throw new Error("Failed to fetch tracking events");
       return res.json();
     },

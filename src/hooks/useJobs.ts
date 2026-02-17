@@ -1,9 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/jobs"
-  : "https://quddify-server.vercel.app/jobs";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 export interface JobFileEntry {
   filename: string;
@@ -47,19 +43,19 @@ interface JobsResponse {
 }
 
 async function fetchJobs(): Promise<JobsResponse> {
-  const response = await fetchWithAuth(`${API_URL}`);
+  const response = await fetchWithAuth(`${API_URL}/jobs`);
   if (!response.ok) throw new Error(`Failed to fetch jobs: ${response.status}`);
   return response.json();
 }
 
 async function fetchJob(jobId: string): Promise<QualificationJob> {
-  const response = await fetchWithAuth(`${API_URL}/${jobId}`);
+  const response = await fetchWithAuth(`${API_URL}/jobs/${jobId}`);
   if (!response.ok) throw new Error(`Failed to fetch job: ${response.status}`);
   return response.json();
 }
 
 async function cancelJob(jobId: string): Promise<void> {
-  const response = await fetchWithAuth(`${API_URL}/${jobId}/cancel`, {
+  const response = await fetchWithAuth(`${API_URL}/jobs/${jobId}/cancel`, {
     method: "POST",
   });
   if (!response.ok) {

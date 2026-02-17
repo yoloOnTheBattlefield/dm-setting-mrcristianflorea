@@ -1,9 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
-const LEADS_URL = import.meta.env.DEV
-  ? "http://localhost:3000/outbound-leads"
-  : "https://quddify-server.vercel.app/outbound-leads";
+const LEADS_URL = `${API_URL}/outbound-leads`;
 
 export interface OutboundLead {
   _id: string;

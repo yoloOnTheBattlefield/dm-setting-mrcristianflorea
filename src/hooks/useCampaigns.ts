@@ -1,9 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/api/campaigns"
-  : "https://quddify-server.vercel.app/api/campaigns";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 export interface CampaignSchedule {
   active_hours_start: number;
@@ -84,7 +80,7 @@ export function useCampaigns(
       if (params.status) sp.append("status", params.status);
       if (params.page) sp.append("page", String(params.page));
       if (params.limit) sp.append("limit", String(params.limit));
-      const res = await fetchWithAuth(`${API_URL}?${sp.toString()}`);
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns?${sp.toString()}`);
       if (!res.ok) throw new Error(`Failed to fetch campaigns: ${res.status}`);
       return res.json();
     },
@@ -97,7 +93,7 @@ export function useCampaign(campaignId: string | null) {
   return useQuery({
     queryKey: ["campaign", campaignId],
     queryFn: async (): Promise<Campaign> => {
-      const res = await fetchWithAuth(`${API_URL}/${campaignId}`);
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}`);
       if (!res.ok) throw new Error(`Failed to fetch campaign: ${res.status}`);
       return res.json();
     },
@@ -111,7 +107,7 @@ export function useCampaignStats(campaignId: string | null) {
   return useQuery({
     queryKey: ["campaign-stats", campaignId],
     queryFn: async (): Promise<CampaignStats> => {
-      const res = await fetchWithAuth(`${API_URL}/${campaignId}/stats`);
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/stats`);
       if (!res.ok) throw new Error(`Failed to fetch stats: ${res.status}`);
       return res.json();
     },
@@ -133,7 +129,7 @@ export function useCampaignLeads(
       if (params.status) sp.append("status", params.status);
       if (params.page) sp.append("page", String(params.page));
       if (params.limit) sp.append("limit", String(params.limit));
-      const res = await fetchWithAuth(`${API_URL}/${campaignId}/leads?${sp.toString()}`);
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads?${sp.toString()}`);
       if (!res.ok) throw new Error(`Failed to fetch leads: ${res.status}`);
       return res.json();
     },
@@ -156,7 +152,7 @@ export function useCreateCampaign() {
       schedule?: Partial<CampaignSchedule>;
       daily_limit_per_sender?: number;
     }) => {
-      const res = await fetchWithAuth(API_URL, {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -185,7 +181,7 @@ export function useUpdateCampaign() {
         daily_limit_per_sender?: number;
       };
     }) => {
-      const res = await fetchWithAuth(`${API_URL}/${id}`, {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -207,7 +203,7 @@ export function useDeleteCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/${id}`, {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -224,7 +220,7 @@ export function useStartCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/${id}/start`, {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${id}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -245,7 +241,7 @@ export function usePauseCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/${id}/pause`, {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${id}/pause`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -266,7 +262,7 @@ export function useAddCampaignLeads() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ campaignId, lead_ids }: { campaignId: string; lead_ids: string[] }) => {
-      const res = await fetchWithAuth(`${API_URL}/${campaignId}/leads`, {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lead_ids }),
@@ -290,7 +286,7 @@ export function useRemoveCampaignLeads() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (campaignId: string) => {
-      const res = await fetchWithAuth(`${API_URL}/${campaignId}/leads`, {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads`, {
         method: "DELETE",
       });
       if (!res.ok) {

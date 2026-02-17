@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -29,12 +29,8 @@ function parseBoldSectionsToObject(str) {
   return obj;
 }
 
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/leads"
-  : "https://quddify-server.vercel.app/leads";
-
 async function fetchLead(contactId: string): Promise<ApiLead> {
-  const response = await fetchWithAuth(`${API_URL}/${contactId}`);
+  const response = await fetchWithAuth(`${API_URL}/leads/${contactId}`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch lead: ${response.status}`);
@@ -115,7 +111,7 @@ export default function LeadDetail() {
 
     setIsBooking(true);
     try {
-      const response = await fetchWithAuth(`${API_URL}/${contactId}`, {
+      const response = await fetchWithAuth(`${API_URL}/leads/${contactId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ booked_at: new Date().toISOString() }),
@@ -147,7 +143,7 @@ export default function LeadDetail() {
     if (!contactId) return;
     setIsSaving(true);
     try {
-      const response = await fetchWithAuth(`${API_URL}/${contactId}`, {
+      const response = await fetchWithAuth(`${API_URL}/leads/${contactId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

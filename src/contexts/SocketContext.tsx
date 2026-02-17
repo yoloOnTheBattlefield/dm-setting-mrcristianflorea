@@ -1,10 +1,9 @@
+import { API_URL } from "@/lib/api";
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/contexts/AuthContext";
 
-const SOCKET_URL = import.meta.env.DEV
-  ? "http://localhost:3000"
-  : "https://quddify-server.vercel.app";
+const SOCKET_URL = API_URL;
 
 interface SocketContextType {
   socket: Socket | null;

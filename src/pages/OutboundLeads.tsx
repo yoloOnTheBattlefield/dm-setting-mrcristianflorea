@@ -48,11 +48,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePrompts } from "@/hooks/usePrompts";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/outbound-leads"
-  : "https://quddify-server.vercel.app/outbound-leads";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 interface OutboundLead {
   _id: string;
@@ -101,7 +97,7 @@ interface FunnelStats {
 }
 
 async function fetchSources(): Promise<string[]> {
-  const response = await fetchWithAuth(`${API_URL}/sources`);
+  const response = await fetchWithAuth(`${API_URL}/outbound-leads/sources`);
   if (!response.ok) return [];
   const data = await response.json();
   return data.sources || [];
@@ -128,13 +124,13 @@ async function fetchOutboundLeads(params: {
   searchParams.append("page", String(params.page));
   searchParams.append("limit", String(params.limit));
 
-  const response = await fetchWithAuth(`${API_URL}?${searchParams.toString()}`);
+  const response = await fetchWithAuth(`${API_URL}/outbound-leads?${searchParams.toString()}`);
   if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
   return response.json();
 }
 
 async function fetchFunnelStats(): Promise<FunnelStats> {
-  const response = await fetchWithAuth(`${API_URL}/stats`);
+  const response = await fetchWithAuth(`${API_URL}/outbound-leads/stats`);
   if (!response.ok)
     throw new Error(`Failed to fetch stats: ${response.status}`);
   return response.json();
@@ -144,7 +140,7 @@ async function patchOutboundLead(
   id: string,
   body: Record<string, unknown>,
 ): Promise<void> {
-  const response = await fetchWithAuth(`${API_URL}/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/outbound-leads/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -160,7 +156,7 @@ async function bulkDeleteLeads(body: {
   all?: boolean;
   filters?: Record<string, string>;
 }): Promise<{ deleted: number }> {
-  const response = await fetchWithAuth(`${API_URL}/bulk-delete`, {
+  const response = await fetchWithAuth(`${API_URL}/outbound-leads/bulk-delete`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

@@ -1,9 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/lib/api";
-
-const API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/analytics"
-  : "https://quddify-server.vercel.app/analytics";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
 // --- Interfaces ---
 
@@ -66,7 +62,7 @@ export function useOutboundFunnel(params?: {
       if (params?.start_date) sp.append("start_date", params.start_date);
       if (params?.end_date) sp.append("end_date", params.end_date);
       if (params?.campaign_id) sp.append("campaign_id", params.campaign_id);
-      const url = sp.toString() ? `${API_URL}/outbound?${sp.toString()}` : `${API_URL}/outbound`;
+      const url = sp.toString() ? `${API_URL}/analytics/outbound?${sp.toString()}` : `${API_URL}/analytics/outbound`;
       const res = await fetchWithAuth(url);
       if (!res.ok) throw new Error(`Failed to fetch outbound analytics: ${res.status}`);
       return res.json();
@@ -82,7 +78,7 @@ export function useMessageAnalytics(params?: { campaign_id?: string }) {
     queryFn: async (): Promise<{ messages: MessagePerformance[] }> => {
       const sp = new URLSearchParams();
       if (params?.campaign_id) sp.append("campaign_id", params.campaign_id);
-      const url = sp.toString() ? `${API_URL}/messages?${sp.toString()}` : `${API_URL}/messages`;
+      const url = sp.toString() ? `${API_URL}/analytics/messages?${sp.toString()}` : `${API_URL}/analytics/messages`;
       const res = await fetchWithAuth(url);
       if (!res.ok) throw new Error(`Failed to fetch message analytics: ${res.status}`);
       return res.json();
@@ -98,7 +94,7 @@ export function useSenderAnalytics(params?: { campaign_id?: string }) {
     queryFn: async (): Promise<{ senders: SenderPerformance[] }> => {
       const sp = new URLSearchParams();
       if (params?.campaign_id) sp.append("campaign_id", params.campaign_id);
-      const url = sp.toString() ? `${API_URL}/senders?${sp.toString()}` : `${API_URL}/senders`;
+      const url = sp.toString() ? `${API_URL}/analytics/senders?${sp.toString()}` : `${API_URL}/analytics/senders`;
       const res = await fetchWithAuth(url);
       if (!res.ok) throw new Error(`Failed to fetch sender analytics: ${res.status}`);
       return res.json();
@@ -112,7 +108,7 @@ export function useCampaignAnalytics() {
   return useQuery({
     queryKey: ["analytics-campaigns"],
     queryFn: async (): Promise<{ campaigns: CampaignPerformance[] }> => {
-      const res = await fetchWithAuth(`${API_URL}/campaigns`);
+      const res = await fetchWithAuth(`${API_URL}/analytics/campaigns`);
       if (!res.ok) throw new Error(`Failed to fetch campaign analytics: ${res.status}`);
       return res.json();
     },

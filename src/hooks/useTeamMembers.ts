@@ -1,14 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TeamMember } from "@/lib/types";
-import { fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 
-const TEAM_URL = import.meta.env.DEV
-  ? "http://localhost:3000/accounts/team"
-  : "https://quddify-server.vercel.app/accounts/team";
+const TEAM_URL = `${API_URL}/accounts/team`;
 
-const ACCOUNTS_URL = import.meta.env.DEV
-  ? "http://localhost:3000/accounts"
-  : "https://quddify-server.vercel.app/accounts";
+const ACCOUNTS_URL = `${API_URL}/accounts`;
 
 interface AddTeamMemberBody {
   email: string;

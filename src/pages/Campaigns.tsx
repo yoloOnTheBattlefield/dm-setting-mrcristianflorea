@@ -12,18 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
 import { useOutboundAccounts } from "@/hooks/useOutboundAccounts";
-import { fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 import { type Campaign } from "@/hooks/useCampaigns";
 import CampaignList from "@/components/campaigns/CampaignList";
 import CampaignCreateEditDialog from "@/components/campaigns/CampaignCreateEditDialog";
 
-const ACCOUNTS_URL = import.meta.env.DEV
-  ? "http://localhost:3000/accounts"
-  : "https://quddify-server.vercel.app/accounts";
+const ACCOUNTS_URL = `${API_URL}/accounts`;
 
-const TASKS_API_URL = import.meta.env.DEV
-  ? "http://localhost:3000/api/tasks"
-  : "https://quddify-server.vercel.app/api/tasks";
+const TASKS_API_URL = `${API_URL}/api/tasks`;
 
 export default function Campaigns() {
   const { user, updateUser } = useAuth();
