@@ -218,7 +218,7 @@ export default function CampaignList({
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            {c.outbound_account_ids.slice(0, 3).map((aid) => {
+                            {(c.outbound_account_ids ?? []).slice(0, 3).map((aid) => {
                               const account = accountMap.get(aid);
                               return (
                                 <Badge key={aid} variant="outline" className="text-[10px]">
@@ -226,10 +226,10 @@ export default function CampaignList({
                                 </Badge>
                               );
                             })}
-                            {c.outbound_account_ids.length > 3 && (
+                            {(c.outbound_account_ids ?? []).length > 3 && (
                               <span className="text-xs text-muted-foreground">+{c.outbound_account_ids.length - 3}</span>
                             )}
-                            {c.outbound_account_ids.length === 0 && (
+                            {(!c.outbound_account_ids || c.outbound_account_ids.length === 0) && (
                               <span className="text-xs text-muted-foreground">None</span>
                             )}
                           </div>

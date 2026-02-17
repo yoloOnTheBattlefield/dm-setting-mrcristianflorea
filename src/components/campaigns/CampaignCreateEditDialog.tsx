@@ -93,7 +93,7 @@ export default function CampaignCreateEditDialog({
           name: campaign.name,
           mode: campaign.mode || "auto",
           messages: campaign.messages.length > 0 ? [...campaign.messages] : [""],
-          outbound_account_ids: [...campaign.outbound_account_ids],
+          outbound_account_ids: [...(campaign.outbound_account_ids ?? [])],
           active_hours_start: campaign.schedule.active_hours_start,
           active_hours_end: campaign.schedule.active_hours_end,
           min_delay_seconds: campaign.schedule.min_delay_seconds,
