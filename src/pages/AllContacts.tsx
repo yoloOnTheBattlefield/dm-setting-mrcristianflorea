@@ -293,6 +293,7 @@ export default function AllContacts() {
         <>
           <ContactsTable
             contacts={contacts}
+            isLoading={isLoading}
             sortBy={sortBy}
             sortOrder={sortOrder}
             onSort={handleSort}

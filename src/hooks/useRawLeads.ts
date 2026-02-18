@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 
@@ -99,6 +99,7 @@ export function useRawLeads(params?: FetchLeadsParams) {
       params?.sortOrder,
     ],
     queryFn: () => fetchRawLeads(params),
+    placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });

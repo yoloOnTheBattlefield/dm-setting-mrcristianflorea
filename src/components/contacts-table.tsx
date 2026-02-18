@@ -10,12 +10,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ApiLead } from "@/lib/types";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import type { LeadSortField, SortOrder } from "@/hooks/useRawLeads";
 
 interface ContactsTableProps {
   contacts: ApiLead[];
+  isLoading?: boolean;
   sortBy?: LeadSortField;
   sortOrder?: SortOrder;
   onSort?: (field: LeadSortField) => void;
@@ -51,7 +53,7 @@ function SortIcon({ field, sortBy, sortOrder }: { field: LeadSortField; sortBy?:
     : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
 }
 
-export function ContactsTable({ contacts, sortBy, sortOrder, onSort }: ContactsTableProps) {
+export function ContactsTable({ contacts, isLoading, sortBy, sortOrder, onSort }: ContactsTableProps) {
   const sortable = !!onSort;
 
   return (
@@ -102,7 +104,16 @@ export function ContactsTable({ contacts, sortBy, sortOrder, onSort }: ContactsT
           </TableRow>
         </TableHeader>
         <TableBody>
-          {contacts.length === 0 ? (
+          {isLoading ? (
+            Array.from({ length: 8 }).map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+              </TableRow>
+            ))
+          ) : contacts.length === 0 ? (
             <TableRow>
               <TableCell colSpan={4} className="h-24 text-center">
                 No contacts found.
