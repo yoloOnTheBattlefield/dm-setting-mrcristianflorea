@@ -252,6 +252,11 @@ export default function OutboundLeads() {
     debouncedSearch,
   ]);
 
+  // Scroll to top on page change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
+
   // Sync URL params
   useEffect(() => {
     const params = new URLSearchParams();

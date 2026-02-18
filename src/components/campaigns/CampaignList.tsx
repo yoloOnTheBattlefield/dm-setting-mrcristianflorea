@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +83,11 @@ export default function CampaignList({
   const [currentPage, setCurrentPage] = useState(1);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const limit = 20;
+
+  // Scroll to top on page change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
 
   const { data, isLoading, isError, error, refetch } = useCampaigns({
     status: statusFilter === "all" ? undefined : statusFilter,

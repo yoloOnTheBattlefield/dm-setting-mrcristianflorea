@@ -45,9 +45,11 @@ export default function AllContacts() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(
     searchParams.get("status")?.split(",").filter(Boolean) || readPersisted<string[]>("contacts-statuses", [])
   );
-  const [dateRange, setDateRange] = useState<DateRangeFilter>(
-    (searchParams.get("dateRange") as DateRangeFilter) || readPersisted<DateRangeFilter>("contacts-dateRange", 14)
-  );
+  const [dateRange, setDateRange] = useState<DateRangeFilter>(() => {
+    const urlVal = searchParams.get("dateRange");
+    if (urlVal) return urlVal === "all" ? "all" : (Number(urlVal) as DateRangeFilter);
+    return readPersisted<DateRangeFilter>("contacts-dateRange", 14);
+  });
   const [searchQuery, setSearchQuery] = useState<string>(
     searchParams.get("search") || ""
   );
@@ -99,6 +101,11 @@ export default function AllContacts() {
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedAccount, selectedStatuses, startDate, endDate, debouncedSearchQuery]);
+
+  // Scroll to top on page change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
 
   // Update URL params when state changes
   useEffect(() => {
