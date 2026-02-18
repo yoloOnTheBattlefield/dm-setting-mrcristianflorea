@@ -29,6 +29,38 @@ function parseBoldSectionsToObject(str) {
   return obj;
 }
 
+function SummarySections({ html }: { html: string }) {
+  const sections = parseBoldSectionsToObject(html);
+  const entries = Object.entries(sections);
+
+  if (entries.length === 0) {
+    return (
+      <div
+        className="prose prose-sm dark:prose-invert max-w-none"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {entries.map(([title, content]) => (
+        <div
+          key={title}
+          className="rounded-lg border bg-muted/30 p-4 space-y-1"
+        >
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {title}
+          </h4>
+          <p className="text-sm leading-relaxed whitespace-pre-line">
+            {String(content)}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 async function fetchLead(contactId: string): Promise<ApiLead> {
   const response = await fetchWithAuth(`${API_URL}/leads/${contactId}`);
 
@@ -357,10 +389,7 @@ export default function LeadDetail() {
         </CardHeader>
         <CardContent>
           {lead.summary ? (
-            <div
-              className="prose prose-sm dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: lead.summary }}
-            />
+            <SummarySections html={lead.summary} />
           ) : (
             <div className="flex items-center justify-center h-40 text-muted-foreground">
               No summary
