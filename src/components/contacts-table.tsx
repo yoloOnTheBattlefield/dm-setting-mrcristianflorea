@@ -125,7 +125,7 @@ export function ContactsTable({ contacts, isLoading, sortBy, sortOrder, onSort }
                 <TableCell className="font-medium">
                   <Link
                     to={`/lead/${contact._id}`}
-                    className="text-primary hover:underline"
+                    className="text-foreground hover:underline"
                   >
                     {contact.first_name} {contact.last_name}
                   </Link>

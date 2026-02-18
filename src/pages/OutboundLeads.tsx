@@ -824,7 +824,7 @@ export default function OutboundLeads() {
                             }
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:underline"
+                            className="text-foreground hover:underline"
                           >
                             @{lead.username}
                           </a>

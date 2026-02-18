@@ -113,7 +113,7 @@ export default function ClientsOverview() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => navigate(`/clients/${account.account_id}`)}
                     >
-                      <TableCell className="font-medium text-primary hover:underline">
+                      <TableCell className="font-medium text-foreground hover:underline">
                         {account.name}
                       </TableCell>
                       <TableCell className="text-right">
