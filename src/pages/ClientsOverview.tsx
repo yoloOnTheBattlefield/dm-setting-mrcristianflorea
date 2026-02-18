@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { useNavigate } from "react-router-dom";
 import { useAccountsAnalytics } from "@/hooks/useAccountsAnalytics";
 import { DateRangeFilter } from "@/lib/types";
@@ -19,7 +20,7 @@ import { Label } from "@/components/ui/label";
 
 export default function ClientsOverview() {
   const navigate = useNavigate();
-  const [dateRange, setDateRange] = useState<DateRangeFilter>(14);
+  const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>("clients-dateRange", 14);
 
   // Calculate start and end dates based on dateRange
   const endDate = useMemo(() => {

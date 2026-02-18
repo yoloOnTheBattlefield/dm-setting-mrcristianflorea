@@ -4,6 +4,7 @@ import { useRawLeads, type LeadSortField, type SortOrder } from "@/hooks/useRawL
 import { useAccounts } from "@/hooks/useAccounts";
 import { ContactsTable } from "@/components/contacts-table";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { readPersisted, writePersisted } from "@/hooks/usePersistedState";
 import { AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,15 +38,15 @@ export default function AllContacts() {
   const { viewAll } = useAdminView();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Initialize state from URL params
+  // Initialize state from URL params, falling back to localStorage
   const [selectedAccount, setSelectedAccount] = useState<string>(
-    searchParams.get("account") || "all"
+    searchParams.get("account") || readPersisted("contacts-account", "all")
   );
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(
-    searchParams.get("status")?.split(",").filter(Boolean) || []
+    searchParams.get("status")?.split(",").filter(Boolean) || readPersisted<string[]>("contacts-statuses", [])
   );
   const [dateRange, setDateRange] = useState<DateRangeFilter>(
-    (searchParams.get("dateRange") as DateRangeFilter) || 14
+    (searchParams.get("dateRange") as DateRangeFilter) || readPersisted<DateRangeFilter>("contacts-dateRange", 14)
   );
   const [searchQuery, setSearchQuery] = useState<string>(
     searchParams.get("search") || ""
@@ -59,8 +60,8 @@ export default function AllContacts() {
   const [itemsPerPage] = useState<number>(
     parseInt(searchParams.get("limit") || "20", 10)
   );
-  const [sortBy, setSortBy] = useState<LeadSortField>("date_created");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [sortBy, setSortBy] = useState<LeadSortField>(readPersisted<LeadSortField>("contacts-sortBy", "date_created"));
+  const [sortOrder, setSortOrder] = useState<SortOrder>(readPersisted<SortOrder>("contacts-sortOrder", "desc"));
 
   const handleSort = (field: LeadSortField) => {
     if (sortBy === field) {
@@ -128,7 +129,14 @@ export default function AllContacts() {
     }
 
     setSearchParams(params, { replace: true });
-  }, [selectedAccount, selectedStatuses, dateRange, debouncedSearchQuery, currentPage, itemsPerPage, setSearchParams]);
+
+    // Persist filter settings to localStorage
+    writePersisted("contacts-account", selectedAccount);
+    writePersisted("contacts-statuses", selectedStatuses);
+    writePersisted("contacts-dateRange", dateRange);
+    writePersisted("contacts-sortBy", sortBy);
+    writePersisted("contacts-sortOrder", sortOrder);
+  }, [selectedAccount, selectedStatuses, dateRange, debouncedSearchQuery, currentPage, itemsPerPage, setSearchParams, sortBy, sortOrder]);
 
   const {
     data,

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -78,7 +79,7 @@ export default function CampaignList({
 }: CampaignListProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = usePersistedState("campaigns-status", "all");
   const [currentPage, setCurrentPage] = useState(1);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const limit = 20;

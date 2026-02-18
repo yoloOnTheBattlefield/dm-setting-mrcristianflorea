@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import {
   useOutboundFunnel,
   useMessageAnalytics,
@@ -56,8 +57,8 @@ function pct(a: number, b: number) {
 
 export default function OutboundAnalytics() {
   const { user } = useAuth();
-  const [dateRange, setDateRange] = useState<DateRangeFilter>("all");
-  const [campaignId, setCampaignId] = useState<string>("all");
+  const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>("ob-analytics-dateRange", "all");
+  const [campaignId, setCampaignId] = usePersistedState<string>("ob-analytics-campaign", "all");
 
   const endDate = useMemo(() => {
     if (dateRange === "all") return undefined;

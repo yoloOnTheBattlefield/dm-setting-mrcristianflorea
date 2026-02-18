@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { DateRangeFilter, SourceFilter } from "@/lib/types";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminView } from "@/contexts/AdminViewContext";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { DateFilter } from "@/components/dashboard/DateFilter";
 import { FunnelOverview } from "@/components/dashboard/FunnelOverview";
 import { VelocityChart } from "@/components/dashboard/VelocityChart";
@@ -27,10 +28,10 @@ import { cn } from "@/lib/utils";
 export default function Index() {
   const { user } = useAuth();
   const { viewAll } = useAdminView();
-  const [dateRange, setDateRange] = useState<DateRangeFilter>(1);
-  const [selectedAccount, setSelectedAccount] = useState<string>("all");
+  const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>("dash-dateRange", 1);
+  const [selectedAccount, setSelectedAccount] = usePersistedState<string>("dash-account", "all");
   const hasOutbound = !!user?.has_outbound;
-  const [source, setSource] = useState<SourceFilter>(hasOutbound ? "all" : "inbound");
+  const [source, setSource] = usePersistedState<SourceFilter>("dash-source", hasOutbound ? "all" : "inbound");
   const effectiveSource = hasOutbound ? source : "inbound";
 
   const endDate = useMemo(() => {

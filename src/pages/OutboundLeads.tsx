@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { readPersisted, writePersisted } from "@/hooks/usePersistedState";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -183,18 +184,18 @@ export default function OutboundLeads() {
 
   const { data: promptOptions = [] } = usePrompts();
 
-  const [source, setSource] = useState(searchParams.get("source") || "all");
+  const [source, setSource] = useState(searchParams.get("source") || readPersisted("ob-source", "all"));
   const [messagedFilter, setMessagedFilter] = useState(
-    searchParams.get("isMessaged") || "all",
+    searchParams.get("isMessaged") || readPersisted("ob-messaged", "all"),
   );
   const [repliedFilter, setRepliedFilter] = useState(
-    searchParams.get("replied") || "all",
+    searchParams.get("replied") || readPersisted("ob-replied", "all"),
   );
   const [bookedFilter, setBookedFilter] = useState(
-    searchParams.get("booked") || "all",
+    searchParams.get("booked") || readPersisted("ob-booked", "all"),
   );
   const [promptFilter, setPromptFilter] = useState(
-    searchParams.get("promptLabel") || "all",
+    searchParams.get("promptLabel") || readPersisted("ob-prompt", "all"),
   );
   const [searchQuery, setSearchQuery] = useState(
     searchParams.get("search") || "",
@@ -262,6 +263,13 @@ export default function OutboundLeads() {
     if (debouncedSearch) params.set("search", debouncedSearch);
     if (currentPage !== 1) params.set("page", String(currentPage));
     setSearchParams(params, { replace: true });
+
+    // Persist filter settings to localStorage
+    writePersisted("ob-source", source);
+    writePersisted("ob-messaged", messagedFilter);
+    writePersisted("ob-replied", repliedFilter);
+    writePersisted("ob-booked", bookedFilter);
+    writePersisted("ob-prompt", promptFilter);
   }, [
     source,
     messagedFilter,
