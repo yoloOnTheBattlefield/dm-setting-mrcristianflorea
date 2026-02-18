@@ -94,11 +94,11 @@ export function ContactsTable({ contacts, isLoading, sortBy, sortOrder, onSort }
                   className="flex items-center hover:text-foreground transition-colors"
                   onClick={() => onSort?.("booked_at")}
                 >
-                  Booked
+                  Converted
                   <SortIcon field="booked_at" sortBy={sortBy} sortOrder={sortOrder} />
                 </button>
               ) : (
-                "Booked"
+                "Converted"
               )}
             </TableHead>
           </TableRow>

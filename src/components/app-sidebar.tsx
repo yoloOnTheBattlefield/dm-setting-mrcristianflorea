@@ -50,7 +50,7 @@ const navMain = [
           url: "/contacts/all",
         },
         {
-          title: "Booked",
+          title: "Converted",
           url: "#",
         },
       ],

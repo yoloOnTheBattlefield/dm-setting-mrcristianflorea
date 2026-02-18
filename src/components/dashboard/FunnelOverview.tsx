@@ -26,20 +26,20 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
     ? [
         { key: "obMessaged", label: "Messaged", value: safe(metrics.obMessaged), color: "hsl(var(--stage-created))" },
         { key: "obReplied", label: "Replied", value: safe(metrics.obReplied), color: "hsl(var(--stage-link-sent))" },
-        { key: "obBooked", label: "Booked", value: safe(metrics.obBooked), color: "hsl(var(--stage-booked))" },
+        { key: "obBooked", label: "Converted", value: safe(metrics.obBooked), color: "hsl(var(--stage-booked))" },
       ]
     : isInbound
     ? [
         { key: "totalContacts", label: "Total Contacts", value: metrics.totalContacts, color: "hsl(var(--stage-created))" },
         { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
         { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
-        { key: "booked", label: "Booked", value: metrics.bookedCount, color: "hsl(var(--stage-booked))" },
+        { key: "booked", label: "Converted", value: metrics.bookedCount, color: "hsl(var(--stage-booked))" },
       ]
     : [
         { key: "combinedContacts", label: "Combined Contacts", value: safe(metrics.combinedContacts), color: "hsl(var(--stage-created))" },
         { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
         { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
-        { key: "combinedBooked", label: "Combined Booked", value: safe(metrics.combinedBooked), color: "hsl(var(--stage-booked))" },
+        { key: "combinedBooked", label: "Combined Converted", value: safe(metrics.combinedBooked), color: "hsl(var(--stage-booked))" },
       ];
 
   const [enabledStages, setEnabledStages] = useState<Record<StageKey, boolean>>(() => {
@@ -81,7 +81,7 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
               disabled={!enabledStages.obReplied}
             />
             <StatCard
-              label="Booked"
+              label="Converted"
               value={safe(metrics.obBooked)}
               subValue={`${pct(metrics.obBookRate)} book rate`}
               variant="booked"
@@ -132,7 +132,7 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
               disabled={!enabledStages.linkClicked}
             />
             <StatCard
-              label="Booked"
+              label="Converted"
               value={metrics.bookedCount}
               subValue={`${metrics.bookingRate.toFixed(1)}% of total`}
               variant="booked"
@@ -168,7 +168,7 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
               disabled={!enabledStages.linkClicked}
             />
             <StatCard
-              label="Combined Booked"
+              label="Combined Converted"
               value={safe(metrics.combinedBooked)}
               subValue={`${metrics.bookedCount} in + ${safe(metrics.obBooked)} out`}
               variant="booked"

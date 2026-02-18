@@ -29,7 +29,7 @@ import { useAdminView } from "@/contexts/AdminViewContext";
 
 const STATUS_OPTIONS = [
   { value: "link_sent", label: "Link Sent" },
-  { value: "booked", label: "Booked" },
+  { value: "booked", label: "Converted" },
 ];
 
 export default function AllContacts() {

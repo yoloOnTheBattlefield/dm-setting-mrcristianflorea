@@ -119,7 +119,7 @@ export function DailyVolumeChart({ data, source }: DailyVolumeChartProps) {
                 />
                 <Bar
                   dataKey="booked"
-                  name="Booked"
+                  name="Converted"
                   fill="hsl(var(--stage-booked))"
                   radius={[2, 2, 0, 0]}
                 />
@@ -148,7 +148,7 @@ export function DailyVolumeChart({ data, source }: DailyVolumeChartProps) {
                 />
                 <Bar
                   dataKey="ob_booked"
-                  name="OB Booked"
+                  name="OB Converted"
                   fill="hsl(150 60% 45%)"
                   radius={[2, 2, 0, 0]}
                 />

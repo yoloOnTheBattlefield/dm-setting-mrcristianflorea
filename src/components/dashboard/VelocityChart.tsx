@@ -28,7 +28,7 @@ export function VelocityChart({ metrics }: VelocityChartProps) {
       fill: "hsl(var(--stage-link-sent))",
     },
     {
-      name: "Link Sent → Booked",
+      name: "Link Sent → Converted",
       median: metrics.linkSentToBooked.median,
       average: metrics.linkSentToBooked.average,
       fill: "hsl(var(--stage-booked))",

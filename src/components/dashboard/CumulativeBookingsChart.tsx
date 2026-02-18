@@ -65,14 +65,14 @@ export function CumulativeBookingsChart({ data, source }: CumulativeBookingsChar
     <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm h-full flex flex-col">
       <div className="mb-3 sm:mb-4 flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="text-base sm:text-lg font-semibold">Cumulative Bookings</h2>
+          <h2 className="text-base sm:text-lg font-semibold">Cumulative Conversions</h2>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Track momentum over time
           </p>
         </div>
         <div className="text-right shrink-0">
           <p className="text-2xl sm:text-3xl font-bold text-stage-booked">{total}</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">total bookings</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">total conversions</p>
         </div>
       </div>
 

@@ -7,7 +7,7 @@ interface FupEffectivenessChartProps {
 
 export function FupEffectivenessChart({ data }: FupEffectivenessChartProps) {
   const chartData = [
-    { name: "Converted to Booked", value: data.convertedToBooked, fill: "hsl(var(--stage-booked))" },
+    { name: "Converted", value: data.convertedToBooked, fill: "hsl(var(--stage-booked))" },
     { name: "Remaining Inactive", value: data.remainingInactive, fill: "hsl(var(--muted))" },
   ];
 

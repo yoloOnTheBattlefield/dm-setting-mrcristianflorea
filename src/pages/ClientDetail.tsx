@@ -310,7 +310,7 @@ export default function ClientDetail() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <h4 className="text-sm font-medium">Lead Booked Webhook</h4>
+              <h4 className="text-sm font-medium">Lead Converted Webhook</h4>
               <div className="space-y-2">
                 <Label htmlFor="ghl-webhook-url">Webhook URL</Label>
                 <Input

@@ -59,7 +59,7 @@ function getLeadStatus(lead: ApiLead): {
 } {
   if (lead.booked_at)
     return {
-      label: "Booked",
+      label: "Converted",
       variant: "default",
       color: "bg-stage-booked text-white",
     };
@@ -119,7 +119,7 @@ export default function LeadDetail() {
 
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: ["lead", contactId] });
-        toast({ title: "Success", description: "Lead marked as booked." });
+        toast({ title: "Success", description: "Lead marked as converted." });
       } else {
         const data = await response.json().catch(() => ({}));
         toast({
@@ -224,7 +224,7 @@ export default function LeadDetail() {
             className="ml-1"
           >
             <CalendarCheck className="h-3.5 w-3.5 mr-1.5" />
-            {isBooking ? "Booking..." : "Mark as Booked"}
+            {isBooking ? "Converting..." : "Mark as Converted"}
           </Button>
         )}
       </div>

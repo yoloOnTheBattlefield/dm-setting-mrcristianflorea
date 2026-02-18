@@ -585,9 +585,9 @@ export default function OutboundLeads() {
               </Select>
             </div>
 
-            {/* Booked filter */}
+            {/* Converted filter */}
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Booked</Label>
+              <Label className="text-xs">Converted</Label>
               <Select value={bookedFilter} onValueChange={setBookedFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All" />
@@ -641,7 +641,7 @@ export default function OutboundLeads() {
             />
             <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
             <FunnelCard
-              label="Booked"
+              label="Converted"
               value={funnelStats.booked}
               icon={<CalendarCheck className="h-4 w-4 text-green-400" />}
             />
@@ -750,7 +750,7 @@ export default function OutboundLeads() {
                     <TableHead>Prompt</TableHead>
                     <TableHead>Messaged</TableHead>
                     <TableHead>Replied</TableHead>
-                    <TableHead>Booked</TableHead>
+                    <TableHead>Converted</TableHead>
                     <TableHead>Contract</TableHead>
                     <TableHead>DM</TableHead>
                   </TableRow>

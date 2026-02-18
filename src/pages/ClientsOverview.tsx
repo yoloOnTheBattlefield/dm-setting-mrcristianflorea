@@ -99,7 +99,7 @@ export default function ClientsOverview() {
                     <TableHead>Name</TableHead>
                     <TableHead className="text-right">Total Leads</TableHead>
                     <TableHead className="text-right">Link Sent</TableHead>
-                    <TableHead className="text-right">Booked</TableHead>
+                    <TableHead className="text-right">Converted</TableHead>
                     <TableHead className="text-right">Ghosted</TableHead>
                     <TableHead className="text-right">Follow-up</TableHead>
                     <TableHead className="text-right">Low Ticket</TableHead>

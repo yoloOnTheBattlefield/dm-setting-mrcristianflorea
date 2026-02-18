@@ -467,7 +467,7 @@ export default function UserSettings() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="gen-booked">Booked</Label>
+                  <Label htmlFor="gen-booked">Converted</Label>
                   <Input
                     id="gen-booked"
                     type="number"

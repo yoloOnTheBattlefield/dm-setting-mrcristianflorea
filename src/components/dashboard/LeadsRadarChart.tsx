@@ -45,12 +45,12 @@ interface MetricOption {
 const metricOptions: MetricOption[] = [
   { value: "leads", label: "Total Leads", color: "hsl(var(--stage-created))", source: "inbound" },
   { value: "link_sent", label: "Link Sent", color: "hsl(var(--stage-link-sent))", source: "inbound" },
-  { value: "booked", label: "Booked", color: "hsl(var(--stage-booked))", source: "inbound" },
+  { value: "booked", label: "Converted", color: "hsl(var(--stage-booked))", source: "inbound" },
   { value: "ghosted", label: "Ghosted", color: "hsl(var(--stage-ghosted))", source: "inbound" },
   { value: "follow_up", label: "Follow Up", color: "hsl(var(--stage-fup))", source: "inbound" },
   { value: "ob_messaged", label: "OB Messaged", color: "hsl(260 60% 55%)", source: "outbound" },
   { value: "ob_replied", label: "OB Replied", color: "hsl(45 90% 55%)", source: "outbound" },
-  { value: "ob_booked", label: "OB Booked", color: "hsl(150 60% 45%)", source: "outbound" },
+  { value: "ob_booked", label: "OB Converted", color: "hsl(150 60% 45%)", source: "outbound" },
 ];
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

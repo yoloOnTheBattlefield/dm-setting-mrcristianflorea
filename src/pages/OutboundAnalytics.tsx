@@ -163,7 +163,7 @@ export default function OutboundAnalytics() {
                   />
                   <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   <FunnelCard
-                    label="Booked"
+                    label="Converted"
                     value={funnel.booked}
                     sub={pct(funnel.booked, funnel.replied)}
                     icon={<CalendarCheck className="h-4 w-4 text-green-400" />}
@@ -191,11 +191,11 @@ export default function OutboundAnalytics() {
                         <p className="text-lg font-bold">{pct(funnel.replied, funnel.messaged)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Replied → Booked</p>
+                        <p className="text-xs text-muted-foreground">Replied → Converted</p>
                         <p className="text-lg font-bold">{pct(funnel.booked, funnel.replied)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Overall (Total → Booked)</p>
+                        <p className="text-xs text-muted-foreground">Overall (Total → Converted)</p>
                         <p className="text-lg font-bold">{pct(funnel.booked, funnel.total)}</p>
                       </div>
                     </div>
@@ -219,8 +219,8 @@ export default function OutboundAnalytics() {
                       <TableHead className="text-right">Sent</TableHead>
                       <TableHead className="text-right">Replied</TableHead>
                       <TableHead className="text-right">Reply Rate</TableHead>
-                      <TableHead className="text-right">Booked</TableHead>
-                      <TableHead className="text-right">Book Rate</TableHead>
+                      <TableHead className="text-right">Converted</TableHead>
+                      <TableHead className="text-right">Conv. Rate</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -278,8 +278,8 @@ export default function OutboundAnalytics() {
                       <TableHead className="text-right">Sent</TableHead>
                       <TableHead className="text-right">Replied</TableHead>
                       <TableHead className="text-right">Reply Rate</TableHead>
-                      <TableHead className="text-right">Booked</TableHead>
-                      <TableHead className="text-right">Book Rate</TableHead>
+                      <TableHead className="text-right">Converted</TableHead>
+                      <TableHead className="text-right">Conv. Rate</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -327,8 +327,8 @@ export default function OutboundAnalytics() {
                       <TableHead className="text-right">Sent</TableHead>
                       <TableHead className="text-right">Replied</TableHead>
                       <TableHead className="text-right">Reply Rate</TableHead>
-                      <TableHead className="text-right">Booked</TableHead>
-                      <TableHead className="text-right">Book Rate</TableHead>
+                      <TableHead className="text-right">Converted</TableHead>
+                      <TableHead className="text-right">Conv. Rate</TableHead>
                       <TableHead className="text-right">Revenue</TableHead>
                     </TableRow>
                   </TableHeader>
