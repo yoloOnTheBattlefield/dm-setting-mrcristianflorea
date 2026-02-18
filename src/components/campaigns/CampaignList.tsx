@@ -70,13 +70,11 @@ function formatDate(dateStr: string) {
 interface CampaignListProps {
   outboundAccounts: OutboundAccount[];
   onCreateCampaign: () => void;
-  onEditCampaign: (campaign: Campaign) => void;
 }
 
 export default function CampaignList({
   outboundAccounts,
   onCreateCampaign,
-  onEditCampaign,
 }: CampaignListProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -265,7 +263,7 @@ export default function CampaignList({
                               </Button>
                             )}
                             {canEdit && (
-                              <Button variant="ghost" size="sm" onClick={() => onEditCampaign(c)}>
+                              <Button variant="ghost" size="sm" onClick={() => navigate(`/campaigns/${c._id}/edit`)}>
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
                             )}

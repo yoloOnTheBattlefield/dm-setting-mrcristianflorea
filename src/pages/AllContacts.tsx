@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useRawLeads } from "@/hooks/useRawLeads";
+import { useRawLeads, type LeadSortField, type SortOrder } from "@/hooks/useRawLeads";
 import { useAccounts } from "@/hooks/useAccounts";
 import { ContactsTable } from "@/components/contacts-table";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
@@ -25,16 +25,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminView } from "@/contexts/AdminViewContext";
 
 const STATUS_OPTIONS = [
   { value: "link_sent", label: "Link Sent" },
   { value: "booked", label: "Booked" },
-  { value: "ghosted", label: "Ghosted" },
-  { value: "follow_up", label: "Follow Up" },
 ];
 
 export default function AllContacts() {
   const { user } = useAuth();
+  const { viewAll } = useAdminView();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Initialize state from URL params
@@ -59,6 +59,18 @@ export default function AllContacts() {
   const [itemsPerPage] = useState<number>(
     parseInt(searchParams.get("limit") || "20", 10)
   );
+  const [sortBy, setSortBy] = useState<LeadSortField>("date_created");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+
+  const handleSort = (field: LeadSortField) => {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
+    } else {
+      setSortBy(field);
+      setSortOrder("desc");
+    }
+    setCurrentPage(1);
+  };
 
   // Debounce search query
   useEffect(() => {
@@ -131,7 +143,13 @@ export default function AllContacts() {
     search: debouncedSearchQuery || undefined,
     page: currentPage,
     limit: itemsPerPage,
-    accountId: selectedAccount !== "all" ? selectedAccount : undefined,
+    accountId: user?.role === 0
+      ? (viewAll
+          ? (selectedAccount !== "all" ? selectedAccount : "all")
+          : undefined)
+      : undefined,
+    sortBy,
+    sortOrder,
   });
 
   const contacts = data?.leads || [];
@@ -160,7 +178,7 @@ export default function AllContacts() {
           </div>
 
           <div className="flex gap-4 items-end">
-          {user?.role === 0 && (
+          {user?.role === 0 && viewAll && (
             <div className="flex flex-col gap-2 w-64">
               <Label htmlFor="account-filter">Filter by Account</Label>
               <Select
@@ -273,7 +291,12 @@ export default function AllContacts() {
         </div>
       ) : (
         <>
-          <ContactsTable contacts={contacts} />
+          <ContactsTable
+            contacts={contacts}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+          />
 
           {/* Pagination Controls */}
           {pagination && pagination.totalPages > 1 && (

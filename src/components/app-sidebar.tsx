@@ -1,6 +1,7 @@
 import * as React from "react"
 import {
   BarChart3,
+  Eye,
   MessageSquare,
   Send,
   Settings2,
@@ -19,6 +20,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts/AuthContext"
+import { useAdminView } from "@/contexts/AdminViewContext"
 
 const navMain = [
     {
@@ -85,6 +87,8 @@ const navMain = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
+  const { viewAll, toggleViewAll } = useAdminView()
+  const isAdmin = user?.role === 0
 
   const userData = {
     name: user?.name || "User",
@@ -181,6 +185,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={navigationItems} />
       </SidebarContent>
       <SidebarFooter>
+        {isAdmin && (
+          <button
+            onClick={toggleViewAll}
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-colors hover:bg-sidebar-accent"
+          >
+            <Eye className="h-4 w-4" />
+            <span>{viewAll ? "All Clients" : "My Data"}</span>
+            <span
+              className={`ml-auto inline-block h-2 w-2 rounded-full ${viewAll ? "bg-green-500" : "bg-muted-foreground"}`}
+            />
+          </button>
+        )}
         <NavUser user={userData} />
       </SidebarFooter>
       <SidebarRail />

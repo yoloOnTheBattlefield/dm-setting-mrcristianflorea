@@ -48,11 +48,14 @@ export function useUpdateTrackingSettings() {
   });
 }
 
-export function useTrackingEvents(limit = 5) {
+export function useTrackingEvents(limit = 5, accountId?: string) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (accountId) params.set("account_id", accountId);
+
   return useQuery({
-    queryKey: ["tracking-events", limit],
+    queryKey: ["tracking-events", limit, accountId ?? "mine"],
     queryFn: async (): Promise<{ events: TrackingEvent[] }> => {
-      const res = await fetchWithAuth(`${API_URL}/tracking/events?limit=${limit}`);
+      const res = await fetchWithAuth(`${API_URL}/tracking/events?${params}`);
       if (!res.ok) throw new Error("Failed to fetch tracking events");
       return res.json();
     },

@@ -13,7 +13,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
 import { useOutboundAccounts } from "@/hooks/useOutboundAccounts";
 import { API_URL, fetchWithAuth } from "@/lib/api";
-import { type Campaign } from "@/hooks/useCampaigns";
 import CampaignList from "@/components/campaigns/CampaignList";
 import CampaignCreateEditDialog from "@/components/campaigns/CampaignCreateEditDialog";
 
@@ -33,8 +32,7 @@ export default function Campaigns() {
   const [pinging, setPinging] = useState(false);
   const [pongStatus, setPongStatus] = useState<"idle" | "waiting" | "received">("idle");
 
-  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
-  const [createEditOpen, setCreateEditOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const { data: outboundData } = useOutboundAccounts({ page: 1, limit: 100 });
   const outboundAccounts = outboundData?.accounts ?? [];
@@ -170,21 +168,14 @@ export default function Campaigns() {
       {/* Campaign List */}
       <CampaignList
         outboundAccounts={outboundAccounts}
-        onCreateCampaign={() => {
-          setEditingCampaign(null);
-          setCreateEditOpen(true);
-        }}
-        onEditCampaign={(c) => {
-          setEditingCampaign(c);
-          setCreateEditOpen(true);
-        }}
+        onCreateCampaign={() => setCreateOpen(true)}
       />
 
-      {/* Create / Edit Campaign Dialog */}
+      {/* Create Campaign Dialog */}
       <CampaignCreateEditDialog
-        open={createEditOpen}
-        onOpenChange={setCreateEditOpen}
-        campaign={editingCampaign}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        campaign={null}
         outboundAccounts={outboundAccounts}
       />
     </div>

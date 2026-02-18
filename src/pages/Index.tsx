@@ -3,6 +3,7 @@ import { DateRangeFilter, SourceFilter } from "@/lib/types";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminView } from "@/contexts/AdminViewContext";
 import { DateFilter } from "@/components/dashboard/DateFilter";
 import { FunnelOverview } from "@/components/dashboard/FunnelOverview";
 import { VelocityChart } from "@/components/dashboard/VelocityChart";
@@ -25,6 +26,7 @@ import { cn } from "@/lib/utils";
 
 export default function Index() {
   const { user } = useAuth();
+  const { viewAll } = useAdminView();
   const [dateRange, setDateRange] = useState<DateRangeFilter>(1);
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const hasOutbound = !!user?.has_outbound;
@@ -45,6 +47,13 @@ export default function Index() {
 
   const { data: accounts = [] } = useAccounts();
 
+  // Admin "My Data" mode: force own account. "All Clients" mode: use dropdown.
+  const effectiveAccountId = user?.role === 0
+    ? (viewAll
+        ? (selectedAccount !== "all" ? selectedAccount : undefined)
+        : user?.ghl || undefined)
+    : undefined;
+
   const {
     data: metrics,
     isLoading,
@@ -55,7 +64,7 @@ export default function Index() {
     startDate,
     endDate,
     source: effectiveSource,
-    accountId: selectedAccount !== "all" ? selectedAccount : undefined,
+    accountId: effectiveAccountId,
   });
 
   const isOutbound = effectiveSource === "outbound";
@@ -92,7 +101,7 @@ export default function Index() {
               </div>
             </div>
           )}
-          {user?.role === 0 && (
+          {user?.role === 0 && viewAll && (
             <div className="flex flex-col gap-1.5 min-w-0 w-full sm:w-48 lg:w-64">
               <Label htmlFor="account-filter" className="text-xs">Filter by Account</Label>
               <Select

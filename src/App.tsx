@@ -20,6 +20,7 @@ import Prompts from "./pages/Prompts";
 import Campaigns from "./pages/Campaigns";
 import CampaignDetail from "./components/campaigns/CampaignDetail";
 import CampaignAddLeads from "./pages/CampaignAddLeads";
+import CampaignEdit from "./pages/CampaignEdit";
 import OutboundAccounts from "./pages/OutboundAccounts";
 import OutboundAnalytics from "./pages/OutboundAnalytics";
 import ResearchOverview from "./pages/research/ResearchOverview";
@@ -35,6 +36,7 @@ import { LoginForm } from "@/components/login-form";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AdminViewProvider } from "@/contexts/AdminViewContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
@@ -43,6 +45,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" storageKey="dm-pipeline-theme">
     <AuthProvider>
+      <AdminViewProvider>
       <SocketProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
@@ -162,6 +165,13 @@ const App = () => (
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/campaigns/:id/edit" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <CampaignEdit />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/campaigns/:id/add-leads" element={
                 <ProtectedRoute>
                   <DashboardLayout>
@@ -197,6 +207,7 @@ const App = () => (
         </TooltipProvider>
       </QueryClientProvider>
       </SocketProvider>
+      </AdminViewProvider>
     </AuthProvider>
   </ThemeProvider>
 );

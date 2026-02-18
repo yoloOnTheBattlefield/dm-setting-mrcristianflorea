@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminView } from "@/contexts/AdminViewContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +36,7 @@ const SERVER_URL = API_URL;
 
 export default function Integrations() {
   const { user } = useAuth();
+  const { viewAll } = useAdminView();
   const { toast } = useToast();
   const [isCalendlyModalOpen, setIsCalendlyModalOpen] = useState(false);
   const [calendlyToken, setCalendlyToken] = useState("");
@@ -51,7 +53,11 @@ export default function Integrations() {
   // Tracking state
   const { data: trackingSettings } = useTrackingSettings();
   const updateTracking = useUpdateTrackingSettings();
-  const { data: trackingEventsData } = useTrackingEvents(5);
+  const isAdmin = user?.role === 0;
+  const { data: trackingEventsData } = useTrackingEvents(
+    20,
+    isAdmin && viewAll ? "all" : undefined,
+  );
   const [newRule, setNewRule] = useState("");
   const [localRules, setLocalRules] = useState<string[]>([]);
   const [rulesChanged, setRulesChanged] = useState(false);

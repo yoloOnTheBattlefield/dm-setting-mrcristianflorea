@@ -2,6 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 
+export type LeadSortField = "date_created" | "link_sent_at" | "booked_at";
+export type SortOrder = "asc" | "desc";
+
 interface FetchLeadsParams {
   statuses?: string[];
   startDate?: string;
@@ -10,6 +13,8 @@ interface FetchLeadsParams {
   page?: number;
   limit?: number;
   accountId?: string;
+  sortBy?: LeadSortField;
+  sortOrder?: SortOrder;
 }
 
 interface PaginationInfo {
@@ -32,6 +37,8 @@ async function fetchRawLeads({
   page = 1,
   limit = 20,
   accountId,
+  sortBy,
+  sortOrder,
 }: FetchLeadsParams = {}): Promise<LeadsResponse> {
   const params = new URLSearchParams();
 
@@ -53,6 +60,14 @@ async function fetchRawLeads({
 
   if (accountId) {
     params.append("account_id", accountId);
+  }
+
+  if (sortBy) {
+    params.append("sort_by", sortBy);
+  }
+
+  if (sortOrder) {
+    params.append("sort_order", sortOrder);
   }
 
   params.append("page", page.toString());
@@ -80,6 +95,8 @@ export function useRawLeads(params?: FetchLeadsParams) {
       params?.page,
       params?.limit,
       params?.accountId,
+      params?.sortBy,
+      params?.sortOrder,
     ],
     queryFn: () => fetchRawLeads(params),
     staleTime: 1000 * 60 * 5,

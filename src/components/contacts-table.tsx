@@ -11,9 +11,14 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ApiLead } from "@/lib/types";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import type { LeadSortField, SortOrder } from "@/hooks/useRawLeads";
 
 interface ContactsTableProps {
   contacts: ApiLead[];
+  sortBy?: LeadSortField;
+  sortOrder?: SortOrder;
+  onSort?: (field: LeadSortField) => void;
 }
 
 function formatDate(dateString: string | null): string {
@@ -37,24 +42,69 @@ function StatusBadge({ date }: { date: string | null }) {
   return <span className="text-muted-foreground text-sm">—</span>;
 }
 
-export function ContactsTable({ contacts }: ContactsTableProps) {
+function SortIcon({ field, sortBy, sortOrder }: { field: LeadSortField; sortBy?: LeadSortField; sortOrder?: SortOrder }) {
+  if (sortBy !== field) {
+    return <ArrowUpDown className="h-3.5 w-3.5 ml-1 text-muted-foreground/50" />;
+  }
+  return sortOrder === "asc"
+    ? <ArrowUp className="h-3.5 w-3.5 ml-1" />
+    : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
+}
+
+export function ContactsTable({ contacts, sortBy, sortOrder, onSort }: ContactsTableProps) {
+  const sortable = !!onSort;
+
   return (
     <div className="rounded-lg border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Link Sent</TableHead>
-            <TableHead>Booked</TableHead>
-            <TableHead>Follow Up</TableHead>
-            <TableHead>Ghosted</TableHead>
+            <TableHead>
+              {sortable ? (
+                <button
+                  className="flex items-center hover:text-foreground transition-colors"
+                  onClick={() => onSort?.("date_created")}
+                >
+                  Created
+                  <SortIcon field="date_created" sortBy={sortBy} sortOrder={sortOrder} />
+                </button>
+              ) : (
+                "Created"
+              )}
+            </TableHead>
+            <TableHead>
+              {sortable ? (
+                <button
+                  className="flex items-center hover:text-foreground transition-colors"
+                  onClick={() => onSort?.("link_sent_at")}
+                >
+                  Link Sent
+                  <SortIcon field="link_sent_at" sortBy={sortBy} sortOrder={sortOrder} />
+                </button>
+              ) : (
+                "Link Sent"
+              )}
+            </TableHead>
+            <TableHead>
+              {sortable ? (
+                <button
+                  className="flex items-center hover:text-foreground transition-colors"
+                  onClick={() => onSort?.("booked_at")}
+                >
+                  Booked
+                  <SortIcon field="booked_at" sortBy={sortBy} sortOrder={sortOrder} />
+                </button>
+              ) : (
+                "Booked"
+              )}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {contacts.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={4} className="h-24 text-center">
                 No contacts found.
               </TableCell>
             </TableRow>
@@ -75,12 +125,6 @@ export function ContactsTable({ contacts }: ContactsTableProps) {
                 </TableCell>
                 <TableCell>
                   <StatusBadge date={contact.booked_at} />
-                </TableCell>
-                <TableCell>
-                  <StatusBadge date={contact.follow_up_at} />
-                </TableCell>
-                <TableCell>
-                  <StatusBadge date={contact.ghosted_at} />
                 </TableCell>
               </TableRow>
             ))
