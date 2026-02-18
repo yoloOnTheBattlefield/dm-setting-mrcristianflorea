@@ -469,6 +469,14 @@ export default function Integrations() {
                       >
                         {evt.event_type}
                       </Badge>
+                      {isAdmin && viewAll && evt.url && (
+                        <span className="truncate max-w-[140px] text-foreground font-medium">
+                          {(() => {
+                            try { return new URL(evt.url).hostname.replace(/^www\./, ""); }
+                            catch { return evt.url; }
+                          })()}
+                        </span>
+                      )}
                       <span className="truncate">{evt.lead_id}</span>
                       <span className="ml-auto whitespace-nowrap">
                         {new Date(evt.createdAt).toLocaleDateString()}{" "}
