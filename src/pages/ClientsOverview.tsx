@@ -1,11 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useNavigate } from "react-router-dom";
-import { useAccountsAnalytics } from "@/hooks/useAccountsAnalytics";
+import { useAccountsAnalytics, useDeleteAccount, useRestoreAccount } from "@/hooks/useAccountsAnalytics";
 import { DateRangeFilter } from "@/lib/types";
 import { DateFilter } from "@/components/dashboard/DateFilter";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, Trash2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,11 +16,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ClientsOverview() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>("clients-dateRange", 14);
+  const [showDeleted, setShowDeleted] = usePersistedState("clients-showDeleted", false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const deleteAccount = useDeleteAccount();
+  const restoreAccount = useRestoreAccount();
 
   // Calculate start and end dates based on dateRange
   const endDate = useMemo(() => {
@@ -44,7 +62,36 @@ export default function ClientsOverview() {
   } = useAccountsAnalytics({
     startDate,
     endDate,
+    showDeleted,
   });
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    try {
+      await deleteAccount.mutateAsync(deletingId);
+      toast({ title: "Success", description: "Client deleted successfully." });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to delete client",
+        variant: "destructive",
+      });
+    }
+    setDeletingId(null);
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      await restoreAccount.mutateAsync(id);
+      toast({ title: "Success", description: "Client restored successfully." });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to restore client",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -81,9 +128,19 @@ export default function ClientsOverview() {
             View and manage all your clients with detailed analytics
           </p>
         </div>
-        <div className="flex flex-col gap-2">
-          <Label>Date Range</Label>
-          <DateFilter value={dateRange} onChange={setDateRange} />
+        <div className="flex gap-6 items-end">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="show-deleted"
+              checked={showDeleted}
+              onCheckedChange={setShowDeleted}
+            />
+            <Label htmlFor="show-deleted" className="text-sm whitespace-nowrap">Show Deleted</Label>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Date Range</Label>
+            <DateFilter value={dateRange} onChange={setDateRange} />
+          </div>
         </div>
       </div>
 
@@ -104,13 +161,14 @@ export default function ClientsOverview() {
                     <TableHead className="text-right">Ghosted</TableHead>
                     <TableHead className="text-right">Follow-up</TableHead>
                     <TableHead className="text-right">Low Ticket</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {accounts.map((account) => (
                     <TableRow
                       key={account.account_id}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className={`cursor-pointer hover:bg-muted/50 ${account.deleted ? "opacity-50" : ""}`}
                       onClick={() => navigate(`/clients/${account.account_id}`)}
                     >
                       <TableCell className="font-medium text-foreground hover:underline">
@@ -134,6 +192,35 @@ export default function ClientsOverview() {
                       <TableCell className="text-right">
                         {account.low_ticket.toLocaleString()}
                       </TableCell>
+                      <TableCell>
+                        {account.deleted ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRestore(account.account_id);
+                            }}
+                            disabled={restoreAccount.isPending}
+                            title="Restore"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingId(account.account_id);
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -146,6 +233,28 @@ export default function ClientsOverview() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will deactivate the client account. Data will be preserved but the account will no longer be accessible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteAccount.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteAccount.isPending ? "Deleting..." : "Confirm Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -36,6 +37,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -50,6 +57,7 @@ import {
   useCancelDeepScrape,
   useResumeDeepScrape,
   useDeleteDeepScrape,
+  useUpdateDeepScrape,
   useDeepScrapeSocket,
   useDeepScrapeLogs,
   useDeepScrapeLeads,
@@ -77,6 +85,9 @@ import {
   SkipForward,
   Brain,
   Copy,
+  ClipboardCopy,
+  Pencil,
+  X,
   BarChart3,
   ChevronDown,
   Clock,
@@ -255,10 +266,35 @@ function JobProgress({ job }: { job: DeepScrapeJob }) {
   }
 
   if (job.status === "failed") {
+    const errorMsg = job.error || "Failed";
+    if (errorMsg.length <= 40) {
+      return <span className="text-xs text-destructive">{errorMsg}</span>;
+    }
     return (
-      <span className="text-xs text-destructive truncate max-w-[160px]">
-        {job.error || "Failed"}
-      </span>
+      <TooltipProvider>
+        <Tooltip delayDuration={200}>
+          <TooltipTrigger asChild>
+            <span className="text-xs text-destructive block max-w-[200px] truncate cursor-help">
+              {errorMsg}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-[400px] max-h-[200px] overflow-auto">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs whitespace-pre-wrap break-all">{errorMsg}</p>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(errorMsg);
+                }}
+                className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
+                title="Copy error"
+              >
+                <ClipboardCopy className="h-3 w-3" />
+              </button>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 
@@ -409,7 +445,16 @@ function JobInlineDetail({ jobId }: { jobId: string }) {
 
       {job.error && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3">
-          <p className="text-sm text-destructive">{job.error}</p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm text-destructive break-all">{job.error}</p>
+            <button
+              onClick={() => navigator.clipboard.writeText(job.error!)}
+              className="shrink-0 p-1 rounded hover:bg-destructive/20 transition-colors"
+              title="Copy error"
+            >
+              <ClipboardCopy className="h-3.5 w-3.5 text-destructive" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -531,6 +576,16 @@ export default function DeepScraper() {
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingJob, setEditingJob] = useState<DeepScrapeJob | null>(null);
+  const [editSeeds, setEditSeeds] = useState<string[]>([]);
+  const [editNewSeedText, setEditNewSeedText] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editReelLimit, setEditReelLimit] = useState(10);
+  const [editCommentLimit, setEditCommentLimit] = useState(100);
+  const [editMinFollowers, setEditMinFollowers] = useState(1000);
+  const [editIsRecurring, setEditIsRecurring] = useState(false);
+  const [editRepeatInterval, setEditRepeatInterval] = useState(3);
+  const [showEditConfirm, setShowEditConfirm] = useState(false);
   const limit = 20;
 
   // New job form state
@@ -567,6 +622,7 @@ export default function DeepScraper() {
   const deleteMutation = useDeleteDeepScrape();
   const skipCommentsMutation = useSkipComments();
   const resumeCommentsMutation = useResumeComments();
+  const updateMutation = useUpdateDeepScrape();
 
   const { data: targetStatsData } = useDeepScrapeTargetStats();
 
@@ -575,6 +631,20 @@ export default function DeepScraper() {
   const promptsList = Array.isArray(prompts) ? prompts : [];
   const targets = targetStatsData?.targets || [];
   const [showTargetStats, setShowTargetStats] = usePersistedState("deep-scraper-show-targets", true);
+
+  // Precomputed qual rate lookup for edit dialog chips
+  const targetQualMap = React.useMemo(() => {
+    const map: Record<string, { qualRate: number | null; qualified: number; rejected: number }> = {};
+    for (const t of targets) {
+      const total = t.qualified + t.rejected;
+      map[t.seed] = {
+        qualRate: total > 0 ? +((t.qualified / total) * 100).toFixed(0) : null,
+        qualified: t.qualified,
+        rejected: t.rejected,
+      };
+    }
+    return map;
+  }, [targets]);
 
   const parsedSeeds = seedText
     .split("\n")
@@ -709,6 +779,68 @@ export default function DeepScraper() {
       toast({
         title: "Error",
         description: err instanceof Error ? err.message : "Failed to resume comments",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleOpenEdit = (job: DeepScrapeJob) => {
+    setEditingJob(job);
+    setEditSeeds([...job.seed_usernames]);
+    setEditNewSeedText("");
+    setEditName(job.name || "");
+    setEditReelLimit(job.reel_limit);
+    setEditCommentLimit(job.comment_limit);
+    setEditMinFollowers(job.min_followers);
+    setEditIsRecurring(job.is_recurring);
+    setEditRepeatInterval(job.repeat_interval_days || 3);
+  };
+
+  const handleRemoveEditSeed = (seed: string) => {
+    setEditSeeds((prev) => prev.filter((s) => s !== seed));
+  };
+
+  const handleAddEditSeeds = () => {
+    const newSeeds = editNewSeedText
+      .split("\n")
+      .map((s) => s.replace(/^@/, "").trim())
+      .filter(Boolean)
+      .filter((s) => !editSeeds.includes(s));
+    if (newSeeds.length > 0) {
+      setEditSeeds((prev) => [...prev, ...newSeeds]);
+      setEditNewSeedText("");
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingJob || editSeeds.length === 0) return;
+
+    // For recurring jobs, require confirmation first
+    if (editIsRecurring && !showEditConfirm) {
+      setShowEditConfirm(true);
+      return;
+    }
+
+    try {
+      await updateMutation.mutateAsync({
+        id: editingJob._id,
+        body: {
+          seed_usernames: editSeeds,
+          name: editName.trim() || null,
+          reel_limit: editReelLimit,
+          comment_limit: editCommentLimit,
+          min_followers: editMinFollowers,
+          is_recurring: editIsRecurring,
+          repeat_interval_days: editIsRecurring ? editRepeatInterval : null,
+        },
+      });
+      toast({ title: "Job Updated", description: "Deep scrape job has been updated." });
+      setEditingJob(null);
+      setShowEditConfirm(false);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update job",
         variant: "destructive",
       });
     }
@@ -986,6 +1118,16 @@ export default function DeepScraper() {
                                 >
                                   <Copy className="h-3.5 w-3.5" />
                                 </Button>
+                                {!active && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleOpenEdit(job)}
+                                    title="Edit"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
                                 {active && (
                                   <>
                                     {job.status === "scraping_comments" && (
@@ -1288,6 +1430,161 @@ export default function DeepScraper() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Job Dialog */}
+      <Dialog open={!!editingJob} onOpenChange={(open) => { if (!open) { setEditingJob(null); setShowEditConfirm(false); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Deep Scrape Job</DialogTitle>
+            <DialogDescription>
+              Update targets and settings. Changes apply to future runs only.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Job Name</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="e.g. Fitness niche round 1"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Targets ({editSeeds.length})</Label>
+              <div className="flex flex-wrap gap-1.5 min-h-[36px] rounded-md border p-2">
+                {editSeeds.length === 0 ? (
+                  <span className="text-xs text-muted-foreground">No targets. Add at least one below.</span>
+                ) : (
+                  editSeeds.map((seed) => {
+                    const stats = targetQualMap[seed];
+                    const qualRate = stats?.qualRate;
+                    const qualColor = qualRate === null || qualRate === undefined
+                      ? "bg-zinc-500/15 text-zinc-400 border-zinc-500/30"
+                      : qualRate <= 20
+                        ? "bg-red-500/15 text-red-400 border-red-500/30"
+                        : qualRate <= 40
+                          ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30"
+                          : "bg-green-500/15 text-green-400 border-green-500/30";
+                    return (
+                      <Badge
+                        key={seed}
+                        variant="secondary"
+                        className="gap-1.5 pl-2 pr-1 py-0.5 text-xs"
+                      >
+                        @{seed}
+                        <span className={`inline-flex items-center rounded px-1 py-px text-[9px] font-medium leading-none border ${qualColor}`}>
+                          {qualRate !== null && qualRate !== undefined ? `${qualRate}%` : "N/A"}
+                        </span>
+                        <button
+                          onClick={() => handleRemoveEditSeed(seed)}
+                          className="rounded-full p-0.5 hover:bg-muted-foreground/20 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Add Targets</Label>
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder={"newuser1\nnewuser2"}
+                  value={editNewSeedText}
+                  onChange={(e) => setEditNewSeedText(e.target.value)}
+                  rows={2}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddEditSeeds}
+                  disabled={!editNewSeedText.trim()}
+                  className="self-end"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">One username per line, without @</p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Reel Limit</Label>
+                <Input type="number" min={1} value={editReelLimit} onChange={(e) => setEditReelLimit(Number(e.target.value))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Comment Limit</Label>
+                <Input type="number" min={1} value={editCommentLimit} onChange={(e) => setEditCommentLimit(Number(e.target.value))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Min Followers</Label>
+                <Input type="number" min={0} value={editMinFollowers} onChange={(e) => setEditMinFollowers(Number(e.target.value))} />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label>Recurring</Label>
+                <p className="text-xs text-muted-foreground">Automatically re-run on a schedule.</p>
+              </div>
+              <Switch checked={editIsRecurring} onCheckedChange={setEditIsRecurring} />
+            </div>
+            {editIsRecurring && (
+              <div className="flex items-center gap-3 pl-1">
+                <Label className="whitespace-nowrap text-sm">Repeat Every</Label>
+                <Input type="number" min={1} className="w-20" value={editRepeatInterval} onChange={(e) => setEditRepeatInterval(Number(e.target.value))} />
+                <span className="text-sm text-muted-foreground">days</span>
+              </div>
+            )}
+          </div>
+          {showEditConfirm && (
+            <div className="rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-200">
+              This is a recurring job. Changes will apply to future runs only. Previously scraped data will not be affected.
+            </div>
+          )}
+          <DialogFooter className="pt-2">
+            {showEditConfirm ? (
+              <>
+                <Button variant="outline" onClick={() => setShowEditConfirm(false)}>
+                  Go Back
+                </Button>
+                <Button
+                  onClick={handleSaveEdit}
+                  disabled={updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
+                  ) : (
+                    "Confirm & Save"
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => { setEditingJob(null); setShowEditConfirm(false); }}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveEdit}
+                  disabled={editSeeds.length === 0 || updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

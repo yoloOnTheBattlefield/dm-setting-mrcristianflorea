@@ -225,6 +225,28 @@ export function useDeleteDeepScrape() {
   });
 }
 
+export function useUpdateDeepScrape() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: Record<string, unknown> }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/deep-scrape/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["deep-scrape-jobs"] });
+      qc.invalidateQueries({ queryKey: ["deep-scrape-job"] });
+    },
+  });
+}
+
 // --- Socket.IO real-time updates ---
 
 export function useDeepScrapeSocket(
