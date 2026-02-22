@@ -8,9 +8,9 @@ const ACCOUNTS_URL = `${API_URL}/accounts`;
 
 interface AddTeamMemberBody {
   email: string;
-  password: string;
-  first_name: string;
-  last_name: string;
+  password?: string;
+  first_name?: string;
+  last_name?: string;
   role: number;
   has_outbound?: boolean;
 }

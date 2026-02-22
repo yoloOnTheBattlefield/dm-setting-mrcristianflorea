@@ -253,7 +253,7 @@ export default function TeamMembers() {
                     <TableCell>
                       <Switch
                         checked={!!member.has_outbound}
-                        onCheckedChange={() => handleToggleOutbound(member._id, !!member.has_outbound)}
+                        onCheckedChange={() => handleToggleOutbound(member.user_id, !!member.has_outbound)}
                         disabled={!canManage || updateMember.isPending}
                       />
                     </TableCell>

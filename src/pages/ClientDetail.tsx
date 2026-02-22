@@ -466,7 +466,7 @@ export default function ClientDetail() {
                       <TableCell>
                         <Switch
                           checked={!!member.has_outbound}
-                          onCheckedChange={() => handleToggleOutbound(member._id, !!member.has_outbound)}
+                          onCheckedChange={() => handleToggleOutbound(member.user_id, !!member.has_outbound)}
                           disabled={updateMember.isPending}
                         />
                       </TableCell>
