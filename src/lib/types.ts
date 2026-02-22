@@ -266,3 +266,19 @@ export interface DeepScrapeLeadEntry {
   unqualified_reason: string | null;
   bio: string | null;
 }
+
+// --- Apify Tokens ---
+
+export type ApifyTokenStatus = "active" | "limit_reached" | "disabled";
+
+export interface ApifyToken {
+  _id: string;
+  label: string;
+  token: string; // masked from API
+  status: ApifyTokenStatus;
+  last_error: string | null;
+  usage_count: number;
+  last_used_at: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

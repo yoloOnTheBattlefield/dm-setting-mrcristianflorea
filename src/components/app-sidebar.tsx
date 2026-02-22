@@ -1,6 +1,7 @@
 import * as React from "react"
 import {
   BarChart3,
+  Database,
   Eye,
   MessageSquare,
   Send,
@@ -117,6 +118,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               url: "/clients",
             },
           ],
+        },
+        {
+          title: "Data Migration",
+          url: "/data-migration",
+          icon: Database,
         },
       )
     }

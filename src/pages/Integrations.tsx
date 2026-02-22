@@ -29,8 +29,14 @@ import {
   useTrackingEvents,
 } from "@/hooks/useTracking";
 import { useIgSessions, useAddIgSession, useRemoveIgSession } from "@/hooks/useIgSessions";
+import {
+  useApifyTokens,
+  useAddApifyToken,
+  useDeleteApifyToken,
+  useResetApifyToken,
+} from "@/hooks/useApifyTokens";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, X, CheckCircle2, Loader2, Trash2 } from "lucide-react";
+import { Copy, X, CheckCircle2, Loader2, Trash2, RotateCcw, AlertTriangle } from "lucide-react";
 
 const ACCOUNTS_API_URL = `${API_URL}/accounts`;
 
@@ -49,10 +55,13 @@ export default function Integrations() {
   const [savedOpenaiToken, setSavedOpenaiToken] = useState("");
   const [isSavingOpenai, setIsSavingOpenai] = useState(false);
 
-  // Apify token state
-  const [apifyToken, setApifyToken] = useState("");
-  const [savedApifyToken, setSavedApifyToken] = useState("");
-  const [isSavingApify, setIsSavingApify] = useState(false);
+  // Apify tokens (multi-token)
+  const { data: apifyTokensData, isLoading: apifyTokensLoading } = useApifyTokens();
+  const addApifyToken = useAddApifyToken();
+  const deleteApifyToken = useDeleteApifyToken();
+  const resetApifyToken = useResetApifyToken();
+  const [newApifyLabel, setNewApifyLabel] = useState("");
+  const [newApifyToken, setNewApifyToken] = useState("");
 
   // IG Sessions (multi-profile)
   const { data: igSessionsData, isLoading: igSessionsLoading } = useIgSessions();
@@ -93,10 +102,6 @@ export default function Integrations() {
           setOpenaiToken(data.openai_token);
           setSavedOpenaiToken(data.openai_token);
         }
-        if (data?.apify_token) {
-          setApifyToken(data.apify_token);
-          setSavedApifyToken(data.apify_token);
-        }
         if (data?.calendly_token) {
           setCalendlyConnected(true);
         }
@@ -130,31 +135,48 @@ export default function Integrations() {
 
   const openaiTokenChanged = openaiToken.trim() !== savedOpenaiToken;
 
-  const handleSaveApifyToken = async () => {
-    if (!user?.id) return;
-    setIsSavingApify(true);
+  const handleAddApifyToken = async () => {
+    const token = newApifyToken.trim();
+    if (!token) return;
     try {
-      const response = await fetchWithAuth(`${ACCOUNTS_API_URL}/${user.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apify_token: apifyToken.trim() || null }),
+      await addApifyToken.mutateAsync({ label: newApifyLabel.trim(), token });
+      setNewApifyToken("");
+      setNewApifyLabel("");
+      toast({ title: "Saved", description: "Apify token added." });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to add token",
+        variant: "destructive",
       });
-      if (response.ok) {
-        const trimmed = apifyToken.trim();
-        setSavedApifyToken(trimmed);
-        toast({ title: "Saved", description: trimmed ? "Apify API token updated." : "Apify API token removed." });
-      } else {
-        const data = await response.json().catch(() => ({}));
-        toast({ title: "Error", description: data.error || "Failed to save token", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
-    } finally {
-      setIsSavingApify(false);
     }
   };
 
-  const apifyTokenChanged = apifyToken.trim() !== savedApifyToken;
+  const handleDeleteApifyToken = async (id: string) => {
+    try {
+      await deleteApifyToken.mutateAsync(id);
+      toast({ title: "Removed", description: "Apify token removed." });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to remove",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResetApifyToken = async (id: string) => {
+    try {
+      await resetApifyToken.mutateAsync(id);
+      toast({ title: "Reset", description: "Token marked as active." });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to reset",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Parse the pasted cookie JSON to extract the 3 needed values
   const parsedIgCookies = (() => {
@@ -312,46 +334,148 @@ export default function Integrations() {
         </CardContent>
       </Card>
 
-      {/* Apify API Token */}
+      {/* Apify API Tokens (multi-token) */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Apify API Token</CardTitle>
+              <CardTitle>Apify API Tokens</CardTitle>
               <CardDescription>
-                Required for Instagram deep scraping (reels, comments, profiles).
+                Manage multiple Apify tokens for deep scraping. Tokens auto-rotate when one hits its monthly limit.
               </CardDescription>
             </div>
-            {savedApifyToken && (
-              <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
-                <CheckCircle2 className="h-3 w-3" />
-                Connected
-              </Badge>
-            )}
+            {(() => {
+              const tokens = apifyTokensData?.tokens ?? [];
+              const active = tokens.filter((t) => t.status === "active").length;
+              const limited = tokens.filter((t) => t.status === "limit_reached").length;
+              if (tokens.length === 0) return null;
+              return (
+                <div className="flex gap-1.5">
+                  {active > 0 && (
+                    <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      {active} active
+                    </Badge>
+                  )}
+                  {limited > 0 && (
+                    <Badge className="bg-orange-500/15 text-orange-500 border-orange-500/30 gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {limited} limited
+                    </Badge>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <Label htmlFor="apify-token">API Token</Label>
-            <Input
-              id="apify-token"
-              type="password"
-              placeholder="apify_api_..."
-              value={apifyToken}
-              onChange={(e) => setApifyToken(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {savedApifyToken ? "Token configured" : "No token set"}
-            </p>
-            <Button
-              size="sm"
-              onClick={handleSaveApifyToken}
-              disabled={isSavingApify || !apifyTokenChanged}
-            >
-              {isSavingApify ? "Saving..." : "Save"}
-            </Button>
+        <CardContent className="space-y-4">
+          {/* Token list */}
+          {apifyTokensLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Loading tokens...
+            </div>
+          ) : (apifyTokensData?.tokens?.length ?? 0) > 0 ? (
+            <div className="space-y-2">
+              <Label>Saved Tokens</Label>
+              <div className="space-y-1.5">
+                {apifyTokensData!.tokens.map((t) => (
+                  <div
+                    key={t._id}
+                    className={`flex items-center justify-between rounded-md border px-3 py-2 ${
+                      t.status === "limit_reached" ? "border-orange-500/30 bg-orange-500/5" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-sm font-medium truncate">
+                        {t.label || "Unnamed"}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-mono">{t.token}</span>
+                      {t.status === "active" && (
+                        <Badge variant="outline" className="text-green-500 border-green-500/30 text-[10px] px-1.5 py-0 shrink-0">
+                          Active
+                        </Badge>
+                      )}
+                      {t.status === "limit_reached" && (
+                        <Badge variant="outline" className="text-orange-500 border-orange-500/30 text-[10px] px-1.5 py-0 shrink-0">
+                          Limit Reached
+                        </Badge>
+                      )}
+                      {t.status === "disabled" && (
+                        <Badge variant="outline" className="text-muted-foreground text-[10px] px-1.5 py-0 shrink-0">
+                          Disabled
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {t.status === "limit_reached" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-green-500"
+                          onClick={() => handleResetApifyToken(t._id)}
+                          disabled={resetApifyToken.isPending}
+                          title="Reset to active"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteApifyToken(t._id)}
+                        disabled={deleteApifyToken.isPending}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No Apify tokens added yet.</p>
+          )}
+
+          {/* Add new token form */}
+          <div className="border-t pt-4 space-y-3">
+            <Label>Add Token</Label>
+            <div className="space-y-2">
+              <Label htmlFor="apify-label" className="text-xs text-muted-foreground">Label (optional)</Label>
+              <Input
+                id="apify-label"
+                placeholder="e.g. Main account, Backup"
+                value={newApifyLabel}
+                onChange={(e) => setNewApifyLabel(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="apify-token-new" className="text-xs text-muted-foreground">API Token</Label>
+              <Input
+                id="apify-token-new"
+                type="password"
+                placeholder="apify_api_..."
+                value={newApifyToken}
+                onChange={(e) => setNewApifyToken(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                onClick={handleAddApifyToken}
+                disabled={addApifyToken.isPending || !newApifyToken.trim()}
+              >
+                {addApifyToken.isPending ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  "Add Token"
+                )}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
