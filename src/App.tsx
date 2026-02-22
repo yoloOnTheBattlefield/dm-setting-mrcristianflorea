@@ -23,6 +23,8 @@ import CampaignAddLeads from "./pages/CampaignAddLeads";
 import CampaignEdit from "./pages/CampaignEdit";
 import OutboundAccounts from "./pages/OutboundAccounts";
 import OutboundAnalytics from "./pages/OutboundAnalytics";
+import Scraper from "./pages/Scraper";
+import DeepScraper from "./pages/DeepScraper";
 import ResearchOverview from "./pages/research/ResearchOverview";
 import ResearchCompetitors from "./pages/research/Competitors";
 import ResearchCompetitorDetail from "./pages/research/CompetitorDetail";
@@ -186,6 +188,8 @@ const App = () => (
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/scraper" element={<ProtectedRoute><DashboardLayout><Scraper /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/deep-scraper" element={<ProtectedRoute><DashboardLayout><DeepScraper /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research" element={<ProtectedRoute><DashboardLayout><ResearchOverview /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/competitors" element={<ProtectedRoute><DashboardLayout><ResearchCompetitors /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/competitors/:id" element={<ProtectedRoute><DashboardLayout><ResearchCompetitorDetail /></DashboardLayout></ProtectedRoute>} />

@@ -28,7 +28,9 @@ import {
   useUpdateTrackingSettings,
   useTrackingEvents,
 } from "@/hooks/useTracking";
-import { Copy, X, CheckCircle2 } from "lucide-react";
+import { useIgSessions, useAddIgSession, useRemoveIgSession } from "@/hooks/useIgSessions";
+import { Textarea } from "@/components/ui/textarea";
+import { Copy, X, CheckCircle2, Loader2, Trash2 } from "lucide-react";
 
 const ACCOUNTS_API_URL = `${API_URL}/accounts`;
 
@@ -46,6 +48,18 @@ export default function Integrations() {
   const [openaiToken, setOpenaiToken] = useState("");
   const [savedOpenaiToken, setSavedOpenaiToken] = useState("");
   const [isSavingOpenai, setIsSavingOpenai] = useState(false);
+
+  // Apify token state
+  const [apifyToken, setApifyToken] = useState("");
+  const [savedApifyToken, setSavedApifyToken] = useState("");
+  const [isSavingApify, setIsSavingApify] = useState(false);
+
+  // IG Sessions (multi-profile)
+  const { data: igSessionsData, isLoading: igSessionsLoading } = useIgSessions();
+  const addIgSession = useAddIgSession();
+  const removeIgSession = useRemoveIgSession();
+  const [igUsername, setIgUsername] = useState("");
+  const [igCookieJson, setIgCookieJson] = useState("");
 
   // Calendly connection status
   const [calendlyConnected, setCalendlyConnected] = useState(false);
@@ -79,6 +93,10 @@ export default function Integrations() {
           setOpenaiToken(data.openai_token);
           setSavedOpenaiToken(data.openai_token);
         }
+        if (data?.apify_token) {
+          setApifyToken(data.apify_token);
+          setSavedApifyToken(data.apify_token);
+        }
         if (data?.calendly_token) {
           setCalendlyConnected(true);
         }
@@ -111,6 +129,80 @@ export default function Integrations() {
   };
 
   const openaiTokenChanged = openaiToken.trim() !== savedOpenaiToken;
+
+  const handleSaveApifyToken = async () => {
+    if (!user?.id) return;
+    setIsSavingApify(true);
+    try {
+      const response = await fetchWithAuth(`${ACCOUNTS_API_URL}/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apify_token: apifyToken.trim() || null }),
+      });
+      if (response.ok) {
+        const trimmed = apifyToken.trim();
+        setSavedApifyToken(trimmed);
+        toast({ title: "Saved", description: trimmed ? "Apify API token updated." : "Apify API token removed." });
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast({ title: "Error", description: data.error || "Failed to save token", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
+    } finally {
+      setIsSavingApify(false);
+    }
+  };
+
+  const apifyTokenChanged = apifyToken.trim() !== savedApifyToken;
+
+  // Parse the pasted cookie JSON to extract the 3 needed values
+  const parsedIgCookies = (() => {
+    if (!igCookieJson.trim()) return null;
+    try {
+      const arr = JSON.parse(igCookieJson.trim());
+      if (!Array.isArray(arr)) return null;
+      const find = (name: string) => arr.find((c: { name: string; value: string }) => c.name === name)?.value || null;
+      const sessionId = find("sessionid");
+      const csrfToken = find("csrftoken");
+      const dsUserId = find("ds_user_id");
+      if (!sessionId) return null;
+      return { sessionId, csrfToken, dsUserId };
+    } catch {
+      return null;
+    }
+  })();
+
+  const handleAddIgSession = async () => {
+    const username = igUsername.replace(/^@/, "").trim();
+    if (!username || !parsedIgCookies) return;
+    try {
+      const arr = JSON.parse(igCookieJson.trim());
+      await addIgSession.mutateAsync({ ig_username: username, cookies: arr });
+      setIgCookieJson("");
+      setIgUsername("");
+      toast({ title: "Saved", description: `Instagram cookies saved for @${username}.` });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to save cookies",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveIgSession = async (username: string) => {
+    try {
+      await removeIgSession.mutateAsync(username);
+      toast({ title: "Removed", description: `Cookies for @${username} removed.` });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to remove",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleCalendlySubmit = async () => {
     if (!calendlyToken.trim()) {
@@ -216,6 +308,174 @@ export default function Integrations() {
             >
               {isSavingOpenai ? "Saving..." : "Save"}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Apify API Token */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Apify API Token</CardTitle>
+              <CardDescription>
+                Required for Instagram deep scraping (reels, comments, profiles).
+              </CardDescription>
+            </div>
+            {savedApifyToken && (
+              <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                Connected
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="apify-token">API Token</Label>
+            <Input
+              id="apify-token"
+              type="password"
+              placeholder="apify_api_..."
+              value={apifyToken}
+              onChange={(e) => setApifyToken(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {savedApifyToken ? "Token configured" : "No token set"}
+            </p>
+            <Button
+              size="sm"
+              onClick={handleSaveApifyToken}
+              disabled={isSavingApify || !apifyTokenChanged}
+            >
+              {isSavingApify ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Instagram Session Cookies */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Instagram Sessions</CardTitle>
+              <CardDescription>
+                Manage multiple Instagram cookie profiles for scraping.
+              </CardDescription>
+            </div>
+            {(igSessionsData?.ig_sessions?.length ?? 0) > 0 && (
+              <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                {igSessionsData!.ig_sessions.length} profile{igSessionsData!.ig_sessions.length !== 1 ? "s" : ""}
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Saved profiles list */}
+          {igSessionsLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Loading profiles...
+            </div>
+          ) : (igSessionsData?.ig_sessions?.length ?? 0) > 0 ? (
+            <div className="space-y-2">
+              <Label>Saved Profiles</Label>
+              <div className="space-y-1.5">
+                {igSessionsData!.ig_sessions.map((profile) => (
+                  <div
+                    key={profile.ig_username}
+                    className="flex items-center justify-between rounded-md border px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">@{profile.ig_username}</span>
+                      {profile.has_cookies ? (
+                        <Badge variant="outline" className="text-green-500 border-green-500/30 text-[10px] px-1.5 py-0">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-yellow-500 border-yellow-500/30 text-[10px] px-1.5 py-0">
+                          Missing cookies
+                        </Badge>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleRemoveIgSession(profile.ig_username)}
+                      disabled={removeIgSession.isPending}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No Instagram profiles saved yet.</p>
+          )}
+
+          {/* Add new profile form */}
+          <div className="border-t pt-4 space-y-3">
+            <Label>Add Profile</Label>
+            <div className="space-y-2">
+              <Label htmlFor="ig-username" className="text-xs text-muted-foreground">Instagram Username</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">@</span>
+                <Input
+                  id="ig-username"
+                  placeholder="username"
+                  value={igUsername}
+                  onChange={(e) => setIgUsername(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ig-cookies" className="text-xs text-muted-foreground">Cookie JSON</Label>
+              <Textarea
+                id="ig-cookies"
+                placeholder={'Paste exported cookies JSON array...\n[\n  { "name": "sessionid", "value": "..." },\n  ...\n]'}
+                value={igCookieJson}
+                onChange={(e) => setIgCookieJson(e.target.value)}
+                rows={4}
+                className="font-mono text-xs"
+              />
+            </div>
+            {igCookieJson.trim() && (
+              parsedIgCookies ? (
+                <div className="rounded-md border border-green-500/30 bg-green-500/5 p-3 space-y-1">
+                  <p className="text-xs font-medium text-green-500">Cookies detected:</p>
+                  <p className="text-xs text-muted-foreground font-mono">sessionid: {parsedIgCookies.sessionId?.slice(0, 20)}...</p>
+                  <p className="text-xs text-muted-foreground font-mono">csrftoken: {parsedIgCookies.csrfToken || "—"}</p>
+                  <p className="text-xs text-muted-foreground font-mono">ds_user_id: {parsedIgCookies.dsUserId || "—"}</p>
+                </div>
+              ) : (
+                <div className="rounded-md border border-destructive/50 bg-destructive/5 p-3">
+                  <p className="text-xs text-destructive">Invalid JSON or missing sessionid cookie.</p>
+                </div>
+              )
+            )}
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                onClick={handleAddIgSession}
+                disabled={addIgSession.isPending || !parsedIgCookies || !igUsername.replace(/^@/, "").trim()}
+              >
+                {addIgSession.isPending ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Add Profile"
+                )}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

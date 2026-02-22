@@ -146,6 +146,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               url: "/prompts",
             },
             {
+              title: "Scraper",
+              url: "/scraper",
+            },
+            {
+              title: "Deep Scraper",
+              url: "/deep-scraper",
+            },
+            {
               title: "Upload",
               url: "/contacts/upload",
             },
@@ -164,6 +172,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           icon: Telescope,
           items: [
             { title: "Overview", url: "/research" },
+            { title: "Scraper", url: "/deep-scraper" },
             { title: "Competitors", url: "/research/competitors" },
             { title: "Posts Library", url: "/research/posts" },
             { title: "Comments Intel", url: "/research/comments" },

@@ -29,8 +29,21 @@ export interface Campaign {
   schedule: CampaignSchedule;
   daily_limit_per_sender: number;
   stats: CampaignStats;
+  last_sent_at: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CampaignNextSend {
+  status: string;
+  next_send_at: string | null;
+  delay_seconds: number | null;
+  last_sent_at: string | null;
+  within_active_hours?: boolean;
+  online_senders?: number;
+  total_senders?: number;
+  pending_leads?: number;
+  reason: string | null;
 }
 
 export interface CampaignLead {
@@ -118,6 +131,21 @@ export function useCampaignStats(campaignId: string | null) {
   });
 }
 
+export function useCampaignNextSend(campaignId: string | null, campaignStatus?: string) {
+  return useQuery({
+    queryKey: ["campaign-next-send", campaignId],
+    queryFn: async (): Promise<CampaignNextSend> => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/next-send`);
+      if (!res.ok) throw new Error(`Failed to fetch next send: ${res.status}`);
+      return res.json();
+    },
+    enabled: !!campaignId && campaignStatus === "active",
+    refetchInterval: 10_000,
+    staleTime: 1000 * 5,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useCampaignLeads(
   campaignId: string | null,
   params: { status?: string; page?: number; limit?: number }
@@ -199,6 +227,28 @@ export function useUpdateCampaign() {
   });
 }
 
+export function useRecalcCampaignStats() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${id}/recalc-stats`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
+      qc.invalidateQueries({ queryKey: ["campaign-stats"] });
+    },
+  });
+}
+
 export function useDeleteCampaign() {
   const qc = useQueryClient();
   return useMutation({
@@ -258,6 +308,30 @@ export function usePauseCampaign() {
   });
 }
 
+export function useRetryCampaignLeads() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ campaignId, lead_ids }: { campaignId: string; lead_ids: string[] }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/retry`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_ids }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
+      qc.invalidateQueries({ queryKey: ["campaign-leads"] });
+      qc.invalidateQueries({ queryKey: ["campaign-stats"] });
+    },
+  });
+}
+
 export function useAddCampaignLeads() {
   const qc = useQueryClient();
   return useMutation({
@@ -278,6 +352,27 @@ export function useAddCampaignLeads() {
       qc.invalidateQueries({ queryKey: ["campaign"] });
       qc.invalidateQueries({ queryKey: ["campaign-leads"] });
       qc.invalidateQueries({ queryKey: ["campaign-stats"] });
+    },
+  });
+}
+
+export function useDuplicateCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ campaignId, lead_filter }: { campaignId: string; lead_filter: string }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/duplicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_filter }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
     },
   });
 }

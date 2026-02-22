@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
   Select,
@@ -31,13 +32,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useSocket } from "@/contexts/SocketContext";
 import {
   useCampaign,
   useCampaignStats,
+  useCampaignNextSend,
   useCampaignLeads,
   useStartCampaign,
   usePauseCampaign,
   useRemoveCampaignLeads,
+  useRetryCampaignLeads,
+  useDuplicateCampaign,
+  useRecalcCampaignStats,
 } from "@/hooks/useCampaigns";
 import {
   ArrowLeft,
@@ -53,7 +59,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ListTodo,
+  Timer,
+  Wifi,
+  WifiOff,
+  RotateCcw,
+  Copy,
+  RefreshCw,
 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   draft: { label: "Draft", className: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
@@ -83,12 +96,53 @@ export default function CampaignDetail() {
   const { id: campaignId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { socket } = useSocket();
 
   const { data: campaign, isLoading: campaignLoading } = useCampaign(campaignId ?? null);
   const { data: stats } = useCampaignStats(campaignId ?? null);
+  const { data: nextSend } = useCampaignNextSend(campaignId ?? null, campaign?.status);
   const startMutation = useStartCampaign();
   const pauseMutation = usePauseCampaign();
   const removeMutation = useRemoveCampaignLeads();
+  const retryMutation = useRetryCampaignLeads();
+  const duplicateMutation = useDuplicateCampaign();
+  const recalcMutation = useRecalcCampaignStats();
+
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [showDuplicate, setShowDuplicate] = useState(false);
+  const [dupLeadFilter, setDupLeadFilter] = useState("all");
+
+  // Real-time ETA from scheduler (overrides polled data when a message is actually sent)
+  const [socketEta, setSocketEta] = useState<{ nextInSeconds: number; receivedAt: number } | null>(null);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleEta = (data: { nextInSeconds: number; campaignName: string }) => {
+      setSocketEta({ nextInSeconds: data.nextInSeconds, receivedAt: Date.now() });
+    };
+    socket.on("campaign:eta", handleEta);
+    return () => { socket.off("campaign:eta", handleEta); };
+  }, [socket]);
+
+  // Clear socket ETA when polled data refreshes with a newer last_sent_at
+  useEffect(() => {
+    if (nextSend?.last_sent_at && socketEta) {
+      const lastSentMs = new Date(nextSend.last_sent_at).getTime();
+      if (lastSentMs > socketEta.receivedAt) {
+        setSocketEta(null);
+      }
+    }
+  }, [nextSend?.last_sent_at, socketEta]);
+
+  // Merge socket ETA into nextSend for display
+  const effectiveNextSend = nextSend && socketEta
+    ? {
+        ...nextSend,
+        next_send_at: new Date(socketEta.receivedAt + socketEta.nextInSeconds * 1000).toISOString(),
+        delay_seconds: socketEta.nextInSeconds,
+        last_sent_at: new Date(socketEta.receivedAt).toISOString(),
+      }
+    : nextSend;
 
   const [leadStatusFilter, setLeadStatusFilter] = useState("all");
   const [leadPage, setLeadPage] = useState(1);
@@ -101,6 +155,53 @@ export default function CampaignDetail() {
   });
 
   const leads = leadsData?.leads || [];
+
+  // Retryable leads on current page (failed or skipped)
+  const retryableLeads = leads.filter((l) => l.status === "failed" || l.status === "skipped");
+  const allRetryableSelected = retryableLeads.length > 0 && retryableLeads.every((l) => selectedLeadIds.has(l._id));
+
+  const toggleLeadSelection = (id: string) => {
+    setSelectedLeadIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllRetryable = () => {
+    if (allRetryableSelected) {
+      setSelectedLeadIds((prev) => {
+        const next = new Set(prev);
+        retryableLeads.forEach((l) => next.delete(l._id));
+        return next;
+      });
+    } else {
+      setSelectedLeadIds((prev) => {
+        const next = new Set(prev);
+        retryableLeads.forEach((l) => next.add(l._id));
+        return next;
+      });
+    }
+  };
+
+  const handleRetrySelected = async () => {
+    if (!campaignId || selectedLeadIds.size === 0) return;
+    try {
+      const result = await retryMutation.mutateAsync({
+        campaignId,
+        lead_ids: Array.from(selectedLeadIds),
+      });
+      toast({ title: "Retried", description: `${result.retried} lead(s) moved back to pending.` });
+      setSelectedLeadIds(new Set());
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to retry",
+        variant: "destructive",
+      });
+    }
+  };
   const leadPagination = leadsData?.pagination;
 
   if (campaignLoading) {
@@ -161,6 +262,28 @@ export default function CampaignDetail() {
     setConfirmRemove(false);
   };
 
+  const handleDuplicate = async () => {
+    if (!campaignId) return;
+    try {
+      const result = await duplicateMutation.mutateAsync({
+        campaignId,
+        lead_filter: dupLeadFilter,
+      });
+      toast({
+        title: "Campaign duplicated",
+        description: `Created "${result.campaign.name}" with ${result.leads_copied} lead(s).`,
+      });
+      setShowDuplicate(false);
+      navigate(`/campaigns/${result.campaign._id}`);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to duplicate",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="flex-1 p-6 space-y-6">
       {/* Header */}
@@ -176,33 +299,58 @@ export default function CampaignDetail() {
             {campaign.mode === "manual" ? "Manual" : "Auto"}
           </Badge>
         </div>
-        {canStartPause && (
-          <Button
-            onClick={handleStartPause}
-            disabled={startMutation.isPending || pauseMutation.isPending}
-            variant={campaign.status === "active" ? "outline" : "default"}
-          >
-            {startMutation.isPending || pauseMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : campaign.status === "active" ? (
-              <Pause className="h-4 w-4 mr-2" />
-            ) : (
-              <Play className="h-4 w-4 mr-2" />
-            )}
-            {campaign.status === "active" ? "Pause" : "Start"}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowDuplicate(true)}>
+            <Copy className="h-4 w-4 mr-2" />
+            Duplicate
           </Button>
-        )}
+          {canStartPause && (
+            <Button
+              onClick={handleStartPause}
+              disabled={startMutation.isPending || pauseMutation.isPending}
+              variant={campaign.status === "active" ? "outline" : "default"}
+            >
+              {startMutation.isPending || pauseMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : campaign.status === "active" ? (
+                <Pause className="h-4 w-4 mr-2" />
+              ) : (
+                <Play className="h-4 w-4 mr-2" />
+              )}
+              {campaign.status === "active" ? "Pause" : "Start"}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-6 gap-3">
-        <StatCard label="Total" value={s.total} icon={<ListTodo className="h-4 w-4" />} />
-        <StatCard label="Pending" value={s.pending} icon={<Clock className="h-4 w-4 text-zinc-400" />} className="text-zinc-400" />
-        <StatCard label="Queued" value={s.queued} icon={<Loader2 className="h-4 w-4 text-yellow-400" />} className="text-yellow-400" />
-        <StatCard label="Sent" value={s.sent} icon={<Send className="h-4 w-4 text-green-400" />} className="text-green-400" />
-        <StatCard label="Failed" value={s.failed} icon={<XCircle className="h-4 w-4 text-red-400" />} className="text-red-400" />
-        <StatCard label="Skipped" value={s.skipped} icon={<SkipForward className="h-4 w-4 text-blue-400" />} className="text-blue-400" />
+      <div className="space-y-1">
+        <div className="flex items-center justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-xs text-muted-foreground"
+            onClick={() => recalcMutation.mutate(campaign._id)}
+            disabled={recalcMutation.isPending}
+          >
+            <RefreshCw className={`h-3 w-3 mr-1 ${recalcMutation.isPending ? "animate-spin" : ""}`} />
+            Recalc
+          </Button>
+        </div>
+        <div className="grid grid-cols-6 gap-3">
+          <StatCard label="Total" value={s.total} icon={<ListTodo className="h-4 w-4" />} />
+          <StatCard label="Pending" value={s.pending} icon={<Clock className="h-4 w-4 text-zinc-400" />} className="text-zinc-400" />
+          <StatCard label="Queued" value={s.queued} icon={<Loader2 className="h-4 w-4 text-yellow-400" />} className="text-yellow-400" />
+          <StatCard label="Sent" value={s.sent} icon={<Send className="h-4 w-4 text-green-400" />} className="text-green-400" />
+          <StatCard label="Failed" value={s.failed} icon={<XCircle className="h-4 w-4 text-red-400" />} className="text-red-400" />
+          <StatCard label="Skipped" value={s.skipped} icon={<SkipForward className="h-4 w-4 text-blue-400" />} className="text-blue-400" />
+        </div>
       </div>
+
+      {/* Next Send */}
+      {campaign.status === "active" && effectiveNextSend && (
+        <NextSendBar nextSend={effectiveNextSend} />
+      )}
 
       {/* Progress */}
       <div className="space-y-1">
@@ -235,6 +383,21 @@ export default function CampaignDetail() {
             </div>
           </div>
           <div className="flex gap-2">
+            {selectedLeadIds.size > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetrySelected}
+                disabled={retryMutation.isPending}
+              >
+                {retryMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                )}
+                Retry {selectedLeadIds.size} Selected
+              </Button>
+            )}
             {s.pending > 0 && (
               <Button variant="outline" size="sm" onClick={() => setConfirmRemove(true)}>
                 <Trash2 className="h-3.5 w-3.5 mr-1" />
@@ -252,6 +415,14 @@ export default function CampaignDetail() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  {retryableLeads.length > 0 && (
+                    <Checkbox
+                      checked={allRetryableSelected}
+                      onCheckedChange={toggleAllRetryable}
+                    />
+                  )}
+                </TableHead>
                 <TableHead>Lead</TableHead>
                 <TableHead>Sender</TableHead>
                 <TableHead>Status</TableHead>
@@ -264,13 +435,13 @@ export default function CampaignDetail() {
             <TableBody>
               {leadsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
+                  <TableCell colSpan={8} className="h-24 text-center">
                     No leads found.
                   </TableCell>
                 </TableRow>
@@ -279,9 +450,18 @@ export default function CampaignDetail() {
                   const lb = LEAD_STATUS_BADGE[cl.status] || LEAD_STATUS_BADGE.pending;
                   const lead = cl.outbound_lead_id;
                   const sender = cl.sender_id;
+                  const isRetryable = cl.status === "failed" || cl.status === "skipped";
 
                   return (
                     <TableRow key={cl._id}>
+                      <TableCell>
+                        {isRetryable ? (
+                          <Checkbox
+                            checked={selectedLeadIds.has(cl._id)}
+                            onCheckedChange={() => toggleLeadSelection(cl._id)}
+                          />
+                        ) : null}
+                      </TableCell>
                       <TableCell className="font-medium">
                         {lead ? (
                           <a
@@ -374,8 +554,140 @@ export default function CampaignDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Duplicate Campaign */}
+      <AlertDialog open={showDuplicate} onOpenChange={setShowDuplicate}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Duplicate Campaign</AlertDialogTitle>
+            <AlertDialogDescription>
+              Create a copy of &ldquo;{campaign.name}&rdquo; with the same settings. Choose which leads to include:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <RadioGroup value={dupLeadFilter} onValueChange={setDupLeadFilter} className="space-y-2 py-2">
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="all" id="dup-all" />
+              <Label htmlFor="dup-all">All leads ({s.total})</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="pending" id="dup-pending" />
+              <Label htmlFor="dup-pending">Pending only ({s.pending})</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="failed" id="dup-failed" />
+              <Label htmlFor="dup-failed">Failed only ({s.failed})</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="skipped" id="dup-skipped" />
+              <Label htmlFor="dup-skipped">Skipped only ({s.skipped})</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="sent" id="dup-sent" />
+              <Label htmlFor="dup-sent">Sent only ({s.sent})</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="none" id="dup-none" />
+              <Label htmlFor="dup-none">No leads (settings only)</Label>
+            </div>
+          </RadioGroup>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDuplicate} disabled={duplicateMutation.isPending}>
+              {duplicateMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Duplicating...
+                </>
+              ) : (
+                "Duplicate"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
+}
+
+function NextSendBar({ nextSend }: { nextSend: import("@/hooks/useCampaigns").CampaignNextSend }) {
+  const [countdown, setCountdown] = useState("");
+
+  useEffect(() => {
+    if (!nextSend.next_send_at) {
+      setCountdown("");
+      return;
+    }
+
+    const update = () => {
+      const remaining = Math.max(0, (new Date(nextSend.next_send_at!).getTime() - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setCountdown("any moment");
+        return;
+      }
+      const m = Math.floor(remaining / 60);
+      const s = Math.floor(remaining % 60);
+      setCountdown(m > 0 ? `${m}m ${s}s` : `${s}s`);
+    };
+
+    update();
+    const iv = setInterval(update, 1000);
+    return () => clearInterval(iv);
+  }, [nextSend.next_send_at]);
+
+  const sendersOnline = nextSend.online_senders ?? 0;
+  const sendersTotal = nextSend.total_senders ?? 0;
+  const hasReason = !!nextSend.reason;
+
+  return (
+    <Card>
+      <CardContent className="py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Timer className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Next send:</span>
+            {nextSend.next_send_at && countdown ? (
+              <span className="text-sm font-bold text-green-400">{countdown}</span>
+            ) : hasReason ? (
+              <span className="text-sm text-yellow-400">{nextSend.reason}</span>
+            ) : (
+              <span className="text-sm text-muted-foreground">--</span>
+            )}
+          </div>
+
+          {nextSend.delay_seconds && (
+            <span className="text-xs text-muted-foreground">
+              ~{Math.round(nextSend.delay_seconds / 60)}m between sends
+            </span>
+          )}
+
+          {nextSend.last_sent_at && (
+            <span className="text-xs text-muted-foreground">
+              Last sent {formatRelative(nextSend.last_sent_at)}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {sendersOnline > 0 ? (
+            <Wifi className="h-3.5 w-3.5 text-green-400" />
+          ) : (
+            <WifiOff className="h-3.5 w-3.5 text-red-400" />
+          )}
+          <span className="text-xs text-muted-foreground">
+            {sendersOnline}/{sendersTotal} senders online
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function formatRelative(dateStr: string) {
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
 }
 
 function StatCard({

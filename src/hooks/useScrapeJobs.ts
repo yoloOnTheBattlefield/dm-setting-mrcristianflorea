@@ -1,0 +1,222 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { API_URL, fetchWithAuth } from "@/lib/api";
+import { useSocket } from "@/contexts/SocketContext";
+import type { ScrapeJob, ScrapeJobsResponse, ScrapeJobStatus } from "@/lib/types";
+
+// --- Queries ---
+
+export function useScrapeJobs(params: {
+  status?: string;
+  page?: number;
+  limit?: number;
+}) {
+  return useQuery({
+    queryKey: ["scrape-jobs", params.status, params.page, params.limit],
+    queryFn: async (): Promise<ScrapeJobsResponse> => {
+      const sp = new URLSearchParams();
+      if (params.status) sp.append("status", params.status);
+      if (params.page) sp.append("page", String(params.page));
+      if (params.limit) sp.append("limit", String(params.limit));
+      const res = await fetchWithAuth(`${API_URL}/api/scrape?${sp.toString()}`);
+      if (!res.ok) throw new Error(`Failed to fetch scrape jobs: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 1000 * 10,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useScrapeJob(jobId: string | null) {
+  return useQuery({
+    queryKey: ["scrape-job", jobId],
+    queryFn: async (): Promise<ScrapeJob> => {
+      const res = await fetchWithAuth(`${API_URL}/api/scrape/${jobId}`);
+      if (!res.ok) throw new Error(`Failed to fetch scrape job: ${res.status}`);
+      return res.json();
+    },
+    enabled: !!jobId,
+    staleTime: 1000 * 5,
+    refetchOnWindowFocus: false,
+  });
+}
+
+// --- Mutations ---
+
+export function useStartScrape() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      target_username: string;
+      ig_username: string;
+    }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/scrape/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["scrape-jobs"] }),
+  });
+}
+
+export function useCancelScrape() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetchWithAuth(`${API_URL}/api/scrape/${id}/cancel`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["scrape-jobs"] });
+      qc.invalidateQueries({ queryKey: ["scrape-job"] });
+    },
+  });
+}
+
+export function usePauseScrape() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetchWithAuth(`${API_URL}/api/scrape/${id}/pause`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["scrape-jobs"] });
+      qc.invalidateQueries({ queryKey: ["scrape-job"] });
+    },
+  });
+}
+
+export function useDeleteScrape() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetchWithAuth(`${API_URL}/api/scrape/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["scrape-jobs"] });
+      qc.invalidateQueries({ queryKey: ["scrape-job"] });
+    },
+  });
+}
+
+export function useResumeScrape() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetchWithAuth(`${API_URL}/api/scrape/${id}/resume`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["scrape-jobs"] });
+      qc.invalidateQueries({ queryKey: ["scrape-job"] });
+    },
+  });
+}
+
+// --- Socket.IO real-time updates ---
+
+export function useScrapeSocket() {
+  const { socket } = useSocket();
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleStatus = (data: { jobId: string; status: ScrapeJobStatus }) => {
+      // Update the specific job in cache
+      qc.setQueryData<ScrapeJob>(["scrape-job", data.jobId], (old) => {
+        if (!old) return old;
+        return { ...old, status: data.status };
+      });
+      // Invalidate the list so it refetches
+      qc.invalidateQueries({ queryKey: ["scrape-jobs"] });
+    };
+
+    const handleProgress = (data: {
+      jobId: string;
+      total_followers: number;
+      followers_collected: number;
+      bios_fetched: number;
+      results: {
+        leads_created: number;
+        leads_updated: number;
+        leads_filtered: number;
+        leads_unqualified: number;
+        leads_skipped: number;
+      };
+    }) => {
+      // Update the specific job in cache with progress
+      qc.setQueryData<ScrapeJob>(["scrape-job", data.jobId], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          total_followers: data.total_followers,
+          followers_collected: data.followers_collected,
+          bios_fetched: data.bios_fetched,
+          results: data.results,
+        };
+      });
+      // Also update the job in the list cache
+      qc.setQueriesData<ScrapeJobsResponse>(
+        { queryKey: ["scrape-jobs"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            jobs: old.jobs.map((j) =>
+              j._id === data.jobId
+                ? {
+                    ...j,
+                    total_followers: data.total_followers,
+                    followers_collected: data.followers_collected,
+                    bios_fetched: data.bios_fetched,
+                    results: data.results,
+                  }
+                : j
+            ),
+          };
+        }
+      );
+    };
+
+    socket.on("scrape:status", handleStatus);
+    socket.on("scrape:progress", handleProgress);
+
+    return () => {
+      socket.off("scrape:status", handleStatus);
+      socket.off("scrape:progress", handleProgress);
+    };
+  }, [socket, qc]);
+}

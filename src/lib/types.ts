@@ -128,3 +128,141 @@ export interface TeamMember {
   has_outbound?: boolean;
   ghl?: string;
 }
+
+// --- Scrape Jobs ---
+
+export type ScrapeJobStatus =
+  | "pending"
+  | "collecting_followers"
+  | "fetching_bios"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "paused";
+
+export interface ScrapeJobResults {
+  leads_created: number;
+  leads_updated: number;
+  leads_filtered: number;
+  leads_unqualified: number;
+  leads_skipped: number;
+}
+
+export interface ScrapeJob {
+  _id: string;
+  account_id: string;
+  target_username: string;
+  outbound_account_id: string;
+  status: ScrapeJobStatus;
+  total_followers: number;
+  followers_collected: number;
+  bios_fetched: number;
+  results: ScrapeJobResults;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ScrapeJobsResponse {
+  jobs: ScrapeJob[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// --- Deep Scrape Jobs ---
+
+export type DeepScrapeJobStatus =
+  | "pending"
+  | "scraping_reels"
+  | "scraping_comments"
+  | "scraping_profiles"
+  | "qualifying"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "paused";
+
+export interface DeepScrapeJobStats {
+  reels_scraped: number;
+  comments_scraped: number;
+  unique_commenters: number;
+  profiles_scraped: number;
+  filtered_low_followers: number;
+  sent_to_ai: number;
+  qualified: number;
+  rejected: number;
+  skipped_existing: number;
+  leads_created: number;
+  leads_updated: number;
+}
+
+export interface DeepScrapeJob {
+  _id: string;
+  account_id: string;
+  name: string | null;
+  status: DeepScrapeJobStatus;
+  seed_usernames: string[];
+  reel_limit: number;
+  comment_limit: number;
+  min_followers: number;
+  force_reprocess: boolean;
+  promptId: string | null;
+  promptLabel: string | null;
+  stats: DeepScrapeJobStats;
+  is_recurring: boolean;
+  repeat_interval_days: number | null;
+  next_run_at: string | null;
+  parent_job_id: string | null;
+  comments_skipped: boolean;
+  started_at: string | null;
+  completed_at: string | null;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeepScrapeJobsResponse {
+  jobs: DeepScrapeJob[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface DeepScrapeLogEntry {
+  jobId: string;
+  message: string;
+  level: "info" | "success" | "warn" | "error";
+  timestamp: string;
+}
+
+export interface DeepScrapeTargetStat {
+  seed: string;
+  total_scraped: number;
+  avg_followers: number;
+  qualified: number;
+  rejected: number;
+  low_followers: number;
+  messaged: number;
+  replied: number;
+  booked: number;
+  total_contract_value: number;
+  reply_rate: number;
+  book_rate: number;
+}
+
+export interface DeepScrapeLeadEntry {
+  jobId: string;
+  username: string;
+  fullName: string | null;
+  followersCount: number;
+  qualified: boolean | null;
+  unqualified_reason: string | null;
+  bio: string | null;
+}
