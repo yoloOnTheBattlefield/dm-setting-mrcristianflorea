@@ -7,6 +7,10 @@ export interface CampaignSchedule {
   min_delay_seconds: number;
   max_delay_seconds: number;
   timezone: string;
+  burst_enabled: boolean;
+  messages_per_group: number;
+  min_group_break_seconds: number;
+  max_group_break_seconds: number;
 }
 
 export interface CampaignStats {
@@ -14,6 +18,8 @@ export interface CampaignStats {
   pending: number;
   queued: number;
   sent: number;
+  delivered: number;
+  replied: number;
   failed: number;
   skipped: number;
 }
@@ -44,6 +50,10 @@ export interface CampaignNextSend {
   total_senders?: number;
   pending_leads?: number;
   reason: string | null;
+  burst_enabled?: boolean;
+  burst_on_break?: boolean;
+  burst_break_remaining?: number | null;
+  burst_sent_in_group?: number;
 }
 
 export interface CampaignLead {
@@ -62,12 +72,13 @@ export interface CampaignLead {
     ig_username: string;
     display_name: string | null;
   } | null;
-  status: "pending" | "queued" | "sent" | "failed" | "skipped";
+  status: "pending" | "queued" | "sent" | "delivered" | "replied" | "failed" | "skipped";
   sent_at: string | null;
   message_used: string | null;
   template_index: number | null;
   task_id: string | null;
   error: string | null;
+  manually_overridden?: boolean;
   createdAt: string;
 }
 
@@ -316,6 +327,30 @@ export function useRetryCampaignLeads() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lead_ids }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
+      qc.invalidateQueries({ queryKey: ["campaign-leads"] });
+      qc.invalidateQueries({ queryKey: ["campaign-stats"] });
+    },
+  });
+}
+
+export function useUpdateCampaignLeadStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ campaignId, leadId, status }: { campaignId: string; leadId: string; status: string }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/${leadId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));

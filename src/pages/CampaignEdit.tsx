@@ -23,6 +23,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useCampaign, useUpdateCampaign } from "@/hooks/useCampaigns";
 import { useOutboundAccounts } from "@/hooks/useOutboundAccounts";
+import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Plus, Trash2, Loader2, Save } from "lucide-react";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 
@@ -53,6 +54,10 @@ interface FormData {
   max_delay_seconds: number;
   timezone: string;
   daily_limit_per_sender: number;
+  burst_enabled: boolean;
+  messages_per_group: number;
+  min_group_break_seconds: number;
+  max_group_break_seconds: number;
 }
 
 export default function CampaignEdit() {
@@ -79,6 +84,10 @@ export default function CampaignEdit() {
         max_delay_seconds: campaign.schedule.max_delay_seconds,
         timezone: campaign.schedule.timezone,
         daily_limit_per_sender: campaign.daily_limit_per_sender,
+        burst_enabled: campaign.schedule.burst_enabled ?? false,
+        messages_per_group: campaign.schedule.messages_per_group ?? 10,
+        min_group_break_seconds: campaign.schedule.min_group_break_seconds ?? 600,
+        max_group_break_seconds: campaign.schedule.max_group_break_seconds ?? 1200,
       });
     }
   }, [campaign, form]);
@@ -123,6 +132,17 @@ export default function CampaignEdit() {
       return;
     }
 
+    if (form.burst_enabled) {
+      if (form.messages_per_group < 1) {
+        toast({ title: "Error", description: "Messages per group must be at least 1.", variant: "destructive" });
+        return;
+      }
+      if (form.max_group_break_seconds < form.min_group_break_seconds) {
+        toast({ title: "Error", description: "Max group break must be >= min group break.", variant: "destructive" });
+        return;
+      }
+    }
+
     const body = {
       name: form.name.trim(),
       mode: form.mode,
@@ -134,6 +154,10 @@ export default function CampaignEdit() {
         min_delay_seconds: form.min_delay_seconds,
         max_delay_seconds: form.max_delay_seconds,
         timezone: form.timezone,
+        burst_enabled: form.burst_enabled,
+        messages_per_group: form.messages_per_group,
+        min_group_break_seconds: form.min_group_break_seconds,
+        max_group_break_seconds: form.max_group_break_seconds,
       },
       daily_limit_per_sender: form.daily_limit_per_sender,
     };
@@ -391,6 +415,70 @@ export default function CampaignEdit() {
                 Maximum number of messages each sender account can send per day.
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Burst Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Burst Configuration</CardTitle>
+            <CardDescription>
+              Group messages into clusters with breaks between them for more natural sending patterns
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-sm">Enable Burst Mode</Label>
+                <p className="text-xs text-muted-foreground">
+                  Send messages in groups with longer breaks between each group
+                </p>
+              </div>
+              <Switch
+                checked={form.burst_enabled}
+                onCheckedChange={(checked) => setForm((p) => p ? { ...p, burst_enabled: checked } : p)}
+              />
+            </div>
+
+            {form.burst_enabled && (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Messages Per Group</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={form.messages_per_group}
+                    onChange={(e) => setForm((p) => p ? { ...p, messages_per_group: Number(e.target.value) } : p)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    How many messages to send before taking a break.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Min Group Break (seconds)</Label>
+                    <Input
+                      type="number"
+                      min={60}
+                      value={form.min_group_break_seconds}
+                      onChange={(e) => setForm((p) => p ? { ...p, min_group_break_seconds: Number(e.target.value) } : p)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Max Group Break (seconds)</Label>
+                    <Input
+                      type="number"
+                      min={60}
+                      value={form.max_group_break_seconds}
+                      onChange={(e) => setForm((p) => p ? { ...p, max_group_break_seconds: Number(e.target.value) } : p)}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  After each group of {form.messages_per_group} messages, the scheduler pauses for a random duration between {form.min_group_break_seconds}s ({Math.round(form.min_group_break_seconds / 60)}m) and {form.max_group_break_seconds}s ({Math.round(form.max_group_break_seconds / 60)}m). Within each group, messages are spaced using the min/max delay above.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

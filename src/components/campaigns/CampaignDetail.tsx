@@ -31,6 +31,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useSocket } from "@/contexts/SocketContext";
 import {
@@ -44,6 +50,7 @@ import {
   useRetryCampaignLeads,
   useDuplicateCampaign,
   useRecalcCampaignStats,
+  useUpdateCampaignLeadStatus,
 } from "@/hooks/useCampaigns";
 import {
   ArrowLeft,
@@ -65,6 +72,9 @@ import {
   RotateCcw,
   Copy,
   RefreshCw,
+  MoreHorizontal,
+  CheckCheck,
+  MessageSquare,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -79,9 +89,13 @@ const LEAD_STATUS_BADGE: Record<string, { label: string; className: string }> = 
   pending: { label: "Pending", className: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
   queued: { label: "Queued", className: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
   sent: { label: "Sent", className: "bg-green-500/15 text-green-400 border-green-500/30" },
+  delivered: { label: "Delivered", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+  replied: { label: "Replied", className: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
   failed: { label: "Failed", className: "bg-red-500/15 text-red-400 border-red-500/30" },
   skipped: { label: "Skipped", className: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
 };
+
+const MANUAL_STATUSES = ["pending", "sent", "delivered", "replied", "failed", "skipped"] as const;
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-US", {
@@ -107,6 +121,7 @@ export default function CampaignDetail() {
   const retryMutation = useRetryCampaignLeads();
   const duplicateMutation = useDuplicateCampaign();
   const recalcMutation = useRecalcCampaignStats();
+  const statusMutation = useUpdateCampaignLeadStatus();
 
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
   const [showDuplicate, setShowDuplicate] = useState(false);
@@ -224,8 +239,9 @@ export default function CampaignDetail() {
     );
   }
 
-  const s = stats || { total: 0, pending: 0, queued: 0, sent: 0, failed: 0, skipped: 0 };
-  const progressPct = s.total > 0 ? Math.round((s.sent / s.total) * 100) : 0;
+  const s = stats || { total: 0, pending: 0, queued: 0, sent: 0, delivered: 0, replied: 0, failed: 0, skipped: 0 };
+  const totalSent = (s.sent || 0) + (s.delivered || 0) + (s.replied || 0);
+  const progressPct = s.total > 0 ? Math.round((totalSent / s.total) * 100) : 0;
 
   const badge = STATUS_BADGE[campaign.status] || STATUS_BADGE.draft;
   const canStartPause = campaign.status !== "completed";
@@ -337,11 +353,13 @@ export default function CampaignDetail() {
             Recalc
           </Button>
         </div>
-        <div className="grid grid-cols-6 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <StatCard label="Total" value={s.total} icon={<ListTodo className="h-4 w-4" />} />
           <StatCard label="Pending" value={s.pending} icon={<Clock className="h-4 w-4 text-zinc-400" />} className="text-zinc-400" />
           <StatCard label="Queued" value={s.queued} icon={<Loader2 className="h-4 w-4 text-yellow-400" />} className="text-yellow-400" />
           <StatCard label="Sent" value={s.sent} icon={<Send className="h-4 w-4 text-green-400" />} className="text-green-400" />
+          <StatCard label="Delivered" value={s.delivered || 0} icon={<CheckCheck className="h-4 w-4 text-emerald-400" />} className="text-emerald-400" />
+          <StatCard label="Replied" value={s.replied || 0} icon={<MessageSquare className="h-4 w-4 text-purple-400" />} className="text-purple-400" />
           <StatCard label="Failed" value={s.failed} icon={<XCircle className="h-4 w-4 text-red-400" />} className="text-red-400" />
           <StatCard label="Skipped" value={s.skipped} icon={<SkipForward className="h-4 w-4 text-blue-400" />} className="text-blue-400" />
         </div>
@@ -356,7 +374,7 @@ export default function CampaignDetail() {
       <div className="space-y-1">
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>Progress</span>
-          <span>{s.sent} / {s.total} sent ({progressPct}%)</span>
+          <span>{totalSent} / {s.total} sent ({progressPct}%)</span>
         </div>
         <Progress value={progressPct} className="h-3" />
       </div>
@@ -376,6 +394,8 @@ export default function CampaignDetail() {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="queued">Queued</SelectItem>
                   <SelectItem value="sent">Sent</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="replied">Replied</SelectItem>
                   <SelectItem value="failed">Failed</SelectItem>
                   <SelectItem value="skipped">Skipped</SelectItem>
                 </SelectContent>
@@ -430,18 +450,19 @@ export default function CampaignDetail() {
                 <TableHead>Sent At</TableHead>
                 <TableHead>Message</TableHead>
                 <TableHead>Error</TableHead>
+                <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {leadsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center">
+                  <TableCell colSpan={9} className="h-24 text-center">
                     No leads found.
                   </TableCell>
                 </TableRow>
@@ -497,6 +518,44 @@ export default function CampaignDetail() {
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {MANUAL_STATUSES.map((ms) => {
+                              const badge = LEAD_STATUS_BADGE[ms];
+                              return (
+                                <DropdownMenuItem
+                                  key={ms}
+                                  disabled={cl.status === ms}
+                                  onClick={() => {
+                                    if (!campaignId) return;
+                                    statusMutation.mutate(
+                                      { campaignId, leadId: cl._id, status: ms },
+                                      {
+                                        onSuccess: () => {
+                                          toast({ title: "Status updated", description: `Lead marked as ${badge?.label || ms}.` });
+                                        },
+                                        onError: (err) => {
+                                          toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update", variant: "destructive" });
+                                        },
+                                      },
+                                    );
+                                  }}
+                                >
+                                  <span className={cl.status === ms ? "font-semibold" : ""}>
+                                    {badge?.label || ms}
+                                  </span>
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
