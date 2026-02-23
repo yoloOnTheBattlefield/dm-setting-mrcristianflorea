@@ -25,6 +25,7 @@ import OutboundAccounts from "./pages/OutboundAccounts";
 import OutboundAnalytics from "./pages/OutboundAnalytics";
 import Scraper from "./pages/Scraper";
 import DeepScraper from "./pages/DeepScraper";
+import CommentPost from "./pages/CommentPost";
 import DataMigration from "./pages/DataMigration";
 import ResearchOverview from "./pages/research/ResearchOverview";
 import ResearchCompetitors from "./pages/research/Competitors";
@@ -200,6 +201,7 @@ const App = () => (
               <Route path="/research/ideas" element={<ProtectedRoute><DashboardLayout><IdeasBank /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/alerts" element={<ProtectedRoute><DashboardLayout><ResearchAlerts /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/reports" element={<ProtectedRoute><DashboardLayout><ResearchReports /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/comment-post" element={<ProtectedRoute><DashboardLayout><CommentPost /></DashboardLayout></ProtectedRoute>} />
               <Route path="/data-migration" element={<ProtectedRoute><DashboardLayout><DataMigration /></DashboardLayout></ProtectedRoute>} />
               <Route path="/login" element={
                 <div className="flex min-h-screen items-center justify-center">

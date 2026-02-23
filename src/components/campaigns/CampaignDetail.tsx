@@ -1,11 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -36,6 +49,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useSocket } from "@/contexts/SocketContext";
@@ -51,7 +65,14 @@ import {
   useDuplicateCampaign,
   useRecalcCampaignStats,
   useUpdateCampaignLeadStatus,
+  useGenerateMessages,
+  useRegenerateLeadMessage,
+  useEditLeadMessage,
+  useClearMessages,
 } from "@/hooks/useCampaigns";
+import { useAIPrompts, useCreateAIPrompt, useDeleteAIPrompt } from "@/hooks/useAIPrompts";
+import { Input } from "@/components/ui/input";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Play,
@@ -75,6 +96,9 @@ import {
   MoreHorizontal,
   CheckCheck,
   MessageSquare,
+  Sparkles,
+  Pencil,
+  BookmarkPlus,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -122,8 +146,22 @@ export default function CampaignDetail() {
   const duplicateMutation = useDuplicateCampaign();
   const recalcMutation = useRecalcCampaignStats();
   const statusMutation = useUpdateCampaignLeadStatus();
+  const generateMutation = useGenerateMessages();
+  const regenerateMutation = useRegenerateLeadMessage();
+  const editMessageMutation = useEditLeadMessage();
+  const clearMessagesMutation = useClearMessages();
+  const { data: savedPrompts = [] } = useAIPrompts();
+  const createAIPromptMutation = useCreateAIPrompt();
+  const deleteAIPromptMutation = useDeleteAIPrompt();
+  const queryClient = useQueryClient();
 
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
+  const [editingMessage, setEditingMessage] = useState("");
+  const [genProgress, setGenProgress] = useState<{ progress: number; total: number } | null>(null);
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [savePromptName, setSavePromptName] = useState("");
   const [showDuplicate, setShowDuplicate] = useState(false);
   const [dupLeadFilter, setDupLeadFilter] = useState("all");
 
@@ -138,6 +176,49 @@ export default function CampaignDetail() {
     socket.on("campaign:eta", handleEta);
     return () => { socket.off("campaign:eta", handleEta); };
   }, [socket]);
+
+  // AI generation progress via WebSocket
+  const handleGenProgress = useCallback((data: { campaignId: string; progress: number; total: number }) => {
+    if (data.campaignId === campaignId) {
+      setGenProgress({ progress: data.progress, total: data.total });
+    }
+  }, [campaignId]);
+
+  const handleGenCompleted = useCallback((data: { campaignId: string }) => {
+    if (data.campaignId === campaignId) {
+      setGenProgress(null);
+      queryClient.invalidateQueries({ queryKey: ["campaign"] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-leads"] });
+      toast({ title: "Generation Complete", description: "AI messages generated for all leads." });
+    }
+  }, [campaignId, queryClient, toast]);
+
+  const handleGenFailed = useCallback((data: { campaignId: string; error: string }) => {
+    if (data.campaignId === campaignId) {
+      setGenProgress(null);
+      queryClient.invalidateQueries({ queryKey: ["campaign"] });
+      toast({ title: "Generation Failed", description: data.error, variant: "destructive" });
+    }
+  }, [campaignId, queryClient, toast]);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("campaign:generation:progress", handleGenProgress);
+    socket.on("campaign:generation:completed", handleGenCompleted);
+    socket.on("campaign:generation:failed", handleGenFailed);
+    return () => {
+      socket.off("campaign:generation:progress", handleGenProgress);
+      socket.off("campaign:generation:completed", handleGenCompleted);
+      socket.off("campaign:generation:failed", handleGenFailed);
+    };
+  }, [socket, handleGenProgress, handleGenCompleted, handleGenFailed]);
+
+  // Initialize prompt from campaign data
+  useEffect(() => {
+    if (campaign?.ai_personalization?.prompt && !aiPrompt) {
+      setAiPrompt(campaign.ai_personalization.prompt);
+    }
+  }, [campaign?.ai_personalization?.prompt]);
 
   // Clear socket ETA when polled data refreshes with a newer last_sent_at
   useEffect(() => {
@@ -379,6 +460,157 @@ export default function CampaignDetail() {
         <Progress value={progressPct} className="h-3" />
       </div>
 
+      {/* AI Personalization */}
+      {campaign.status !== "active" && s.pending > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Sparkles className="h-4 w-4" />
+              AI Message Personalization
+            </CardTitle>
+            <CardDescription>
+              Generate unique messages for each lead using AI. Your prompt becomes the system instruction — each lead's username, name, and bio are passed automatically.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {savedPrompts.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Select
+                  value=""
+                  onValueChange={(id) => {
+                    const found = savedPrompts.find((p) => p._id === id);
+                    if (found) setAiPrompt(found.promptText);
+                  }}
+                >
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Load a saved prompt..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {savedPrompts.map((p) => (
+                      <SelectItem key={p._id} value={p._id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {savedPrompts.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {savedPrompts.map((p) => (
+                        <DropdownMenuItem
+                          key={p._id}
+                          className="text-red-400"
+                          onClick={() => {
+                            deleteAIPromptMutation.mutate(p._id, {
+                              onSuccess: () => {
+                                toast({ title: "Deleted", description: `"${p.name}" removed.` });
+                              },
+                            });
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-2" />
+                          Delete "{p.name}"
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            )}
+            <Textarea
+              placeholder="You are a friendly outreach specialist. Write a short, personalized Instagram DM based on the lead's bio. Keep it casual and under 2 sentences."
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              rows={3}
+              disabled={campaign.ai_personalization?.status === "generating" || generateMutation.isPending}
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!aiPrompt.trim()) return;
+                  setSavePromptName("");
+                  setShowSavePrompt(true);
+                }}
+                disabled={!aiPrompt.trim()}
+              >
+                <BookmarkPlus className="h-3.5 w-3.5 mr-1" />
+                Save As
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (!campaignId || !aiPrompt.trim()) return;
+                  generateMutation.mutate(
+                    { campaignId, prompt: aiPrompt.trim() },
+                    {
+                      onSuccess: (data) => {
+                        setGenProgress({ progress: 0, total: data.total });
+                        toast({ title: "Generating", description: `Generating messages for ${data.total} leads...` });
+                      },
+                      onError: (err) => {
+                        toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to start generation", variant: "destructive" });
+                      },
+                    },
+                  );
+                }}
+                disabled={!aiPrompt.trim() || generateMutation.isPending || campaign.ai_personalization?.status === "generating"}
+              >
+                {generateMutation.isPending || campaign.ai_personalization?.status === "generating" ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />
+                )}
+                Generate for {s.pending} lead{s.pending !== 1 ? "s" : ""}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!campaignId) return;
+                  clearMessagesMutation.mutate(campaignId, {
+                    onSuccess: (data) => {
+                      toast({ title: "Cleared", description: `${data.cleared} message(s) cleared.` });
+                    },
+                    onError: (err) => {
+                      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to clear", variant: "destructive" });
+                    },
+                  });
+                }}
+                disabled={clearMessagesMutation.isPending || campaign.ai_personalization?.status === "generating"}
+              >
+                Clear All Messages
+              </Button>
+            </div>
+            {(genProgress || campaign.ai_personalization?.status === "generating") && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Generating messages...</span>
+                  <span>
+                    {genProgress?.progress ?? campaign.ai_personalization?.progress ?? 0} /{" "}
+                    {genProgress?.total ?? campaign.ai_personalization?.total ?? 0}
+                  </span>
+                </div>
+                <Progress
+                  value={
+                    ((genProgress?.progress ?? campaign.ai_personalization?.progress ?? 0) /
+                      Math.max(genProgress?.total ?? campaign.ai_personalization?.total ?? 1, 1)) *
+                    100
+                  }
+                  className="h-2"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Leads */}
       <div className="space-y-3">
         <div className="flex items-end justify-between">
@@ -509,8 +741,24 @@ export default function CampaignDetail() {
                       <TableCell className="text-muted-foreground whitespace-nowrap">
                         {cl.sent_at ? formatDate(cl.sent_at) : "-"}
                       </TableCell>
-                      <TableCell className="max-w-[150px] truncate text-muted-foreground">
-                        {cl.message_used || "-"}
+                      <TableCell className="max-w-[150px] text-muted-foreground">
+                        {(cl.custom_message || cl.message_used) ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="flex items-center gap-1 text-left max-w-full hover:text-foreground transition-colors">
+                                {cl.custom_message && (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0 bg-purple-500/15 text-purple-400 border-purple-500/30">AI</Badge>
+                                )}
+                                <span className="truncate">{cl.custom_message || cl.message_used}</span>
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 max-h-60 overflow-y-auto text-sm whitespace-pre-wrap">
+                              {cl.custom_message || cl.message_used}
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          "-"
+                        )}
                       </TableCell>
                       <TableCell className="max-w-[150px] truncate">
                         {cl.error ? (
@@ -527,6 +775,36 @@ export default function CampaignDetail() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingLeadId(cl._id);
+                                setEditingMessage(cl.custom_message || cl.message_used || "");
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5 mr-2" />
+                              Edit Message
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={!campaign.ai_personalization?.prompt || regenerateMutation.isPending}
+                              onClick={() => {
+                                if (!campaignId || !campaign.ai_personalization?.prompt) return;
+                                regenerateMutation.mutate(
+                                  { campaignId, leadId: cl._id, prompt: campaign.ai_personalization.prompt },
+                                  {
+                                    onSuccess: () => {
+                                      toast({ title: "Regenerated", description: "Message regenerated for this lead." });
+                                    },
+                                    onError: (err) => {
+                                      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to regenerate", variant: "destructive" });
+                                    },
+                                  },
+                                );
+                              }}
+                            >
+                              <Sparkles className="h-3.5 w-3.5 mr-2" />
+                              Regenerate
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             {MANUAL_STATUSES.map((ms) => {
                               const badge = LEAD_STATUS_BADGE[ms];
                               return (
@@ -613,6 +891,85 @@ export default function CampaignDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Lead Message */}
+      <Dialog open={!!editingLeadId} onOpenChange={(open) => { if (!open) setEditingLeadId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Message</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={editingMessage}
+            onChange={(e) => setEditingMessage(e.target.value)}
+            rows={4}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingLeadId(null)}>Cancel</Button>
+            <Button
+              disabled={editMessageMutation.isPending}
+              onClick={() => {
+                if (!campaignId || !editingLeadId) return;
+                editMessageMutation.mutate(
+                  { campaignId, leadId: editingLeadId, custom_message: editingMessage },
+                  {
+                    onSuccess: () => {
+                      toast({ title: "Saved", description: "Message updated." });
+                      setEditingLeadId(null);
+                    },
+                    onError: (err) => {
+                      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to save", variant: "destructive" });
+                    },
+                  },
+                );
+              }}
+            >
+              {editMessageMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Prompt As */}
+      <Dialog open={showSavePrompt} onOpenChange={setShowSavePrompt}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Prompt</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Name</Label>
+            <Input
+              placeholder="e.g. Casual bio outreach"
+              value={savePromptName}
+              onChange={(e) => setSavePromptName(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSavePrompt(false)}>Cancel</Button>
+            <Button
+              disabled={!savePromptName.trim() || createAIPromptMutation.isPending}
+              onClick={() => {
+                createAIPromptMutation.mutate(
+                  { name: savePromptName.trim(), promptText: aiPrompt.trim() },
+                  {
+                    onSuccess: () => {
+                      toast({ title: "Saved", description: `Prompt "${savePromptName.trim()}" saved.` });
+                      setShowSavePrompt(false);
+                    },
+                    onError: (err) => {
+                      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to save", variant: "destructive" });
+                    },
+                  },
+                );
+              }}
+            >
+              {createAIPromptMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Duplicate Campaign */}
       <AlertDialog open={showDuplicate} onOpenChange={setShowDuplicate}>

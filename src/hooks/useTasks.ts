@@ -8,7 +8,7 @@ const STATS_URL = `${API_URL}/api/stats`;
 export interface Task {
   _id: string;
   account_id: string;
-  type: "send_dm" | "follow" | "unfollow";
+  type: "send_dm" | "follow" | "unfollow" | "comment_post";
   target: string;
   outbound_lead_id?: string | null;
   message?: string | null;

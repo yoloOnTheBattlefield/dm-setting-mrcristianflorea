@@ -26,9 +26,11 @@ export function useOutboundLeads(params: {
   page: number;
   limit: number;
   promptId?: string;
+  minFollowers?: number;
+  maxFollowers?: number;
 }) {
   return useQuery({
-    queryKey: ["outbound-leads", params.page, params.limit, params.promptId],
+    queryKey: ["outbound-leads", params.page, params.limit, params.promptId, params.minFollowers, params.maxFollowers],
     queryFn: async (): Promise<OutboundLeadsResponse> => {
       const sp = new URLSearchParams({
         isMessaged: "false",
@@ -38,6 +40,8 @@ export function useOutboundLeads(params: {
       if (params.promptId && params.promptId !== "all") {
         sp.append("promptId", params.promptId);
       }
+      if (params.minFollowers != null) sp.append("minFollowers", String(params.minFollowers));
+      if (params.maxFollowers != null) sp.append("maxFollowers", String(params.maxFollowers));
       const res = await fetchWithAuth(`${LEADS_URL}?${sp.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch leads");
       return res.json();
@@ -124,7 +128,9 @@ export function useImportStatus(jobId: string | null) {
 }
 
 export async function fetchAllMatchingLeadIds(
-  promptFilter?: string
+  promptFilter?: string,
+  minFollowers?: number,
+  maxFollowers?: number,
 ): Promise<string[]> {
   const sp = new URLSearchParams({
     isMessaged: "false",
@@ -134,6 +140,8 @@ export async function fetchAllMatchingLeadIds(
   if (promptFilter && promptFilter !== "all") {
     sp.append("promptId", promptFilter);
   }
+  if (minFollowers != null) sp.append("minFollowers", String(minFollowers));
+  if (maxFollowers != null) sp.append("maxFollowers", String(maxFollowers));
   const res = await fetchWithAuth(`${LEADS_URL}?${sp.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch all lead IDs");
   const data: OutboundLeadsResponse = await res.json();

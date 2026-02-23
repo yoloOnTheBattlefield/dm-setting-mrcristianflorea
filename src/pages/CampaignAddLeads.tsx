@@ -24,6 +24,7 @@ import { usePrompts } from "@/hooks/usePrompts";
 import { useCampaign, useCampaignLeads, useAddCampaignLeads } from "@/hooks/useCampaigns";
 import { useOutboundLeads, fetchAllMatchingLeadIds } from "@/hooks/useOutboundLeads";
 import { useLeadSelection } from "@/hooks/useLeadSelection";
+import { Input } from "@/components/ui/input";
 import {
   ArrowLeft,
   Loader2,
@@ -49,14 +50,21 @@ export default function CampaignAddLeads() {
   const addLeadsMutation = useAddCampaignLeads();
 
   const [promptFilter, setPromptFilter] = useState("all");
+  const [minFollowers, setMinFollowers] = useState<string>("");
+  const [maxFollowers, setMaxFollowers] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const limit = 50;
+
+  const parsedMin = minFollowers ? parseInt(minFollowers, 10) : undefined;
+  const parsedMax = maxFollowers ? parseInt(maxFollowers, 10) : undefined;
 
   const { data: leadsData, isLoading: leadsLoading } = useOutboundLeads({
     page: currentPage,
     limit,
     promptId: promptFilter,
+    minFollowers: parsedMin && !isNaN(parsedMin) ? parsedMin : undefined,
+    maxFollowers: parsedMax && !isNaN(parsedMax) ? parsedMax : undefined,
   });
 
   const leads = leadsData?.leads ?? [];
@@ -100,6 +108,12 @@ export default function CampaignAddLeads() {
     selection.clearSelection();
   };
 
+  const handleFollowerChange = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setter(e.target.value);
+    setCurrentPage(1);
+    selection.clearSelection();
+  };
+
   const handleSubmit = async () => {
     if (selectionCount === 0 || !campaignId) return;
     setSubmitting(true);
@@ -112,7 +126,11 @@ export default function CampaignAddLeads() {
           (id) => !existingLeadIds.has(id)
         );
       } else {
-        const allIds = await fetchAllMatchingLeadIds(promptFilter);
+        const allIds = await fetchAllMatchingLeadIds(
+          promptFilter,
+          parsedMin && !isNaN(parsedMin) ? parsedMin : undefined,
+          parsedMax && !isNaN(parsedMax) ? parsedMax : undefined,
+        );
         leadIds = allIds.filter(
           (id) => !selection.excludedIds.has(id) && !existingLeadIds.has(id)
         );
@@ -221,6 +239,24 @@ export default function CampaignAddLeads() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex flex-col gap-1.5 w-32">
+            <Label>Min Followers</Label>
+            <Input
+              type="number"
+              placeholder="e.g. 1000"
+              value={minFollowers}
+              onChange={handleFollowerChange(setMinFollowers)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 w-32">
+            <Label>Max Followers</Label>
+            <Input
+              type="number"
+              placeholder="e.g. 50000"
+              value={maxFollowers}
+              onChange={handleFollowerChange(setMaxFollowers)}
+            />
           </div>
           {pagination && (
             <span className="text-sm text-muted-foreground pb-2">

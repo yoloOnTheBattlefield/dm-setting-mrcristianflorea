@@ -7,6 +7,7 @@ import {
   Database,
   Eye,
   MessageSquare,
+  MessageSquareText,
   Send,
   Settings2,
   Telescope,
@@ -180,6 +181,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {
               title: "Prompts",
               url: "/prompts",
+            },
+            {
+              title: "Comment Post",
+              url: "/comment-post",
             },
             {
               title: "Scraper",

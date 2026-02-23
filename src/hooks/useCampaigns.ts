@@ -24,6 +24,15 @@ export interface CampaignStats {
   skipped: number;
 }
 
+export interface CampaignAIPersonalization {
+  enabled: boolean;
+  prompt: string | null;
+  status: "idle" | "generating" | "completed" | "failed";
+  progress: number;
+  total: number;
+  error: string | null;
+}
+
 export interface Campaign {
   _id: string;
   account_id: string;
@@ -35,6 +44,7 @@ export interface Campaign {
   schedule: CampaignSchedule;
   daily_limit_per_sender: number;
   stats: CampaignStats;
+  ai_personalization?: CampaignAIPersonalization;
   last_sent_at: string | null;
   createdAt: string;
   updatedAt: string;
@@ -79,6 +89,7 @@ export interface CampaignLead {
   task_id: string | null;
   error: string | null;
   manually_overridden?: boolean;
+  custom_message?: string | null;
   createdAt: string;
 }
 
@@ -430,6 +441,111 @@ export function useRemoveCampaignLeads() {
       qc.invalidateQueries({ queryKey: ["campaign"] });
       qc.invalidateQueries({ queryKey: ["campaign-leads"] });
       qc.invalidateQueries({ queryKey: ["campaign-stats"] });
+    },
+  });
+}
+
+export function useSaveAIPrompt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ campaignId, prompt }: { campaignId: string; prompt: string }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/ai-prompt`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaign"] });
+    },
+  });
+}
+
+export function useGenerateMessages() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ campaignId, prompt }: { campaignId: string; prompt: string }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/generate-messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaign"] });
+    },
+  });
+}
+
+export function useRegenerateLeadMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ campaignId, leadId, prompt }: { campaignId: string; leadId: string; prompt?: string }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/${leadId}/regenerate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaign-leads"] });
+    },
+  });
+}
+
+export function useEditLeadMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ campaignId, leadId, custom_message }: { campaignId: string; leadId: string; custom_message: string }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/${leadId}/message`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ custom_message }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaign-leads"] });
+    },
+  });
+}
+
+export function useClearMessages() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (campaignId: string) => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/clear-messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaign"] });
+      qc.invalidateQueries({ queryKey: ["campaign-leads"] });
     },
   });
 }
