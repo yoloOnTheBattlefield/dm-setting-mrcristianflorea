@@ -41,6 +41,25 @@ export function useCreateAIPrompt() {
   });
 }
 
+export function useUpdateAIPrompt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name, promptText }: { id: string; name: string; promptText: string }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/ai-prompts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, promptText }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ai-prompts"] }),
+  });
+}
+
 export function useDeleteAIPrompt() {
   const qc = useQueryClient();
   return useMutation({

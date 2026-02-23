@@ -24,7 +24,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useCampaign, useUpdateCampaign } from "@/hooks/useCampaigns";
 import { useOutboundAccounts } from "@/hooks/useOutboundAccounts";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, Save, Sparkles } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 
 const TIMEZONES = [
@@ -275,6 +276,14 @@ export default function CampaignEdit() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            {campaign?.ai_personalization?.status === "completed" && (
+              <Alert>
+                <Sparkles className="h-4 w-4" />
+                <AlertDescription>
+                  This campaign has AI-personalized messages. Leads with a custom message will use it instead of these templates. Templates are only used as fallback for leads without a custom message.
+                </AlertDescription>
+              </Alert>
+            )}
             {form.messages.map((msg, i) => (
               <div key={i} className="flex gap-2">
                 <Textarea

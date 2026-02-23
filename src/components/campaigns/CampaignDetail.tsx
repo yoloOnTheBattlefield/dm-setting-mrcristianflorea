@@ -70,7 +70,7 @@ import {
   useEditLeadMessage,
   useClearMessages,
 } from "@/hooks/useCampaigns";
-import { useAIPrompts, useCreateAIPrompt, useDeleteAIPrompt } from "@/hooks/useAIPrompts";
+import { useAIPrompts, useCreateAIPrompt, useUpdateAIPrompt, useDeleteAIPrompt } from "@/hooks/useAIPrompts";
 import { Input } from "@/components/ui/input";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -152,6 +152,7 @@ export default function CampaignDetail() {
   const clearMessagesMutation = useClearMessages();
   const { data: savedPrompts = [] } = useAIPrompts();
   const createAIPromptMutation = useCreateAIPrompt();
+  const updateAIPromptMutation = useUpdateAIPrompt();
   const deleteAIPromptMutation = useDeleteAIPrompt();
   const queryClient = useQueryClient();
 
@@ -162,6 +163,7 @@ export default function CampaignDetail() {
   const [genProgress, setGenProgress] = useState<{ progress: number; total: number } | null>(null);
   const [showSavePrompt, setShowSavePrompt] = useState(false);
   const [savePromptName, setSavePromptName] = useState("");
+  const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [showDuplicate, setShowDuplicate] = useState(false);
   const [dupLeadFilter, setDupLeadFilter] = useState("all");
 
@@ -476,10 +478,13 @@ export default function CampaignDetail() {
             {savedPrompts.length > 0 && (
               <div className="flex items-center gap-2">
                 <Select
-                  value=""
+                  value={editingPromptId ?? ""}
                   onValueChange={(id) => {
                     const found = savedPrompts.find((p) => p._id === id);
-                    if (found) setAiPrompt(found.promptText);
+                    if (found) {
+                      setAiPrompt(found.promptText);
+                      setEditingPromptId(id);
+                    }
                   }}
                 >
                   <SelectTrigger className="w-64">
@@ -493,33 +498,32 @@ export default function CampaignDetail() {
                     ))}
                   </SelectContent>
                 </Select>
-                {savedPrompts.length > 0 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      {savedPrompts.map((p) => (
-                        <DropdownMenuItem
-                          key={p._id}
-                          className="text-red-400"
-                          onClick={() => {
-                            deleteAIPromptMutation.mutate(p._id, {
-                              onSuccess: () => {
-                                toast({ title: "Deleted", description: `"${p.name}" removed.` });
-                              },
-                            });
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 mr-2" />
-                          Delete "{p.name}"
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {savedPrompts.map((p) => (
+                      <DropdownMenuItem
+                        key={p._id}
+                        className="text-red-400"
+                        onClick={() => {
+                          deleteAIPromptMutation.mutate(p._id, {
+                            onSuccess: () => {
+                              if (editingPromptId === p._id) setEditingPromptId(null);
+                              toast({ title: "Deleted", description: `"${p.name}" removed.` });
+                            },
+                          });
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        Delete "{p.name}"
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             )}
             <Textarea
@@ -530,18 +534,44 @@ export default function CampaignDetail() {
               disabled={campaign.ai_personalization?.status === "generating" || generateMutation.isPending}
             />
             <div className="flex items-center gap-2">
+              {editingPromptId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const found = savedPrompts.find((p) => p._id === editingPromptId);
+                    if (!found || !aiPrompt.trim()) return;
+                    updateAIPromptMutation.mutate(
+                      { id: editingPromptId, name: found.name, promptText: aiPrompt.trim() },
+                      {
+                        onSuccess: () => {
+                          toast({ title: "Updated", description: `"${found.name}" updated.` });
+                        },
+                        onError: (err) => {
+                          toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update", variant: "destructive" });
+                        },
+                      },
+                    );
+                  }}
+                  disabled={!aiPrompt.trim() || updateAIPromptMutation.isPending}
+                >
+                  {updateAIPromptMutation.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Pencil className="h-3.5 w-3.5 mr-1" />}
+                  Update
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   if (!aiPrompt.trim()) return;
                   setSavePromptName("");
+                  setEditingPromptId(null);
                   setShowSavePrompt(true);
                 }}
                 disabled={!aiPrompt.trim()}
               >
                 <BookmarkPlus className="h-3.5 w-3.5 mr-1" />
-                Save As
+                Save As New
               </Button>
               <Button
                 size="sm"
