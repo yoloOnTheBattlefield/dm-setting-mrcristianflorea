@@ -70,6 +70,7 @@ import {
   useEditLeadMessage,
   useClearMessages,
 } from "@/hooks/useCampaigns";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 import { useAIPrompts, useCreateAIPrompt, useUpdateAIPrompt, useDeleteAIPrompt } from "@/hooks/useAIPrompts";
 import { Input } from "@/components/ui/input";
 import { useQueryClient } from "@tanstack/react-query";
@@ -99,6 +100,7 @@ import {
   Sparkles,
   Pencil,
   BookmarkPlus,
+  Search,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -243,11 +245,19 @@ export default function CampaignDetail() {
     : nextSend;
 
   const [leadStatusFilter, setLeadStatusFilter] = useState("all");
+  const [leadSearch, setLeadSearch] = useState("");
+  const [leadSearchDebounced, setLeadSearchDebounced] = useState("");
   const [leadPage, setLeadPage] = useState(1);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
+  useEffect(() => {
+    const t = setTimeout(() => { setLeadSearchDebounced(leadSearch); setLeadPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [leadSearch]);
+
   const { data: leadsData, isLoading: leadsLoading } = useCampaignLeads(campaignId ?? null, {
     status: leadStatusFilter === "all" ? undefined : leadStatusFilter,
+    search: leadSearchDebounced || undefined,
     page: leadPage,
     limit: 50,
   });
@@ -282,6 +292,22 @@ export default function CampaignDetail() {
       });
     }
   };
+
+  const toggleLeadField = useCallback(
+    async (outboundLeadId: string, field: "replied" | "booked", currentValue: boolean) => {
+      try {
+        await fetchWithAuth(`${API_URL}/outbound-leads/${outboundLeadId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [field]: !currentValue }),
+        });
+        queryClient.invalidateQueries({ queryKey: ["campaign-leads"] });
+      } catch (err) {
+        toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update", variant: "destructive" });
+      }
+    },
+    [queryClient, toast],
+  );
 
   const handleRetrySelected = async () => {
     if (!campaignId || selectedLeadIds.size === 0) return;
@@ -645,6 +671,15 @@ export default function CampaignDetail() {
       <div className="space-y-3">
         <div className="flex items-end justify-between">
           <div className="flex gap-3 items-end">
+            <div className="relative w-56">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search leads..."
+                value={leadSearch}
+                onChange={(e) => setLeadSearch(e.target.value)}
+                className="pl-8"
+              />
+            </div>
             <div className="flex flex-col gap-1.5 w-40">
               <Label>Lead Status</Label>
               <Select value={leadStatusFilter} onValueChange={(v) => { setLeadStatusFilter(v); setLeadPage(1); }}>
@@ -708,6 +743,8 @@ export default function CampaignDetail() {
                 <TableHead>Lead</TableHead>
                 <TableHead>Sender</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-center">Replied</TableHead>
+                <TableHead className="text-center">Booked</TableHead>
                 <TableHead>Template</TableHead>
                 <TableHead>Sent At</TableHead>
                 <TableHead>Message</TableHead>
@@ -718,13 +755,13 @@ export default function CampaignDetail() {
             <TableBody>
               {leadsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center">
+                  <TableCell colSpan={11} className="h-24 text-center">
                     No leads found.
                   </TableCell>
                 </TableRow>
@@ -764,6 +801,18 @@ export default function CampaignDetail() {
                       </TableCell>
                       <TableCell>
                         <Badge className={lb.className}>{lb.label}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={lead?.replied ?? false}
+                          onCheckedChange={() => lead && toggleLeadField(lead._id, "replied", lead.replied ?? false)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={lead?.booked ?? false}
+                          onCheckedChange={() => lead && toggleLeadField(lead._id, "booked", lead.booked ?? false)}
+                        />
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {cl.template_index != null ? `#${cl.template_index + 1}` : "-"}
