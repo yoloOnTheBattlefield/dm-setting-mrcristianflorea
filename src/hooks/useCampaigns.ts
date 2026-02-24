@@ -43,6 +43,8 @@ export interface Campaign {
   outbound_account_ids: string[];
   schedule: CampaignSchedule;
   daily_limit_per_sender: number;
+  warmup_days?: number;
+  warmup_start_date?: string | null;
   stats: CampaignStats;
   ai_personalization?: CampaignAIPersonalization;
   last_sent_at: string | null;

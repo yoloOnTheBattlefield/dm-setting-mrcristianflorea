@@ -55,6 +55,7 @@ interface FormData {
   max_delay_seconds: number;
   timezone: string;
   daily_limit_per_sender: number;
+  warmup_days: number;
   burst_enabled: boolean;
   messages_per_group: number;
   min_group_break_seconds: number;
@@ -85,6 +86,7 @@ export default function CampaignEdit() {
         max_delay_seconds: campaign.schedule.max_delay_seconds,
         timezone: campaign.schedule.timezone,
         daily_limit_per_sender: campaign.daily_limit_per_sender,
+        warmup_days: campaign.warmup_days ?? 0,
         burst_enabled: campaign.schedule.burst_enabled ?? false,
         messages_per_group: campaign.schedule.messages_per_group ?? 10,
         min_group_break_seconds: campaign.schedule.min_group_break_seconds ?? 600,
@@ -161,6 +163,7 @@ export default function CampaignEdit() {
         max_group_break_seconds: form.max_group_break_seconds,
       },
       daily_limit_per_sender: form.daily_limit_per_sender,
+      warmup_days: form.warmup_days,
     };
 
     try {
@@ -422,6 +425,22 @@ export default function CampaignEdit() {
               />
               <p className="text-xs text-muted-foreground">
                 Maximum number of messages each sender account can send per day.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Warmup Days</Label>
+              <Input
+                type="number"
+                min={0}
+                max={30}
+                value={form.warmup_days}
+                onChange={(e) => setForm((p) => p ? { ...p, warmup_days: Number(e.target.value) } : p)}
+              />
+              <p className="text-xs text-muted-foreground">
+                {form.warmup_days > 0
+                  ? `Gradually ramp from ${Math.ceil(form.daily_limit_per_sender / form.warmup_days)} to ${form.daily_limit_per_sender} DMs/day over ${form.warmup_days} days: ${Array.from({ length: form.warmup_days }, (_, i) => Math.ceil(form.daily_limit_per_sender * (i + 1) / form.warmup_days)).join(" → ")}`
+                  : "Set to 0 to disable warmup. When enabled, daily limit ramps up linearly over this many days."
+                }
               </p>
             </div>
           </CardContent>
