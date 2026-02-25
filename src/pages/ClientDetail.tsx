@@ -53,6 +53,7 @@ interface ClientData {
   ghl: string;
   name: string;
   has_outbound?: boolean;
+  has_research?: boolean;
   ghl_lead_booked_webhook?: string;
 }
 
@@ -83,6 +84,7 @@ export default function ClientDetail() {
   const deleteMember = useDeleteTeamMember();
   const { data: trackingData, isLoading: isTrackingLoading, refetch: refetchTracking } = useClientTrackingEvents(client?.account_id);
   const [isTogglingOutbound, setIsTogglingOutbound] = useState(false);
+  const [isTogglingResearch, setIsTogglingResearch] = useState(false);
 
   // Fetch client data
   useEffect(() => {
@@ -170,6 +172,30 @@ export default function ClientDetail() {
       toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
     } finally {
       setIsTogglingOutbound(false);
+    }
+  };
+
+  // Handle toggle account-level research
+  const handleToggleAccountResearch = async () => {
+    if (!client) return;
+    setIsTogglingResearch(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/accounts/${client.account_id}/has-research`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ has_research: !client.has_research }),
+      });
+      if (res.ok) {
+        setClient((prev) => prev ? { ...prev, has_research: !prev.has_research } : prev);
+        toast({ title: "Updated", description: `Research ${!client.has_research ? "enabled" : "disabled"} for this client` });
+      } else {
+        const data = await res.json();
+        toast({ title: "Error", description: data.error || "Failed to update", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
+    } finally {
+      setIsTogglingResearch(false);
     }
   };
 
@@ -334,6 +360,19 @@ export default function ClientDetail() {
                 checked={!!client.has_outbound}
                 onCheckedChange={handleToggleAccountOutbound}
                 disabled={isTogglingOutbound}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <Label>Has Research</Label>
+                <p className="text-xs text-muted-foreground">
+                  Enable research tools and competitor analysis for this client
+                </p>
+              </div>
+              <Switch
+                checked={!!client.has_research}
+                onCheckedChange={handleToggleAccountResearch}
+                disabled={isTogglingResearch}
               />
             </div>
           </CardContent>

@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -26,133 +24,6 @@ import { API_URL, fetchWithAuth } from "@/lib/api";
 import { AppearanceCard } from "@/components/settings/appearance-card";
 
 const LEADS_API_URL = `${API_URL}/accounts/leads/generate`;
-
-function ResearchSettingsCard() {
-  const [marketTags, setMarketTags] = useState<string[]>(["fitness", "coaching", "SaaS"]);
-  const [competitorHandles, setCompetitorHandles] = useState<string[]>(["@growthcoach", "@socialpro"]);
-  const [trackedKeywords, setTrackedKeywords] = useState<string[]>(["FREE GUIDE", "DM ME", "CHECKLIST"]);
-
-  const [tagInput, setTagInput] = useState("");
-  const [handleInput, setHandleInput] = useState("");
-  const [keywordInput, setKeywordInput] = useState("");
-
-  const addItem = (list: string[], setList: (v: string[]) => void, value: string) => {
-    const trimmed = value.trim();
-    if (trimmed && !list.includes(trimmed)) {
-      setList([...list, trimmed]);
-    }
-  };
-
-  const removeItem = (list: string[], setList: (v: string[]) => void, index: number) => {
-    setList(list.filter((_, i) => i !== index));
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Research Settings</CardTitle>
-        <CardDescription>Configure your market, competitors, and keywords to track</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Market Tags */}
-        <div className="space-y-2">
-          <Label>Market Tags</Label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {marketTags.map((tag, i) => (
-              <Badge key={tag} variant="secondary" className="gap-1">
-                {tag}
-                <button onClick={() => removeItem(marketTags, setMarketTags, i)} className="ml-1 hover:text-destructive">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Add a market tag..."
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addItem(marketTags, setMarketTags, tagInput);
-                  setTagInput("");
-                }
-              }}
-            />
-            <Button variant="outline" size="sm" onClick={() => { addItem(marketTags, setMarketTags, tagInput); setTagInput(""); }}>
-              Add
-            </Button>
-          </div>
-        </div>
-
-        {/* Competitor Handles */}
-        <div className="space-y-2">
-          <Label>Competitor Handles</Label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {competitorHandles.map((handle, i) => (
-              <Badge key={handle} variant="secondary" className="gap-1">
-                {handle}
-                <button onClick={() => removeItem(competitorHandles, setCompetitorHandles, i)} className="ml-1 hover:text-destructive">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="@handle"
-              value={handleInput}
-              onChange={(e) => setHandleInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addItem(competitorHandles, setCompetitorHandles, handleInput);
-                  setHandleInput("");
-                }
-              }}
-            />
-            <Button variant="outline" size="sm" onClick={() => { addItem(competitorHandles, setCompetitorHandles, handleInput); setHandleInput(""); }}>
-              Add
-            </Button>
-          </div>
-        </div>
-
-        {/* Tracked Keywords */}
-        <div className="space-y-2">
-          <Label>Tracked Keywords</Label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {trackedKeywords.map((kw, i) => (
-              <Badge key={kw} variant="secondary" className="gap-1">
-                {kw}
-                <button onClick={() => removeItem(trackedKeywords, setTrackedKeywords, i)} className="ml-1 hover:text-destructive">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Add a keyword..."
-              value={keywordInput}
-              onChange={(e) => setKeywordInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addItem(trackedKeywords, setTrackedKeywords, keywordInput);
-                  setKeywordInput("");
-                }
-              }}
-            />
-            <Button variant="outline" size="sm" onClick={() => { addItem(trackedKeywords, setTrackedKeywords, keywordInput); setKeywordInput(""); }}>
-              Add
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function UserSettings() {
   const { user, updateUser } = useAuth();
@@ -407,9 +278,6 @@ export default function UserSettings() {
             </div>
           </CardContent>
         </Card>
-        {user?.has_research && (
-          <ResearchSettingsCard />
-        )}
         {user?.role === 0 && (
           <Card>
             <CardHeader>
