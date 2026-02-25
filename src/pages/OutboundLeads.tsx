@@ -73,6 +73,7 @@ interface OutboundLead {
   message?: string | null;
   replied?: boolean;
   booked?: boolean;
+  qualified?: boolean | null;
   contract_value?: number | null;
   createdAt?: string;
   updatedAt?: string;
@@ -106,6 +107,7 @@ async function fetchSources(): Promise<string[]> {
 
 async function fetchOutboundLeads(params: {
   source?: string;
+  qualified?: string;
   isMessaged?: string;
   replied?: string;
   booked?: string;
@@ -116,6 +118,7 @@ async function fetchOutboundLeads(params: {
 }): Promise<PaginatedResponse> {
   const searchParams = new URLSearchParams();
   if (params.source) searchParams.append("source", params.source);
+  if (params.qualified) searchParams.append("qualified", params.qualified);
   if (params.isMessaged) searchParams.append("isMessaged", params.isMessaged);
   if (params.replied) searchParams.append("replied", params.replied);
   if (params.booked) searchParams.append("booked", params.booked);
@@ -130,8 +133,11 @@ async function fetchOutboundLeads(params: {
   return response.json();
 }
 
-async function fetchFunnelStats(): Promise<FunnelStats> {
-  const response = await fetchWithAuth(`${API_URL}/outbound-leads/stats`);
+async function fetchFunnelStats(qualified?: string): Promise<FunnelStats> {
+  const params = new URLSearchParams();
+  if (qualified) params.append("qualified", qualified);
+  const qs = params.toString();
+  const response = await fetchWithAuth(`${API_URL}/outbound-leads/stats${qs ? `?${qs}` : ""}`);
   if (!response.ok)
     throw new Error(`Failed to fetch stats: ${response.status}`);
   return response.json();
@@ -185,6 +191,9 @@ export default function OutboundLeads() {
   const { data: promptOptions = [] } = usePrompts();
 
   const [source, setSource] = useState(searchParams.get("source") || readPersisted("ob-source", "all"));
+  const [qualifiedFilter, setQualifiedFilter] = useState(
+    searchParams.get("qualified") || readPersisted("ob-qualified", "true"),
+  );
   const [messagedFilter, setMessagedFilter] = useState(
     searchParams.get("isMessaged") || readPersisted("ob-messaged", "all"),
   );
@@ -221,6 +230,7 @@ export default function OutboundLeads() {
   }, [
     currentPage,
     source,
+    qualifiedFilter,
     messagedFilter,
     repliedFilter,
     bookedFilter,
@@ -245,6 +255,7 @@ export default function OutboundLeads() {
     setCurrentPage(1);
   }, [
     source,
+    qualifiedFilter,
     messagedFilter,
     repliedFilter,
     bookedFilter,
@@ -261,6 +272,7 @@ export default function OutboundLeads() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (source !== "all") params.set("source", source);
+    if (qualifiedFilter !== "all") params.set("qualified", qualifiedFilter);
     if (messagedFilter !== "all") params.set("isMessaged", messagedFilter);
     if (repliedFilter !== "all") params.set("replied", repliedFilter);
     if (bookedFilter !== "all") params.set("booked", bookedFilter);
@@ -271,12 +283,14 @@ export default function OutboundLeads() {
 
     // Persist filter settings to localStorage
     writePersisted("ob-source", source);
+    writePersisted("ob-qualified", qualifiedFilter);
     writePersisted("ob-messaged", messagedFilter);
     writePersisted("ob-replied", repliedFilter);
     writePersisted("ob-booked", bookedFilter);
     writePersisted("ob-prompt", promptFilter);
   }, [
     source,
+    qualifiedFilter,
     messagedFilter,
     repliedFilter,
     bookedFilter,
@@ -290,6 +304,7 @@ export default function OutboundLeads() {
     queryKey: [
       "outbound-leads",
       source === "all" ? undefined : source,
+      qualifiedFilter === "all" ? undefined : qualifiedFilter,
       messagedFilter === "all" ? undefined : messagedFilter,
       repliedFilter === "all" ? undefined : repliedFilter,
       bookedFilter === "all" ? undefined : bookedFilter,
@@ -300,6 +315,7 @@ export default function OutboundLeads() {
     queryFn: () =>
       fetchOutboundLeads({
         source: source === "all" ? undefined : source,
+        qualified: qualifiedFilter === "all" ? undefined : qualifiedFilter,
         isMessaged: messagedFilter === "all" ? undefined : messagedFilter,
         replied: repliedFilter === "all" ? undefined : repliedFilter,
         booked: bookedFilter === "all" ? undefined : bookedFilter,
@@ -322,8 +338,8 @@ export default function OutboundLeads() {
   const sourceOptions = sourcesData || [];
 
   const { data: funnelStats } = useQuery({
-    queryKey: ["outbound-leads-stats"],
-    queryFn: () => fetchFunnelStats(),
+    queryKey: ["outbound-leads-stats", qualifiedFilter === "all" ? undefined : qualifiedFilter],
+    queryFn: () => fetchFunnelStats(qualifiedFilter === "all" ? undefined : qualifiedFilter),
     staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
   });
@@ -359,6 +375,7 @@ export default function OutboundLeads() {
   const currentFilters = useCallback(() => {
     const f: Record<string, string> = {};
     if (source !== "all") f.source = source;
+    if (qualifiedFilter !== "all") f.qualified = qualifiedFilter;
     if (messagedFilter !== "all") f.isMessaged = messagedFilter;
     if (repliedFilter !== "all") f.replied = repliedFilter;
     if (bookedFilter !== "all") f.booked = bookedFilter;
@@ -367,6 +384,7 @@ export default function OutboundLeads() {
     return f;
   }, [
     source,
+    qualifiedFilter,
     messagedFilter,
     repliedFilter,
     bookedFilter,
@@ -531,7 +549,22 @@ export default function OutboundLeads() {
           </div>
 
           {/* Row 2: Filters */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+            {/* Lead Quality filter */}
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Lead Quality</Label>
+              <Select value={qualifiedFilter} onValueChange={setQualifiedFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Qualified Only" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Qualified Only</SelectItem>
+                  <SelectItem value="false">Unqualified Only</SelectItem>
+                  <SelectItem value="all">All Leads</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Source filter */}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Source</Label>
