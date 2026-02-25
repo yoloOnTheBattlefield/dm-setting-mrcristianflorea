@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import NewClient from "./pages/NewClient";
@@ -43,8 +43,15 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminViewProvider } from "@/contexts/AdminViewContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 
 const queryClient = new QueryClient();
+
+function RequireOutbound({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (!user?.has_outbound) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" storageKey="dm-pipeline-theme">
@@ -122,76 +129,96 @@ const App = () => (
               } />
               <Route path="/contacts/upload" element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <UploadXlsx />
-                  </DashboardLayout>
+                  <RequireOutbound>
+                    <DashboardLayout>
+                      <UploadXlsx />
+                    </DashboardLayout>
+                  </RequireOutbound>
                 </ProtectedRoute>
               } />
               <Route path="/outbound-leads" element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <OutboundLeads />
-                  </DashboardLayout>
+                  <RequireOutbound>
+                    <DashboardLayout>
+                      <OutboundLeads />
+                    </DashboardLayout>
+                  </RequireOutbound>
                 </ProtectedRoute>
               } />
               <Route path="/outbound-leads/import" element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <ImportOutboundLeads />
-                  </DashboardLayout>
+                  <RequireOutbound>
+                    <DashboardLayout>
+                      <ImportOutboundLeads />
+                    </DashboardLayout>
+                  </RequireOutbound>
                 </ProtectedRoute>
               } />
               <Route path="/prompts" element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <Prompts />
-                  </DashboardLayout>
+                  <RequireOutbound>
+                    <DashboardLayout>
+                      <Prompts />
+                    </DashboardLayout>
+                  </RequireOutbound>
                 </ProtectedRoute>
               } />
               <Route path="/outbound-accounts" element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <OutboundAccounts />
-                  </DashboardLayout>
+                  <RequireOutbound>
+                    <DashboardLayout>
+                      <OutboundAccounts />
+                    </DashboardLayout>
+                  </RequireOutbound>
                 </ProtectedRoute>
               } />
               <Route path="/analytics/outbound" element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <OutboundAnalytics />
-                  </DashboardLayout>
+                  <RequireOutbound>
+                    <DashboardLayout>
+                      <OutboundAnalytics />
+                    </DashboardLayout>
+                  </RequireOutbound>
                 </ProtectedRoute>
               } />
               <Route path="/campaigns" element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <Campaigns />
-                  </DashboardLayout>
+                  <RequireOutbound>
+                    <DashboardLayout>
+                      <Campaigns />
+                    </DashboardLayout>
+                  </RequireOutbound>
                 </ProtectedRoute>
               } />
               <Route path="/campaigns/:id/edit" element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <CampaignEdit />
-                  </DashboardLayout>
+                  <RequireOutbound>
+                    <DashboardLayout>
+                      <CampaignEdit />
+                    </DashboardLayout>
+                  </RequireOutbound>
                 </ProtectedRoute>
               } />
               <Route path="/campaigns/:id/add-leads" element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <CampaignAddLeads />
-                  </DashboardLayout>
+                  <RequireOutbound>
+                    <DashboardLayout>
+                      <CampaignAddLeads />
+                    </DashboardLayout>
+                  </RequireOutbound>
                 </ProtectedRoute>
               } />
               <Route path="/campaigns/:id" element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <CampaignDetail />
-                  </DashboardLayout>
+                  <RequireOutbound>
+                    <DashboardLayout>
+                      <CampaignDetail />
+                    </DashboardLayout>
+                  </RequireOutbound>
                 </ProtectedRoute>
               } />
-              <Route path="/scraper" element={<ProtectedRoute><DashboardLayout><Scraper /></DashboardLayout></ProtectedRoute>} />
-              <Route path="/deep-scraper" element={<ProtectedRoute><DashboardLayout><DeepScraper /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/scraper" element={<ProtectedRoute><RequireOutbound><DashboardLayout><Scraper /></DashboardLayout></RequireOutbound></ProtectedRoute>} />
+              <Route path="/deep-scraper" element={<ProtectedRoute><RequireOutbound><DashboardLayout><DeepScraper /></DashboardLayout></RequireOutbound></ProtectedRoute>} />
               <Route path="/research" element={<ProtectedRoute><DashboardLayout><ResearchOverview /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/competitors" element={<ProtectedRoute><DashboardLayout><ResearchCompetitors /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/competitors/:id" element={<ProtectedRoute><DashboardLayout><ResearchCompetitorDetail /></DashboardLayout></ProtectedRoute>} />
@@ -201,7 +228,7 @@ const App = () => (
               <Route path="/research/ideas" element={<ProtectedRoute><DashboardLayout><IdeasBank /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/alerts" element={<ProtectedRoute><DashboardLayout><ResearchAlerts /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/reports" element={<ProtectedRoute><DashboardLayout><ResearchReports /></DashboardLayout></ProtectedRoute>} />
-              <Route path="/comment-post" element={<ProtectedRoute><DashboardLayout><CommentPost /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/comment-post" element={<ProtectedRoute><RequireOutbound><DashboardLayout><CommentPost /></DashboardLayout></RequireOutbound></ProtectedRoute>} />
               <Route path="/data-migration" element={<ProtectedRoute><DashboardLayout><DataMigration /></DashboardLayout></ProtectedRoute>} />
               <Route path="/login" element={
                 <div className="flex min-h-screen items-center justify-center">

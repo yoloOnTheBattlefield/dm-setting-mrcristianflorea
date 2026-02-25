@@ -52,6 +52,7 @@ interface ClientData {
   account_id: string;
   ghl: string;
   name: string;
+  has_outbound?: boolean;
   ghl_lead_booked_webhook?: string;
 }
 
@@ -81,6 +82,7 @@ export default function ClientDetail() {
   const updateMember = useUpdateTeamMember();
   const deleteMember = useDeleteTeamMember();
   const { data: trackingData, isLoading: isTrackingLoading, refetch: refetchTracking } = useClientTrackingEvents(client?.account_id);
+  const [isTogglingOutbound, setIsTogglingOutbound] = useState(false);
 
   // Fetch client data
   useEffect(() => {
@@ -147,7 +149,31 @@ export default function ClientDetail() {
     }
   };
 
-  // Handle toggle outbound
+  // Handle toggle account-level outbound
+  const handleToggleAccountOutbound = async () => {
+    if (!client) return;
+    setIsTogglingOutbound(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/accounts/${client.account_id}/has-outbound`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ has_outbound: !client.has_outbound }),
+      });
+      if (res.ok) {
+        setClient((prev) => prev ? { ...prev, has_outbound: !prev.has_outbound } : prev);
+        toast({ title: "Updated", description: `Outbound ${!client.has_outbound ? "enabled" : "disabled"} for this client` });
+      } else {
+        const data = await res.json();
+        toast({ title: "Error", description: data.error || "Failed to update", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
+    } finally {
+      setIsTogglingOutbound(false);
+    }
+  };
+
+  // Handle toggle member outbound
   const handleToggleOutbound = async (memberId: string, current: boolean) => {
     try {
       await updateMember.mutateAsync({ id: memberId, body: { has_outbound: !current } });
@@ -296,6 +322,19 @@ export default function ClientDetail() {
             <div>
               <Label className="text-muted-foreground">GHL ID</Label>
               <p className="font-medium">{client.ghl}</p>
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3 mt-2">
+              <div>
+                <Label>Has Outbound</Label>
+                <p className="text-xs text-muted-foreground">
+                  Enable outbound campaigns and sender accounts for this client
+                </p>
+              </div>
+              <Switch
+                checked={!!client.has_outbound}
+                onCheckedChange={handleToggleAccountOutbound}
+                disabled={isTogglingOutbound}
+              />
             </div>
           </CardContent>
         </Card>
