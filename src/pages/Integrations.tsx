@@ -30,6 +30,7 @@ import {
 } from "@/hooks/useTracking";
 import {
   useApifyTokens,
+  useApifyUsage,
   useAddApifyToken,
   useDeleteApifyToken,
   useResetApifyToken,
@@ -55,6 +56,11 @@ export default function Integrations() {
 
   // Apify tokens (multi-token)
   const { data: apifyTokensData, isLoading: apifyTokensLoading } = useApifyTokens();
+  const hasApifyTokens = (apifyTokensData?.tokens?.length ?? 0) > 0;
+  const { data: apifyUsageData } = useApifyUsage(hasApifyTokens);
+  const apifyUsageMap = new Map(
+    (apifyUsageData?.usage ?? []).map((u) => [u._id, u]),
+  );
   const addApifyToken = useAddApifyToken();
   const deleteApifyToken = useDeleteApifyToken();
   const resetApifyToken = useResetApifyToken();
@@ -325,54 +331,84 @@ export default function Integrations() {
                 {apifyTokensData!.tokens.map((t) => (
                   <div
                     key={t._id}
-                    className={`flex items-center justify-between rounded-md border px-3 py-2 ${
+                    className={`rounded-md border px-3 py-2 ${
                       t.status === "limit_reached" ? "border-orange-500/30 bg-orange-500/5" : ""
                     }`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm font-medium truncate">
-                        {t.label || "Unnamed"}
-                      </span>
-                      <span className="text-xs text-muted-foreground font-mono">{t.token}</span>
-                      {t.status === "active" && (
-                        <Badge variant="outline" className="text-green-500 border-green-500/30 text-[10px] px-1.5 py-0 shrink-0">
-                          Active
-                        </Badge>
-                      )}
-                      {t.status === "limit_reached" && (
-                        <Badge variant="outline" className="text-orange-500 border-orange-500/30 text-[10px] px-1.5 py-0 shrink-0">
-                          Limit Reached
-                        </Badge>
-                      )}
-                      {t.status === "disabled" && (
-                        <Badge variant="outline" className="text-muted-foreground text-[10px] px-1.5 py-0 shrink-0">
-                          Disabled
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {t.status === "limit_reached" && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-medium truncate">
+                          {t.label || "Unnamed"}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-mono">{t.token}</span>
+                        {t.status === "active" && (
+                          <Badge variant="outline" className="text-green-500 border-green-500/30 text-[10px] px-1.5 py-0 shrink-0">
+                            Active
+                          </Badge>
+                        )}
+                        {t.status === "limit_reached" && (
+                          <Badge variant="outline" className="text-orange-500 border-orange-500/30 text-[10px] px-1.5 py-0 shrink-0">
+                            Limit Reached
+                          </Badge>
+                        )}
+                        {t.status === "disabled" && (
+                          <Badge variant="outline" className="text-muted-foreground text-[10px] px-1.5 py-0 shrink-0">
+                            Disabled
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {t.status === "limit_reached" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-green-500"
+                            onClick={() => handleResetApifyToken(t._id)}
+                            disabled={resetApifyToken.isPending}
+                            title="Reset to active"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-muted-foreground hover:text-green-500"
-                          onClick={() => handleResetApifyToken(t._id)}
-                          disabled={resetApifyToken.isPending}
-                          title="Reset to active"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDeleteApifyToken(t._id)}
+                          disabled={deleteApifyToken.isPending}
                         >
-                          <RotateCcw className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDeleteApifyToken(t._id)}
-                        disabled={deleteApifyToken.isPending}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      </div>
                     </div>
+                    {(() => {
+                      const usage = apifyUsageMap.get(t._id);
+                      if (!usage) return null;
+                      if (usage.error) return (
+                        <p className="text-[10px] text-muted-foreground mt-1">Usage: unavailable</p>
+                      );
+                      const used = usage.totalUsageUsd ?? 0;
+                      const limit = usage.monthlyUsageLimitUsd;
+                      const pct = limit ? Math.min((used / limit) * 100, 100) : null;
+                      return (
+                        <div className="mt-1.5 space-y-1">
+                          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                            <span>${used.toFixed(2)} used{limit ? ` / $${limit.toFixed(2)} limit` : ""}</span>
+                            {pct !== null && <span>{pct.toFixed(0)}%</span>}
+                          </div>
+                          {pct !== null && (
+                            <div className="h-1 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-orange-500" : "bg-green-500"
+                                }`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

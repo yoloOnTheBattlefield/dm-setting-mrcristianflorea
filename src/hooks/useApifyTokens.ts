@@ -2,6 +2,28 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 import type { ApifyToken } from "@/lib/types";
 
+export interface ApifyTokenUsage {
+  _id: string;
+  totalUsageUsd?: number | null;
+  usageCycle?: { startAt: string; endAt: string } | null;
+  monthlyUsageLimitUsd?: number | null;
+  error?: string;
+}
+
+export function useApifyUsage(enabled: boolean) {
+  return useQuery({
+    queryKey: ["apify-tokens-usage"],
+    queryFn: async (): Promise<{ usage: ApifyTokenUsage[] }> => {
+      const res = await fetchWithAuth(`${API_URL}/api/apify-tokens/usage`);
+      if (!res.ok) throw new Error(`Failed to fetch usage: ${res.status}`);
+      return res.json();
+    },
+    enabled,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useApifyTokens() {
   return useQuery({
     queryKey: ["apify-tokens"],
