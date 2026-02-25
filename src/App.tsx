@@ -49,7 +49,6 @@ const queryClient = new QueryClient();
 
 function RequireOutbound({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  console.log("[RequireOutbound] user.has_outbound:", user?.has_outbound, "| full user:", JSON.stringify(user));
   if (!user?.has_outbound) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
