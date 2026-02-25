@@ -743,6 +743,32 @@ export default function DeepScraper() {
     setShowNewDialog(true);
   };
 
+  const handleRerun = async (job: DeepScrapeJob) => {
+    try {
+      await startMutation.mutateAsync({
+        name: job.name || undefined,
+        seed_usernames: job.seed_usernames,
+        reel_limit: job.reel_limit,
+        comment_limit: job.comment_limit,
+        min_followers: job.min_followers,
+        force_reprocess: false,
+        prompt_id: job.promptId || undefined,
+        is_recurring: job.is_recurring,
+        repeat_interval_days: job.is_recurring ? (job.repeat_interval_days || undefined) : undefined,
+      });
+      toast({
+        title: "Deep Scrape Restarted",
+        description: `Rerunning scrape for ${job.seed_usernames.length} seed account${job.seed_usernames.length > 1 ? "s" : ""}`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to rerun scrape",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDelete = async () => {
     if (!deletingId) return;
     try {
@@ -1118,6 +1144,17 @@ export default function DeepScraper() {
                                 >
                                   <Copy className="h-3.5 w-3.5" />
                                 </Button>
+                                {job.status === "completed" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRerun(job)}
+                                    disabled={startMutation.isPending}
+                                    title="Rerun"
+                                  >
+                                    <RefreshCw className="h-3.5 w-3.5 text-blue-400" />
+                                  </Button>
+                                )}
                                 {!active && (
                                   <Button
                                     variant="ghost"
