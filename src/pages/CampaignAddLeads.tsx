@@ -152,7 +152,7 @@ export default function CampaignAddLeads() {
 
       toast({
         title: "Leads added",
-        description: `${result.added} lead(s) added. ${result.duplicates_skipped || 0} duplicates skipped.`,
+        description: `${result.added} qualified lead(s) added. ${result.duplicates_skipped || 0} duplicates skipped.`,
       });
       navigate(`/campaigns/${campaignId}`);
     } catch (err) {
@@ -214,7 +214,7 @@ export default function CampaignAddLeads() {
             ) : (
               <>
                 <Plus className="h-4 w-4 mr-2" />
-                Add {selectionCount} Lead{selectionCount !== 1 ? "s" : ""}
+                Add {selectionCount} Qualified Lead{selectionCount !== 1 ? "s" : ""}
               </>
             )}
           </Button>
@@ -260,7 +260,7 @@ export default function CampaignAddLeads() {
           </div>
           {pagination && (
             <span className="text-sm text-muted-foreground pb-2">
-              {pagination.total} lead{pagination.total !== 1 ? "s" : ""} available
+              {pagination.total} qualified lead{pagination.total !== 1 ? "s" : ""} available
             </span>
           )}
         </div>
@@ -269,7 +269,7 @@ export default function CampaignAddLeads() {
         {selectionCount > 0 && (
           <div className="flex items-center gap-3 rounded-lg border bg-primary/5 border-primary/20 px-4 py-2.5">
             <span className="text-sm font-medium">
-              {selectionCount} lead{selectionCount !== 1 ? "s" : ""} selected
+              {selectionCount} qualified lead{selectionCount !== 1 ? "s" : ""} selected
             </span>
             {selection.mode === "manual" && totalMatching > selectionCount && (
               <button
@@ -405,7 +405,7 @@ export default function CampaignAddLeads() {
       {selectionCount > 0 && (
         <div className="sticky bottom-0 z-30 bg-background border-t px-6 py-3 flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
-            {selectionCount} lead{selectionCount !== 1 ? "s" : ""} selected
+            {selectionCount} qualified lead{selectionCount !== 1 ? "s" : ""} selected
           </span>
           <div className="flex gap-2">
             <Button variant="outline" onClick={selection.clearSelection}>
@@ -420,7 +420,7 @@ export default function CampaignAddLeads() {
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add {selectionCount} Lead{selectionCount !== 1 ? "s" : ""}
+                  Add {selectionCount} Qualified Lead{selectionCount !== 1 ? "s" : ""}
                 </>
               )}
             </Button>

@@ -599,7 +599,7 @@ export default function CampaignDetail() {
               ) : leads.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={11} className="h-24 text-center">
-                    No leads found.
+                    No qualified leads in this campaign.
                   </TableCell>
                 </TableRow>
               ) : (
