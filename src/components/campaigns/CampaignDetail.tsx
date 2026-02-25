@@ -95,7 +95,6 @@ import {
   Copy,
   RefreshCw,
   MoreHorizontal,
-  CheckCheck,
   MessageSquare,
   Sparkles,
   Pencil,
@@ -166,6 +165,7 @@ export default function CampaignDetail() {
   const [showSavePrompt, setShowSavePrompt] = useState(false);
   const [savePromptName, setSavePromptName] = useState("");
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
+  const [showAiModal, setShowAiModal] = useState(false);
   const [showDuplicate, setShowDuplicate] = useState(false);
   const [dupLeadFilter, setDupLeadFilter] = useState("all");
 
@@ -302,6 +302,7 @@ export default function CampaignDetail() {
           body: JSON.stringify({ [field]: !currentValue }),
         });
         queryClient.invalidateQueries({ queryKey: ["campaign-leads"] });
+        queryClient.invalidateQueries({ queryKey: ["campaign-stats"] });
       } catch (err) {
         toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update", variant: "destructive" });
       }
@@ -348,9 +349,9 @@ export default function CampaignDetail() {
     );
   }
 
-  const s = stats || { total: 0, pending: 0, queued: 0, sent: 0, delivered: 0, replied: 0, failed: 0, skipped: 0 };
-  const totalSent = (s.sent || 0) + (s.delivered || 0) + (s.replied || 0);
-  const progressPct = s.total > 0 ? Math.round((totalSent / s.total) * 100) : 0;
+  const s = stats || { total: 0, pending: 0, queued: 0, sent: 0, replied: 0, failed: 0, skipped: 0 };
+  const processed = (s.sent || 0) + (s.failed || 0) + (s.skipped || 0);
+  const progressPct = s.total > 0 ? Math.round((processed / s.total) * 100) : 0;
 
   const badge = STATUS_BADGE[campaign.status] || STATUS_BADGE.draft;
   const canStartPause = campaign.status !== "completed";
@@ -425,6 +426,10 @@ export default function CampaignDetail() {
           </Badge>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowAiModal(true)}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            AI Personalization
+          </Button>
           <Button variant="outline" onClick={() => setShowDuplicate(true)}>
             <Copy className="h-4 w-4 mr-2" />
             Duplicate
@@ -467,7 +472,6 @@ export default function CampaignDetail() {
           <StatCard label="Pending" value={s.pending} icon={<Clock className="h-4 w-4 text-zinc-400" />} className="text-zinc-400" />
           <StatCard label="Queued" value={s.queued} icon={<Loader2 className="h-4 w-4 text-yellow-400" />} className="text-yellow-400" />
           <StatCard label="Sent" value={s.sent} icon={<Send className="h-4 w-4 text-green-400" />} className="text-green-400" />
-          <StatCard label="Delivered" value={s.delivered || 0} icon={<CheckCheck className="h-4 w-4 text-emerald-400" />} className="text-emerald-400" />
           <StatCard label="Replied" value={s.replied || 0} icon={<MessageSquare className="h-4 w-4 text-purple-400" />} className="text-purple-400" />
           <StatCard label="Failed" value={s.failed} icon={<XCircle className="h-4 w-4 text-red-400" />} className="text-red-400" />
           <StatCard label="Skipped" value={s.skipped} icon={<SkipForward className="h-4 w-4 text-blue-400" />} className="text-blue-400" />
@@ -483,189 +487,10 @@ export default function CampaignDetail() {
       <div className="space-y-1">
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>Progress</span>
-          <span>{totalSent} / {s.total} sent ({progressPct}%)</span>
+          <span>{processed} / {s.total} processed ({progressPct}%)</span>
         </div>
         <Progress value={progressPct} className="h-3" />
       </div>
-
-      {/* AI Personalization */}
-      {campaign.status !== "active" && s.pending > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Sparkles className="h-4 w-4" />
-              AI Message Personalization
-            </CardTitle>
-            <CardDescription>
-              Generate unique messages for each lead using AI. Your prompt becomes the system instruction — each lead's username, name, and bio are passed automatically.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {savedPrompts.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Select
-                  value={editingPromptId ?? ""}
-                  onValueChange={(id) => {
-                    const found = savedPrompts.find((p) => p._id === id);
-                    if (found) {
-                      setAiPrompt(found.promptText);
-                      setEditingPromptId(id);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-64">
-                    <SelectValue placeholder="Load a saved prompt..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {savedPrompts.map((p) => (
-                      <SelectItem key={p._id} value={p._id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    {savedPrompts.map((p) => (
-                      <DropdownMenuItem
-                        key={p._id}
-                        className="text-red-400"
-                        onClick={() => {
-                          deleteAIPromptMutation.mutate(p._id, {
-                            onSuccess: () => {
-                              if (editingPromptId === p._id) setEditingPromptId(null);
-                              toast({ title: "Deleted", description: `"${p.name}" removed.` });
-                            },
-                          });
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 mr-2" />
-                        Delete "{p.name}"
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            )}
-            <Textarea
-              placeholder="You are a friendly outreach specialist. Write a short, personalized Instagram DM based on the lead's bio. Keep it casual and under 2 sentences."
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              rows={3}
-              disabled={campaign.ai_personalization?.status === "generating" || generateMutation.isPending}
-            />
-            <div className="flex items-center gap-2">
-              {editingPromptId && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const found = savedPrompts.find((p) => p._id === editingPromptId);
-                    if (!found || !aiPrompt.trim()) return;
-                    updateAIPromptMutation.mutate(
-                      { id: editingPromptId, name: found.name, promptText: aiPrompt.trim() },
-                      {
-                        onSuccess: () => {
-                          toast({ title: "Updated", description: `"${found.name}" updated.` });
-                        },
-                        onError: (err) => {
-                          toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update", variant: "destructive" });
-                        },
-                      },
-                    );
-                  }}
-                  disabled={!aiPrompt.trim() || updateAIPromptMutation.isPending}
-                >
-                  {updateAIPromptMutation.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Pencil className="h-3.5 w-3.5 mr-1" />}
-                  Update
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (!aiPrompt.trim()) return;
-                  setSavePromptName("");
-                  setEditingPromptId(null);
-                  setShowSavePrompt(true);
-                }}
-                disabled={!aiPrompt.trim()}
-              >
-                <BookmarkPlus className="h-3.5 w-3.5 mr-1" />
-                Save As New
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (!campaignId || !aiPrompt.trim()) return;
-                  generateMutation.mutate(
-                    { campaignId, prompt: aiPrompt.trim() },
-                    {
-                      onSuccess: (data) => {
-                        setGenProgress({ progress: 0, total: data.total });
-                        toast({ title: "Generating", description: `Generating messages for ${data.total} leads...` });
-                      },
-                      onError: (err) => {
-                        toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to start generation", variant: "destructive" });
-                      },
-                    },
-                  );
-                }}
-                disabled={!aiPrompt.trim() || generateMutation.isPending || campaign.ai_personalization?.status === "generating"}
-              >
-                {generateMutation.isPending || campaign.ai_personalization?.status === "generating" ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3.5 w-3.5 mr-1" />
-                )}
-                Generate for {s.pending} lead{s.pending !== 1 ? "s" : ""}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (!campaignId) return;
-                  clearMessagesMutation.mutate(campaignId, {
-                    onSuccess: (data) => {
-                      toast({ title: "Cleared", description: `${data.cleared} message(s) cleared.` });
-                    },
-                    onError: (err) => {
-                      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to clear", variant: "destructive" });
-                    },
-                  });
-                }}
-                disabled={clearMessagesMutation.isPending || campaign.ai_personalization?.status === "generating"}
-              >
-                Clear All Messages
-              </Button>
-            </div>
-            {(genProgress || campaign.ai_personalization?.status === "generating") && (
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Generating messages...</span>
-                  <span>
-                    {genProgress?.progress ?? campaign.ai_personalization?.progress ?? 0} /{" "}
-                    {genProgress?.total ?? campaign.ai_personalization?.total ?? 0}
-                  </span>
-                </div>
-                <Progress
-                  value={
-                    ((genProgress?.progress ?? campaign.ai_personalization?.progress ?? 0) /
-                      Math.max(genProgress?.total ?? campaign.ai_personalization?.total ?? 1, 1)) *
-                    100
-                  }
-                  className="h-2"
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Leads */}
       <div className="space-y-3">
@@ -691,7 +516,6 @@ export default function CampaignDetail() {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="queued">Queued</SelectItem>
                   <SelectItem value="sent">Sent</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
                   <SelectItem value="replied">Replied</SelectItem>
                   <SelectItem value="failed">Failed</SelectItem>
                   <SelectItem value="skipped">Skipped</SelectItem>
@@ -1047,6 +871,185 @@ export default function CampaignDetail() {
               Save
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Personalization Modal */}
+      <Dialog open={showAiModal} onOpenChange={setShowAiModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              AI Message Personalization
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Generate unique messages for each lead using AI. Your prompt becomes the system instruction — each lead's username, name, and bio are passed automatically.
+            </p>
+            {savedPrompts.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Select
+                  value={editingPromptId ?? ""}
+                  onValueChange={(id) => {
+                    const found = savedPrompts.find((p) => p._id === id);
+                    if (found) {
+                      setAiPrompt(found.promptText);
+                      setEditingPromptId(id);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Load a saved prompt..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {savedPrompts.map((p) => (
+                      <SelectItem key={p._id} value={p._id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {savedPrompts.map((p) => (
+                      <DropdownMenuItem
+                        key={p._id}
+                        className="text-red-400"
+                        onClick={() => {
+                          deleteAIPromptMutation.mutate(p._id, {
+                            onSuccess: () => {
+                              if (editingPromptId === p._id) setEditingPromptId(null);
+                              toast({ title: "Deleted", description: `"${p.name}" removed.` });
+                            },
+                          });
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        Delete "{p.name}"
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+            <Textarea
+              placeholder="You are a friendly outreach specialist. Write a short, personalized Instagram DM based on the lead's bio. Keep it casual and under 2 sentences."
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              rows={4}
+              disabled={campaign.ai_personalization?.status === "generating" || generateMutation.isPending}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              {editingPromptId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const found = savedPrompts.find((p) => p._id === editingPromptId);
+                    if (!found || !aiPrompt.trim()) return;
+                    updateAIPromptMutation.mutate(
+                      { id: editingPromptId, name: found.name, promptText: aiPrompt.trim() },
+                      {
+                        onSuccess: () => {
+                          toast({ title: "Updated", description: `"${found.name}" updated.` });
+                        },
+                        onError: (err) => {
+                          toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update", variant: "destructive" });
+                        },
+                      },
+                    );
+                  }}
+                  disabled={!aiPrompt.trim() || updateAIPromptMutation.isPending}
+                >
+                  {updateAIPromptMutation.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Pencil className="h-3.5 w-3.5 mr-1" />}
+                  Update
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!aiPrompt.trim()) return;
+                  setSavePromptName("");
+                  setEditingPromptId(null);
+                  setShowSavePrompt(true);
+                }}
+                disabled={!aiPrompt.trim()}
+              >
+                <BookmarkPlus className="h-3.5 w-3.5 mr-1" />
+                Save As New
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (!campaignId || !aiPrompt.trim()) return;
+                  generateMutation.mutate(
+                    { campaignId, prompt: aiPrompt.trim() },
+                    {
+                      onSuccess: (data) => {
+                        setGenProgress({ progress: 0, total: data.total });
+                        toast({ title: "Generating", description: `Generating messages for ${data.total} leads...` });
+                      },
+                      onError: (err) => {
+                        toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to start generation", variant: "destructive" });
+                      },
+                    },
+                  );
+                }}
+                disabled={!aiPrompt.trim() || generateMutation.isPending || campaign.ai_personalization?.status === "generating"}
+              >
+                {generateMutation.isPending || campaign.ai_personalization?.status === "generating" ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />
+                )}
+                Generate for {s.pending} lead{s.pending !== 1 ? "s" : ""}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!campaignId) return;
+                  clearMessagesMutation.mutate(campaignId, {
+                    onSuccess: (data) => {
+                      toast({ title: "Cleared", description: `${data.cleared} message(s) cleared.` });
+                    },
+                    onError: (err) => {
+                      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to clear", variant: "destructive" });
+                    },
+                  });
+                }}
+                disabled={clearMessagesMutation.isPending || campaign.ai_personalization?.status === "generating"}
+              >
+                Clear All Messages
+              </Button>
+            </div>
+            {(genProgress || campaign.ai_personalization?.status === "generating") && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Generating messages...</span>
+                  <span>
+                    {genProgress?.progress ?? campaign.ai_personalization?.progress ?? 0} /{" "}
+                    {genProgress?.total ?? campaign.ai_personalization?.total ?? 0}
+                  </span>
+                </div>
+                <Progress
+                  value={
+                    ((genProgress?.progress ?? campaign.ai_personalization?.progress ?? 0) /
+                      Math.max(genProgress?.total ?? campaign.ai_personalization?.total ?? 1, 1)) *
+                    100
+                  }
+                  className="h-2"
+                />
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
