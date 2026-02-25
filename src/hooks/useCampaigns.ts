@@ -97,6 +97,35 @@ export interface CampaignLead {
   createdAt: string;
 }
 
+export interface CampaignSender {
+  _id: string | null;
+  ig_username: string;
+  display_name: string | null;
+  status: "online" | "offline" | "restricted";
+  last_seen: string | null;
+  daily_limit: number;
+  sent_today: number;
+  failed_total: number;
+  health: "good" | "warning" | "risk";
+  issue: string | null;
+  outbound_account: {
+    _id: string;
+    username: string;
+    status: string;
+    streak_rest_until: string | null;
+  } | null;
+}
+
+export interface CampaignSendersResponse {
+  senders: CampaignSender[];
+  summary: {
+    total: number;
+    online: number;
+    offline: number;
+    issues: number;
+  };
+}
+
 interface CampaignsResponse {
   campaigns: Campaign[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
@@ -190,6 +219,21 @@ export function useCampaignLeads(
     },
     enabled: !!campaignId,
     staleTime: 1000 * 15,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useCampaignSenders(campaignId: string | null, enabled = false) {
+  return useQuery({
+    queryKey: ["campaign-senders", campaignId],
+    queryFn: async (): Promise<CampaignSendersResponse> => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/senders`);
+      if (!res.ok) throw new Error(`Failed to fetch senders: ${res.status}`);
+      return res.json();
+    },
+    enabled: !!campaignId && enabled,
+    staleTime: 1000 * 10,
+    refetchInterval: enabled ? 15_000 : false,
     refetchOnWindowFocus: false,
   });
 }

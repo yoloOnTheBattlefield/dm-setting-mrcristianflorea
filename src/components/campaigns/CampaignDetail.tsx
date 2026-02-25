@@ -69,7 +69,9 @@ import {
   useRegenerateLeadMessage,
   useEditLeadMessage,
   useClearMessages,
+  useCampaignSenders,
 } from "@/hooks/useCampaigns";
+import type { CampaignSender } from "@/hooks/useCampaigns";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 import { useAIPrompts, useCreateAIPrompt, useUpdateAIPrompt, useDeleteAIPrompt } from "@/hooks/useAIPrompts";
 import { Input } from "@/components/ui/input";
@@ -166,8 +168,11 @@ export default function CampaignDetail() {
   const [savePromptName, setSavePromptName] = useState("");
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [showAiModal, setShowAiModal] = useState(false);
+  const [showSendersModal, setShowSendersModal] = useState(false);
   const [showDuplicate, setShowDuplicate] = useState(false);
   const [dupLeadFilter, setDupLeadFilter] = useState("all");
+
+  const { data: sendersData } = useCampaignSenders(campaignId ?? null, showSendersModal);
 
   // Real-time ETA from scheduler (overrides polled data when a message is actually sent)
   const [socketEta, setSocketEta] = useState<{ nextInSeconds: number; receivedAt: number } | null>(null);
@@ -480,7 +485,7 @@ export default function CampaignDetail() {
 
       {/* Next Send */}
       {campaign.status === "active" && effectiveNextSend && (
-        <NextSendBar nextSend={effectiveNextSend} />
+        <NextSendBar nextSend={effectiveNextSend} onShowSenders={() => setShowSendersModal(true)} />
       )}
 
       {/* Progress */}
@@ -1053,6 +1058,62 @@ export default function CampaignDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Campaign Senders Modal */}
+      <Dialog open={showSendersModal} onOpenChange={setShowSendersModal}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Campaign Senders</DialogTitle>
+          </DialogHeader>
+          {sendersData && (
+            <div className="space-y-4">
+              {/* Summary bar */}
+              <div className="flex gap-4 text-sm">
+                <span>Total: <span className="font-medium">{sendersData.summary.total}</span></span>
+                <span>Online: <span className="font-medium text-green-400">{sendersData.summary.online}</span></span>
+                <span>Offline: <span className="font-medium text-muted-foreground">{sendersData.summary.offline}</span></span>
+                {sendersData.summary.issues > 0 && (
+                  <span>Issues: <span className="font-medium text-red-400">{sendersData.summary.issues}</span></span>
+                )}
+              </div>
+
+              {/* Senders table */}
+              <div className="rounded-lg border bg-card">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Last Activity</TableHead>
+                      <TableHead className="text-right">Daily Limit</TableHead>
+                      <TableHead className="text-right">Sent Today</TableHead>
+                      <TableHead>Health</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sendersData.senders.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-16 text-center text-muted-foreground">
+                          No sender accounts linked to this campaign.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      sendersData.senders.map((sender, idx) => (
+                        <SenderRow key={sender._id || `unlinked-${idx}`} sender={sender} />
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+          {!sendersData && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Duplicate Campaign */}
       <AlertDialog open={showDuplicate} onOpenChange={setShowDuplicate}>
         <AlertDialogContent>
@@ -1107,7 +1168,7 @@ export default function CampaignDetail() {
   );
 }
 
-function NextSendBar({ nextSend }: { nextSend: import("@/hooks/useCampaigns").CampaignNextSend }) {
+function NextSendBar({ nextSend, onShowSenders }: { nextSend: import("@/hooks/useCampaigns").CampaignNextSend; onShowSenders: () => void }) {
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
@@ -1134,6 +1195,7 @@ function NextSendBar({ nextSend }: { nextSend: import("@/hooks/useCampaigns").Ca
 
   const sendersOnline = nextSend.online_senders ?? 0;
   const sendersTotal = nextSend.total_senders ?? 0;
+  const sendersIssue = sendersTotal - sendersOnline;
   const hasReason = !!nextSend.reason;
 
   return (
@@ -1165,16 +1227,22 @@ function NextSendBar({ nextSend }: { nextSend: import("@/hooks/useCampaigns").Ca
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <button
+          onClick={onShowSenders}
+          className="flex items-center gap-2 px-2.5 py-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+        >
           {sendersOnline > 0 ? (
             <Wifi className="h-3.5 w-3.5 text-green-400" />
           ) : (
             <WifiOff className="h-3.5 w-3.5 text-red-400" />
           )}
           <span className="text-xs text-muted-foreground">
-            {sendersOnline}/{sendersTotal} senders online
+            {sendersOnline} online
+            {sendersIssue > 0 && (
+              <span className="text-red-400"> · {sendersIssue} issue{sendersIssue !== 1 ? "s" : ""}</span>
+            )}
           </span>
-        </div>
+        </button>
       </CardContent>
     </Card>
   );
@@ -1209,5 +1277,52 @@ function StatCard({
         {icon}
       </CardContent>
     </Card>
+  );
+}
+
+const HEALTH_CONFIG: Record<string, { label: string; className: string }> = {
+  good: { label: "Good", className: "bg-green-500/15 text-green-400 border-green-500/30" },
+  warning: { label: "Warning", className: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
+  risk: { label: "Risk", className: "bg-red-500/15 text-red-400 border-red-500/30" },
+};
+
+const SENDER_STATUS_DOT: Record<string, string> = {
+  online: "bg-green-400",
+  offline: "bg-zinc-500",
+  restricted: "bg-red-400",
+};
+
+function SenderRow({ sender }: { sender: CampaignSender }) {
+  const health = HEALTH_CONFIG[sender.health] || HEALTH_CONFIG.good;
+  const dot = SENDER_STATUS_DOT[sender.status] || SENDER_STATUS_DOT.offline;
+  const limitPct = sender.daily_limit > 0 ? Math.round((sender.sent_today / sender.daily_limit) * 100) : 0;
+
+  return (
+    <TableRow className={sender.health === "risk" ? "bg-red-500/5" : undefined}>
+      <TableCell className="font-medium">@{sender.ig_username}</TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${dot}`} />
+          <span className="text-sm capitalize">{sender.status}</span>
+        </div>
+      </TableCell>
+      <TableCell className="text-muted-foreground text-sm">
+        {sender.last_seen ? formatRelative(sender.last_seen) : "Never"}
+      </TableCell>
+      <TableCell className="text-right">{sender.daily_limit}</TableCell>
+      <TableCell className="text-right">
+        <span className={limitPct >= 90 ? "text-yellow-400 font-medium" : ""}>
+          {sender.sent_today}
+        </span>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Badge className={health.className}>{health.label}</Badge>
+          {sender.issue && (
+            <span className="text-xs text-muted-foreground">{sender.issue}</span>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }
