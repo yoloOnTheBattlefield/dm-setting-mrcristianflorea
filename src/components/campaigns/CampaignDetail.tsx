@@ -102,6 +102,7 @@ import {
   Pencil,
   BookmarkPlus,
   Search,
+  CalendarCheck,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -354,7 +355,7 @@ export default function CampaignDetail() {
     );
   }
 
-  const s = stats || { total: 0, pending: 0, queued: 0, sent: 0, replied: 0, failed: 0, skipped: 0 };
+  const s = stats || { total: 0, pending: 0, queued: 0, sent: 0, replied: 0, booked: 0, failed: 0, skipped: 0 };
   const processed = (s.sent || 0) + (s.failed || 0) + (s.skipped || 0);
   const progressPct = s.total > 0 ? Math.round((processed / s.total) * 100) : 0;
 
@@ -478,6 +479,13 @@ export default function CampaignDetail() {
           <StatCard label="Queued" value={s.queued} icon={<Loader2 className="h-4 w-4 text-yellow-400" />} className="text-yellow-400" />
           <StatCard label="Sent" value={s.sent} icon={<Send className="h-4 w-4 text-green-400" />} className="text-green-400" />
           <StatCard label="Replied" value={s.replied || 0} icon={<MessageSquare className="h-4 w-4 text-purple-400" />} className="text-purple-400" />
+          <StatCard
+            label="Booked"
+            value={s.booked || 0}
+            icon={<CalendarCheck className="h-4 w-4 text-teal-400" />}
+            className="text-teal-400"
+            subtitle={s.sent > 0 ? `${((s.booked || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined}
+          />
           <StatCard label="Failed" value={s.failed} icon={<XCircle className="h-4 w-4 text-red-400" />} className="text-red-400" />
           <StatCard label="Skipped" value={s.skipped} icon={<SkipForward className="h-4 w-4 text-blue-400" />} className="text-blue-400" />
         </div>
@@ -1261,11 +1269,13 @@ function StatCard({
   value,
   icon,
   className,
+  subtitle,
 }: {
   label: string;
   value: number;
   icon: React.ReactNode;
   className?: string;
+  subtitle?: string;
 }) {
   return (
     <Card>
@@ -1273,6 +1283,7 @@ function StatCard({
         <div>
           <p className="text-xs text-muted-foreground">{label}</p>
           <p className={`text-xl font-bold ${className || ""}`}>{value}</p>
+          {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
         </div>
         {icon}
       </CardContent>
