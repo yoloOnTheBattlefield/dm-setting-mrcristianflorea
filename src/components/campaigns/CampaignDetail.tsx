@@ -104,6 +104,7 @@ import {
   BookmarkPlus,
   Search,
   CalendarCheck,
+  Link,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -381,7 +382,7 @@ export default function CampaignDetail() {
     );
   }
 
-  const s = stats || { total: 0, pending: 0, queued: 0, sent: 0, replied: 0, booked: 0, failed: 0, skipped: 0, without_message: 0 };
+  const s = stats || { total: 0, pending: 0, queued: 0, sent: 0, delivered: 0, replied: 0, link_sent: 0, booked: 0, failed: 0, skipped: 0, without_message: 0 };
   const processed = (s.sent || 0) + (s.failed || 0) + (s.skipped || 0);
   const progressPct = s.total > 0 ? Math.round((processed / s.total) * 100) : 0;
   const unsentCount = s.total - (s.sent || 0) - (s.delivered || 0) - (s.replied || 0);
@@ -489,8 +490,9 @@ export default function CampaignDetail() {
       </div>
 
       {/* Stats */}
-      <div className="space-y-1">
-        <div className="flex items-center justify-end">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Performance</p>
           <Button
             variant="ghost"
             size="sm"
@@ -502,23 +504,29 @@ export default function CampaignDetail() {
             Recalc
           </Button>
         </div>
+        {/* Primary metrics */}
         <div className="grid grid-cols-4 gap-3">
-          <StatCard label="Total" value={s.total} icon={<ListTodo className="h-4 w-4" />} />
-          <StatCard label="Pending" value={s.pending} icon={<Clock className="h-4 w-4 text-zinc-400" />} className="text-zinc-400" />
-          <StatCard label="Queued" value={s.queued} icon={<Loader2 className="h-4 w-4 text-yellow-400" />} className="text-yellow-400" />
-          <StatCard label="Sent" value={s.sent} icon={<Send className="h-4 w-4 text-green-400" />} className="text-green-400" />
-          <StatCard label="Replied" value={s.replied || 0} icon={<MessageSquare className="h-4 w-4 text-purple-400" />} className="text-purple-400"
+          <PrimaryStatCard label="Sent" value={s.sent} icon={<Send className="h-4 w-4 text-green-400" />} className="text-green-400"
+            subtitle={s.total > 0 ? `${((s.sent || 0) / s.total * 100).toFixed(1)}% of total` : undefined} />
+          <PrimaryStatCard label="Replied" value={s.replied || 0} icon={<MessageSquare className="h-4 w-4 text-purple-400" />} className="text-purple-400"
             subtitle={s.sent > 0 ? `${((s.replied || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined} />
-          <StatCard
+          <PrimaryStatCard label="Link Sent" value={s.link_sent || 0} icon={<Link className="h-4 w-4 text-orange-400" />} className="text-orange-400"
+            subtitle={s.sent > 0 ? `${((s.link_sent || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined} />
+          <PrimaryStatCard
             label="Booked"
             value={s.booked || 0}
             icon={<CalendarCheck className="h-4 w-4 text-teal-400" />}
             className="text-teal-400"
             subtitle={s.sent > 0 ? `${((s.booked || 0) / s.sent * 100).toFixed(1)}% of sent${(s.replied || 0) > 0 ? ` · ${((s.booked || 0) / (s.replied || 1) * 100).toFixed(1)}% of replies` : ""}` : undefined}
           />
-          <StatCard label="Failed" value={s.failed} icon={<XCircle className="h-4 w-4 text-red-400" />} className="text-red-400"
+        </div>
+        {/* Secondary metrics */}
+        <div className="grid grid-cols-4 gap-3">
+          <SecondaryStatCard label="Total" value={s.total} icon={<ListTodo className="h-3.5 w-3.5" />} />
+          <SecondaryStatCard label="Pending" value={s.pending} icon={<Clock className="h-3.5 w-3.5" />} />
+          <SecondaryStatCard label="Failed" value={s.failed} icon={<XCircle className="h-3.5 w-3.5" />}
             subtitle={s.sent > 0 ? `${((s.failed || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined} />
-          <StatCard label="Skipped" value={s.skipped} icon={<SkipForward className="h-4 w-4 text-blue-400" />} className="text-blue-400"
+          <SecondaryStatCard label="Skipped" value={s.skipped} icon={<SkipForward className="h-3.5 w-3.5" />}
             subtitle={s.sent > 0 ? `${((s.skipped || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined} />
         </div>
       </div>
@@ -1345,7 +1353,7 @@ function formatRelative(dateStr: string) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-function StatCard({
+function PrimaryStatCard({
   label,
   value,
   icon,
@@ -1360,13 +1368,38 @@ function StatCard({
 }) {
   return (
     <Card>
-      <CardContent className="py-3 flex items-center justify-between">
+      <CardContent className="py-4 px-4">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs font-medium text-muted-foreground">{label}</p>
+          {icon}
+        </div>
+        <p className={`text-2xl font-bold ${className || ""}`}>{value}</p>
+        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SecondaryStatCard({
+  label,
+  value,
+  icon,
+  subtitle,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  subtitle?: string;
+}) {
+  return (
+    <Card className="bg-card/50">
+      <CardContent className="py-2 px-3 flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className={`text-xl font-bold ${className || ""}`}>{value}</p>
+          <p className="text-[10px] text-muted-foreground">{label}</p>
+          <p className="text-sm font-semibold text-muted-foreground">{value}</p>
           {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
         </div>
-        {icon}
+        <div className="text-muted-foreground/50">{icon}</div>
       </CardContent>
     </Card>
   );

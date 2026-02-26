@@ -20,6 +20,7 @@ export interface CampaignStats {
   sent: number;
   delivered: number;
   replied: number;
+  link_sent: number;
   booked: number;
   failed: number;
   skipped: number;
