@@ -507,16 +507,19 @@ export default function CampaignDetail() {
           <StatCard label="Pending" value={s.pending} icon={<Clock className="h-4 w-4 text-zinc-400" />} className="text-zinc-400" />
           <StatCard label="Queued" value={s.queued} icon={<Loader2 className="h-4 w-4 text-yellow-400" />} className="text-yellow-400" />
           <StatCard label="Sent" value={s.sent} icon={<Send className="h-4 w-4 text-green-400" />} className="text-green-400" />
-          <StatCard label="Replied" value={s.replied || 0} icon={<MessageSquare className="h-4 w-4 text-purple-400" />} className="text-purple-400" />
+          <StatCard label="Replied" value={s.replied || 0} icon={<MessageSquare className="h-4 w-4 text-purple-400" />} className="text-purple-400"
+            subtitle={s.sent > 0 ? `${((s.replied || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined} />
           <StatCard
             label="Booked"
             value={s.booked || 0}
             icon={<CalendarCheck className="h-4 w-4 text-teal-400" />}
             className="text-teal-400"
-            subtitle={s.sent > 0 ? `${((s.booked || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined}
+            subtitle={s.sent > 0 ? `${((s.booked || 0) / s.sent * 100).toFixed(1)}% of sent${(s.replied || 0) > 0 ? ` · ${((s.booked || 0) / (s.replied || 1) * 100).toFixed(1)}% of replies` : ""}` : undefined}
           />
-          <StatCard label="Failed" value={s.failed} icon={<XCircle className="h-4 w-4 text-red-400" />} className="text-red-400" />
-          <StatCard label="Skipped" value={s.skipped} icon={<SkipForward className="h-4 w-4 text-blue-400" />} className="text-blue-400" />
+          <StatCard label="Failed" value={s.failed} icon={<XCircle className="h-4 w-4 text-red-400" />} className="text-red-400"
+            subtitle={s.sent > 0 ? `${((s.failed || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined} />
+          <StatCard label="Skipped" value={s.skipped} icon={<SkipForward className="h-4 w-4 text-blue-400" />} className="text-blue-400"
+            subtitle={s.sent > 0 ? `${((s.skipped || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined} />
         </div>
       </div>
 
