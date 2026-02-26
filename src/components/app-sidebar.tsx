@@ -119,16 +119,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         {isAdmin && (
-          <button
-            onClick={toggleViewAll}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-colors hover:bg-sidebar-accent"
-          >
-            <Eye className="h-4 w-4" />
-            <span>{viewAll ? "All Clients" : "My Data"}</span>
-            <span
-              className={`ml-auto inline-block h-2 w-2 rounded-full ${viewAll ? "bg-green-500" : "bg-muted-foreground"}`}
-            />
-          </button>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={toggleViewAll}
+                tooltip={viewAll ? "All Clients" : "My Data"}
+                size="sm"
+              >
+                <Eye />
+                <span>{viewAll ? "All Clients" : "My Data"}</span>
+                <span
+                  className={`ml-auto inline-block h-2 w-2 shrink-0 rounded-full ${viewAll ? "bg-green-500" : "bg-muted-foreground"}`}
+                />
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         )}
         <NavUser user={userData} />
       </SidebarFooter>
