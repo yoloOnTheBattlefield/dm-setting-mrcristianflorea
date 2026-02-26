@@ -1,6 +1,10 @@
 "use client"
 
+import { useState } from "react"
+
 import {
+  Building2,
+  Check,
   ChevronsUpDown,
   LogOut,
 } from "lucide-react"
@@ -13,7 +17,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -38,8 +41,11 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { logout } = useAuth()
+  const { logout, accounts, user: authUser, switchAccount } = useAuth()
   const navigate = useNavigate()
+  const [switching, setSwitching] = useState(false)
+
+  const showSwitcher = accounts.length > 1
 
   const initials = (() => {
     const parts = user.name?.trim().split(/\s+/)
@@ -51,6 +57,18 @@ export function NavUser({
   const handleLogout = () => {
     logout()
     navigate("/login")
+  }
+
+  const handleSwitchAccount = async (accountId: string) => {
+    if (accountId === authUser?.account_id || switching) return
+    setSwitching(true)
+    try {
+      await switchAccount(accountId)
+    } catch {
+      // error handled by caller
+    } finally {
+      setSwitching(false)
+    }
   }
 
   return (
@@ -91,6 +109,28 @@ export function NavUser({
                 </div>
               </div>
             </DropdownMenuLabel>
+            {showSwitcher && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Switch account
+                </DropdownMenuLabel>
+                {accounts.map((acc) => (
+                  <DropdownMenuItem
+                    key={acc.account_id}
+                    onClick={() => handleSwitchAccount(acc.account_id)}
+                    disabled={switching}
+                    className="gap-2"
+                  >
+                    <Building2 className="size-4 shrink-0" />
+                    <span className="flex-1 truncate">{acc.name}</span>
+                    {acc.account_id === authUser?.account_id && (
+                      <Check className="size-4 shrink-0 text-muted-foreground" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut />

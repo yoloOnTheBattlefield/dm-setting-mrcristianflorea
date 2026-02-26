@@ -106,9 +106,11 @@ export function LoginForm({
     try {
       const response = await fetch(`${API_URL}/accounts/select-account`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accountSelection.selectionToken}`,
+        },
         body: JSON.stringify({
-          selection_token: accountSelection.selectionToken,
           account_id: accountId,
         }),
       });
