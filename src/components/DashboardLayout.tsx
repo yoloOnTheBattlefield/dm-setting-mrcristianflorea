@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -7,12 +8,16 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb"
+import { usePageTitle } from "@/hooks/useNavSections"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { pathname } = useLocation()
+  const pageTitle = usePageTitle(pathname)
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -23,7 +28,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

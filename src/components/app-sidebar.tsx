@@ -1,27 +1,14 @@
-import * as React from "react"
+import type React from "react"
 import {
-  BarChart3,
   Building2,
   ChevronsUpDown,
   Check,
-  Database,
   Eye,
-  MessageSquareText,
-  Plug,
-  ScanSearch,
-  Search,
-  Send,
-  Settings2,
-  Telescope,
-  TrendingUp,
-  Upload,
-  Users,
-  UserPlus,
-  UsersRound,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import { useNavSections } from "@/hooks/useNavSections"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,66 +57,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   }
 
-  // Build navigation sections based on user permissions
-  const sections = React.useMemo(() => {
-    const dashboardItems = [
-      { title: "Dashboard", url: "/", icon: BarChart3, isActive: true },
-    ]
-
-    const acquisitionItems = user?.has_outbound ? [
-      { title: "Scraper", url: "/scraper", icon: Search },
-      { title: "Deep Scraper", url: "/deep-scraper", icon: ScanSearch },
-      { title: "Upload", url: "/contacts/upload", icon: Upload },
-      { title: "Prompts", url: "/prompts", icon: MessageSquareText },
-    ] : []
-
-    const outboundItems = user?.has_outbound ? [
-      { title: "Leads", url: "/outbound-leads", icon: Users },
-      { title: "Campaigns", url: "/campaigns", icon: Send },
-      { title: "Accounts", url: "/outbound-accounts", icon: Building2 },
-      { title: "Analytics", url: "/analytics/outbound", icon: TrendingUp },
-    ] : []
-
-    const researchItems = user?.has_research ? [
-      {
-        title: "Research",
-        url: "#",
-        icon: Telescope,
-        items: [
-          { title: "Overview", url: "/research" },
-          { title: "Scraper", url: "/deep-scraper" },
-          { title: "Competitors", url: "/research/competitors" },
-          { title: "Posts Library", url: "/research/posts" },
-          { title: "Comments Intel", url: "/research/comments" },
-          { title: "Lead Magnets", url: "/research/lead-magnets" },
-          { title: "Ideas Bank", url: "/research/ideas" },
-          { title: "Alerts", url: "/research/alerts" },
-          { title: "Reports", url: "/research/reports" },
-        ],
-      },
-    ] : []
-
-    const workspaceItems = [
-      { title: "Settings", url: "/settings", icon: Settings2 },
-      { title: "Team", url: "/settings/team", icon: UsersRound },
-      { title: "Integrations", url: "/settings/integrations", icon: Plug },
-    ]
-
-    const adminItems = user?.role === 0 ? [
-      {
-        title: "Clients",
-        url: "#",
-        icon: UserPlus,
-        items: [
-          { title: "New Client", url: "/clients/new" },
-          { title: "Clients Overview", url: "/clients" },
-        ],
-      },
-      { title: "Data Migration", url: "/data-migration", icon: Database },
-    ] : []
-
-    return { dashboardItems, acquisitionItems, outboundItems, researchItems, workspaceItems, adminItems }
-  }, [user?.role, user?.has_outbound, user?.has_research])
+  const sections = useNavSections()
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -185,20 +113,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarHeader>
       )}
       <SidebarContent>
-        <NavMain items={sections.dashboardItems} />
-        {sections.acquisitionItems.length > 0 && (
-          <NavMain label="Acquisition" items={sections.acquisitionItems} />
-        )}
-        {sections.outboundItems.length > 0 && (
-          <NavMain label="Outbound" items={sections.outboundItems} />
-        )}
-        {sections.researchItems.length > 0 && (
-          <NavMain items={sections.researchItems} />
-        )}
-        <NavMain label="Workspace" items={sections.workspaceItems} />
-        {sections.adminItems.length > 0 && (
-          <NavMain label="Admin" items={sections.adminItems} />
-        )}
+        {sections.map((section, i) => (
+          <NavMain key={section.label || i} label={section.label} items={section.items} />
+        ))}
       </SidebarContent>
       <SidebarFooter>
         {isAdmin && (
