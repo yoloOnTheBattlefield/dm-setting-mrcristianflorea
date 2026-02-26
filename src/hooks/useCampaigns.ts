@@ -474,6 +474,30 @@ export function useDuplicateCampaign() {
   });
 }
 
+export function useRemoveSelectedCampaignLeads() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ campaignId, lead_ids }: { campaignId: string; lead_ids: string[] }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/remove`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_ids }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
+      qc.invalidateQueries({ queryKey: ["campaign-leads"] });
+      qc.invalidateQueries({ queryKey: ["campaign-stats"] });
+    },
+  });
+}
+
 export function useRemoveCampaignLeads() {
   const qc = useQueryClient();
   return useMutation({

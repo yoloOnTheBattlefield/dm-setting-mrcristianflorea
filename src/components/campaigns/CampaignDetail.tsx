@@ -61,6 +61,7 @@ import {
   useStartCampaign,
   usePauseCampaign,
   useRemoveCampaignLeads,
+  useRemoveSelectedCampaignLeads,
   useRetryCampaignLeads,
   useDuplicateCampaign,
   useRecalcCampaignStats,
@@ -146,6 +147,7 @@ export default function CampaignDetail() {
   const startMutation = useStartCampaign();
   const pauseMutation = usePauseCampaign();
   const removeMutation = useRemoveCampaignLeads();
+  const removeSelectedMutation = useRemoveSelectedCampaignLeads();
   const retryMutation = useRetryCampaignLeads();
   const duplicateMutation = useDuplicateCampaign();
   const recalcMutation = useRecalcCampaignStats();
@@ -256,6 +258,7 @@ export default function CampaignDetail() {
   const [leadSearchDebounced, setLeadSearchDebounced] = useState("");
   const [leadPage, setLeadPage] = useState(1);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [confirmRemoveSelected, setConfirmRemoveSelected] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => { setLeadSearchDebounced(leadSearch); setLeadPage(1); }, 300);
@@ -273,7 +276,9 @@ export default function CampaignDetail() {
 
   // Retryable leads on current page (failed or skipped)
   const retryableLeads = leads.filter((l) => l.status === "failed" || l.status === "skipped");
-  const allRetryableSelected = retryableLeads.length > 0 && retryableLeads.every((l) => selectedLeadIds.has(l._id));
+  const allPageSelected = leads.length > 0 && leads.every((l) => selectedLeadIds.has(l._id));
+  const someSelected = selectedLeadIds.size > 0;
+  const selectedRetryableCount = retryableLeads.filter((l) => selectedLeadIds.has(l._id)).length;
 
   const toggleLeadSelection = (id: string) => {
     setSelectedLeadIds((prev) => {
@@ -284,17 +289,17 @@ export default function CampaignDetail() {
     });
   };
 
-  const toggleAllRetryable = () => {
-    if (allRetryableSelected) {
+  const toggleAllPage = () => {
+    if (allPageSelected) {
       setSelectedLeadIds((prev) => {
         const next = new Set(prev);
-        retryableLeads.forEach((l) => next.delete(l._id));
+        leads.forEach((l) => next.delete(l._id));
         return next;
       });
     } else {
       setSelectedLeadIds((prev) => {
         const next = new Set(prev);
-        retryableLeads.forEach((l) => next.add(l._id));
+        leads.forEach((l) => next.add(l._id));
         return next;
       });
     }
@@ -334,6 +339,26 @@ export default function CampaignDetail() {
       });
     }
   };
+
+  const handleRemoveSelected = async () => {
+    if (!campaignId || selectedLeadIds.size === 0) return;
+    try {
+      const result = await removeSelectedMutation.mutateAsync({
+        campaignId,
+        lead_ids: Array.from(selectedLeadIds),
+      });
+      toast({ title: "Removed", description: `${result.removed ?? selectedLeadIds.size} lead(s) removed from campaign.` });
+      setSelectedLeadIds(new Set());
+      setConfirmRemoveSelected(false);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to remove leads",
+        variant: "destructive",
+      });
+    }
+  };
+
   const leadPagination = leadsData?.pagination;
 
   if (campaignLoading) {
@@ -571,19 +596,32 @@ export default function CampaignDetail() {
           </div>
           <div className="flex gap-2">
             {selectedLeadIds.size > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRetrySelected}
-                disabled={retryMutation.isPending}
-              >
-                {retryMutation.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                ) : (
-                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmRemoveSelected(true)}
+                  disabled={removeSelectedMutation.isPending}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  Remove {selectedLeadIds.size} Selected
+                </Button>
+                {selectedRetryableCount > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRetrySelected}
+                    disabled={retryMutation.isPending}
+                  >
+                    {retryMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                    )}
+                    Retry {selectedRetryableCount} Failed
+                  </Button>
                 )}
-                Retry {selectedLeadIds.size} Selected
-              </Button>
+              </>
             )}
             {s.pending > 0 && (
               <Button variant="outline" size="sm" onClick={() => setConfirmRemove(true)}>
@@ -603,10 +641,10 @@ export default function CampaignDetail() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10">
-                  {retryableLeads.length > 0 && (
+                  {leads.length > 0 && (
                     <Checkbox
-                      checked={allRetryableSelected}
-                      onCheckedChange={toggleAllRetryable}
+                      checked={allPageSelected}
+                      onCheckedChange={toggleAllPage}
                     />
                   )}
                 </TableHead>
@@ -640,17 +678,13 @@ export default function CampaignDetail() {
                   const lb = LEAD_STATUS_BADGE[cl.status] || LEAD_STATUS_BADGE.pending;
                   const lead = cl.outbound_lead_id;
                   const sender = cl.sender_id;
-                  const isRetryable = cl.status === "failed" || cl.status === "skipped";
-
                   return (
                     <TableRow key={cl._id}>
                       <TableCell>
-                        {isRetryable ? (
-                          <Checkbox
-                            checked={selectedLeadIds.has(cl._id)}
-                            onCheckedChange={() => toggleLeadSelection(cl._id)}
-                          />
-                        ) : null}
+                        <Checkbox
+                          checked={selectedLeadIds.has(cl._id)}
+                          onCheckedChange={() => toggleLeadSelection(cl._id)}
+                        />
                       </TableCell>
                       <TableCell className="font-medium">
                         {lead ? (
@@ -836,6 +870,24 @@ export default function CampaignDetail() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleRemovePending} disabled={removeMutation.isPending}>
               {removeMutation.isPending ? "Removing..." : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Remove Selected Confirm */}
+      <AlertDialog open={confirmRemoveSelected} onOpenChange={setConfirmRemoveSelected}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Selected Leads</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove {selectedLeadIds.size} selected lead{selectedLeadIds.size !== 1 ? "s" : ""} from this campaign. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveSelected} disabled={removeSelectedMutation.isPending}>
+              {removeSelectedMutation.isPending ? "Removing..." : "Remove"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
