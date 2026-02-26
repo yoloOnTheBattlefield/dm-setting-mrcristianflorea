@@ -304,7 +304,7 @@ export default function OutboundLeads() {
     queryKey: [
       "outbound-leads",
       source === "all" ? undefined : source,
-      qualifiedFilter === "all" ? undefined : qualifiedFilter,
+      qualifiedFilter === "true" ? undefined : qualifiedFilter,
       messagedFilter === "all" ? undefined : messagedFilter,
       repliedFilter === "all" ? undefined : repliedFilter,
       bookedFilter === "all" ? undefined : bookedFilter,
@@ -315,7 +315,7 @@ export default function OutboundLeads() {
     queryFn: () =>
       fetchOutboundLeads({
         source: source === "all" ? undefined : source,
-        qualified: qualifiedFilter === "all" ? undefined : qualifiedFilter,
+        qualified: qualifiedFilter === "true" ? undefined : qualifiedFilter,
         isMessaged: messagedFilter === "all" ? undefined : messagedFilter,
         replied: repliedFilter === "all" ? undefined : repliedFilter,
         booked: bookedFilter === "all" ? undefined : bookedFilter,
@@ -338,8 +338,8 @@ export default function OutboundLeads() {
   const sourceOptions = sourcesData || [];
 
   const { data: funnelStats } = useQuery({
-    queryKey: ["outbound-leads-stats", qualifiedFilter === "all" ? undefined : qualifiedFilter],
-    queryFn: () => fetchFunnelStats(qualifiedFilter === "all" ? undefined : qualifiedFilter),
+    queryKey: ["outbound-leads-stats", qualifiedFilter === "true" ? undefined : qualifiedFilter],
+    queryFn: () => fetchFunnelStats(qualifiedFilter === "true" ? undefined : qualifiedFilter),
     staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
   });
@@ -375,7 +375,7 @@ export default function OutboundLeads() {
   const currentFilters = useCallback(() => {
     const f: Record<string, string> = {};
     if (source !== "all") f.source = source;
-    if (qualifiedFilter !== "all") f.qualified = qualifiedFilter;
+    if (qualifiedFilter !== "true" && qualifiedFilter !== "all") f.qualified = qualifiedFilter;
     if (messagedFilter !== "all") f.isMessaged = messagedFilter;
     if (repliedFilter !== "all") f.replied = repliedFilter;
     if (bookedFilter !== "all") f.booked = bookedFilter;

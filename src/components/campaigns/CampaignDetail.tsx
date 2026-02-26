@@ -173,7 +173,7 @@ export default function CampaignDetail() {
   const [showDuplicate, setShowDuplicate] = useState(false);
   const [dupLeadFilter, setDupLeadFilter] = useState("all");
 
-  const { data: sendersData } = useCampaignSenders(campaignId ?? null, showSendersModal);
+  const { data: sendersData } = useCampaignSenders(campaignId ?? null, true);
 
   // Real-time ETA from scheduler (overrides polled data when a message is actually sent)
   const [socketEta, setSocketEta] = useState<{ nextInSeconds: number; receivedAt: number } | null>(null);
@@ -491,9 +491,38 @@ export default function CampaignDetail() {
         </div>
       </div>
 
-      {/* Next Send */}
+      {/* Senders – always visible regardless of campaign status */}
+      {sendersData && (
+        <Card>
+          <CardContent className="py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                {sendersData.summary.online > 0 ? (
+                  <Wifi className="h-4 w-4 text-green-400" />
+                ) : (
+                  <WifiOff className="h-4 w-4 text-red-400" />
+                )}
+                <span className="text-sm">
+                  <span className="font-medium text-green-400">{sendersData.summary.online}</span>
+                  <span className="text-muted-foreground"> / {sendersData.summary.total} senders online</span>
+                </span>
+                {sendersData.summary.issues > 0 && (
+                  <span className="text-sm text-red-400 font-medium">
+                    · {sendersData.summary.issues} issue{sendersData.summary.issues !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setShowSendersModal(true)} className="text-xs">
+              View Senders
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Next Send – only for active campaigns */}
       {campaign.status === "active" && effectiveNextSend && (
-        <NextSendBar nextSend={effectiveNextSend} onShowSenders={() => setShowSendersModal(true)} />
+        <NextSendBar nextSend={effectiveNextSend} />
       )}
 
       {/* Progress */}
@@ -1176,7 +1205,7 @@ export default function CampaignDetail() {
   );
 }
 
-function NextSendBar({ nextSend, onShowSenders }: { nextSend: import("@/hooks/useCampaigns").CampaignNextSend; onShowSenders: () => void }) {
+function NextSendBar({ nextSend }: { nextSend: import("@/hooks/useCampaigns").CampaignNextSend }) {
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
@@ -1201,56 +1230,34 @@ function NextSendBar({ nextSend, onShowSenders }: { nextSend: import("@/hooks/us
     return () => clearInterval(iv);
   }, [nextSend.next_send_at]);
 
-  const sendersOnline = nextSend.online_senders ?? 0;
-  const sendersTotal = nextSend.total_senders ?? 0;
-  const sendersIssue = sendersTotal - sendersOnline;
   const hasReason = !!nextSend.reason;
 
   return (
     <Card>
-      <CardContent className="py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Timer className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Next send:</span>
-            {nextSend.next_send_at && countdown ? (
-              <span className="text-sm font-bold text-green-400">{countdown}</span>
-            ) : hasReason ? (
-              <span className="text-sm text-yellow-400">{nextSend.reason}</span>
-            ) : (
-              <span className="text-sm text-muted-foreground">--</span>
-            )}
-          </div>
-
-          {nextSend.delay_seconds && (
-            <span className="text-xs text-muted-foreground">
-              ~{Math.round(nextSend.delay_seconds / 60)}m between sends
-            </span>
-          )}
-
-          {nextSend.last_sent_at && (
-            <span className="text-xs text-muted-foreground">
-              Last sent {formatRelative(nextSend.last_sent_at)}
-            </span>
+      <CardContent className="py-3 flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Timer className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Next send:</span>
+          {nextSend.next_send_at && countdown ? (
+            <span className="text-sm font-bold text-green-400">{countdown}</span>
+          ) : hasReason ? (
+            <span className="text-sm text-yellow-400">{nextSend.reason}</span>
+          ) : (
+            <span className="text-sm text-muted-foreground">--</span>
           )}
         </div>
 
-        <button
-          onClick={onShowSenders}
-          className="flex items-center gap-2 px-2.5 py-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
-        >
-          {sendersOnline > 0 ? (
-            <Wifi className="h-3.5 w-3.5 text-green-400" />
-          ) : (
-            <WifiOff className="h-3.5 w-3.5 text-red-400" />
-          )}
+        {nextSend.delay_seconds && (
           <span className="text-xs text-muted-foreground">
-            {sendersOnline} online
-            {sendersIssue > 0 && (
-              <span className="text-red-400"> · {sendersIssue} issue{sendersIssue !== 1 ? "s" : ""}</span>
-            )}
+            ~{Math.round(nextSend.delay_seconds / 60)}m between sends
           </span>
-        </button>
+        )}
+
+        {nextSend.last_sent_at && (
+          <span className="text-xs text-muted-foreground">
+            Last sent {formatRelative(nextSend.last_sent_at)}
+          </span>
+        )}
       </CardContent>
     </Card>
   );

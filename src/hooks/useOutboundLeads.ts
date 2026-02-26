@@ -34,7 +34,6 @@ export function useOutboundLeads(params: {
     queryFn: async (): Promise<OutboundLeadsResponse> => {
       const sp = new URLSearchParams({
         isMessaged: "false",
-        qualified: "true",
         limit: String(params.limit),
         page: String(params.page),
       });
@@ -135,7 +134,6 @@ export async function fetchAllMatchingLeadIds(
 ): Promise<string[]> {
   const sp = new URLSearchParams({
     isMessaged: "false",
-    qualified: "true",
     limit: "10000",
     page: "1",
   });
