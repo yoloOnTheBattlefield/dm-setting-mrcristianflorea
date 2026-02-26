@@ -41,8 +41,9 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTeamMembers, useAddTeamMember, useUpdateTeamMember, useDeleteTeamMember } from "@/hooks/useTeamMembers";
+import { useTeamMembers, useAddTeamMember, useUpdateTeamMember, useDeleteTeamMember, checkTeamEmail } from "@/hooks/useTeamMembers";
 import { Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useRef } from "react";
 
 export default function TeamMembers() {
   const { user } = useAuth();
@@ -58,6 +59,35 @@ export default function TeamMembers() {
     password: "",
     has_outbound: false,
   });
+  const [existingUser, setExistingUser] = useState<{ exists: boolean; first_name?: string; last_name?: string } | null>(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const checkEmail = useCallback((email: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setExistingUser(null);
+
+    if (!email || !email.includes("@")) return;
+
+    setCheckingEmail(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const result = await checkTeamEmail(email);
+        setExistingUser(result);
+      } catch {
+        setExistingUser(null);
+      } finally {
+        setCheckingEmail(false);
+      }
+    }, 500);
+  }, []);
+
+  useEffect(() => {
+    if (!addDialogOpen) {
+      setExistingUser(null);
+      setCheckingEmail(false);
+    }
+  }, [addDialogOpen]);
 
   const { data: teamMembers = [], isLoading } = useTeamMembers();
   const addMember = useAddTeamMember();
@@ -147,49 +177,63 @@ export default function TeamMembers() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="tm-first-name">First Name</Label>
-                      <Input
-                        id="tm-first-name"
-                        value={newMember.first_name}
-                        onChange={(e) =>
-                          setNewMember((prev) => ({ ...prev, first_name: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tm-last-name">Last Name</Label>
-                      <Input
-                        id="tm-last-name"
-                        value={newMember.last_name}
-                        onChange={(e) =>
-                          setNewMember((prev) => ({ ...prev, last_name: e.target.value }))
-                        }
-                      />
-                    </div>
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="tm-email">Email</Label>
                     <Input
                       id="tm-email"
                       type="email"
                       value={newMember.email}
-                      onChange={(e) =>
-                        setNewMember((prev) => ({ ...prev, email: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        const email = e.target.value;
+                        setNewMember((prev) => ({ ...prev, email }));
+                        checkEmail(email);
+                      }}
                     />
+                    {checkingEmail && (
+                      <p className="text-xs text-muted-foreground">Checking...</p>
+                    )}
+                    {existingUser?.exists && (
+                      <p className="text-xs text-muted-foreground">
+                        Existing user ({existingUser.first_name} {existingUser.last_name}) will be linked to your account.
+                      </p>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="tm-password">Password</Label>
-                    <PasswordInput
-                      id="tm-password"
-                      value={newMember.password}
-                      onChange={(e) =>
-                        setNewMember((prev) => ({ ...prev, password: e.target.value }))
-                      }
-                    />
-                  </div>
+                  {!existingUser?.exists && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="tm-first-name">First Name</Label>
+                          <Input
+                            id="tm-first-name"
+                            value={newMember.first_name}
+                            onChange={(e) =>
+                              setNewMember((prev) => ({ ...prev, first_name: e.target.value }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="tm-last-name">Last Name</Label>
+                          <Input
+                            id="tm-last-name"
+                            value={newMember.last_name}
+                            onChange={(e) =>
+                              setNewMember((prev) => ({ ...prev, last_name: e.target.value }))
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="tm-password">Password</Label>
+                        <PasswordInput
+                          id="tm-password"
+                          value={newMember.password}
+                          onChange={(e) =>
+                            setNewMember((prev) => ({ ...prev, password: e.target.value }))
+                          }
+                        />
+                      </div>
+                    </>
+                  )}
                   <div className="flex items-center justify-between rounded-md border p-3">
                     <div>
                       <Label htmlFor="tm-outbound">Outbound Access</Label>
@@ -211,10 +255,11 @@ export default function TeamMembers() {
                     onClick={handleAddMember}
                     disabled={
                       addMember.isPending ||
-                      !newMember.first_name ||
-                      !newMember.last_name ||
                       !newMember.email ||
-                      !newMember.password
+                      checkingEmail ||
+                      (existingUser?.exists
+                        ? false
+                        : !newMember.first_name || !newMember.last_name || !newMember.password)
                     }
                   >
                     {addMember.isPending ? "Adding..." : "Add Member"}

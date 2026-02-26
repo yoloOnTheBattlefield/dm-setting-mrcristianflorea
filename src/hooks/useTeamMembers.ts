@@ -5,6 +5,7 @@ import { API_URL, fetchWithAuth } from "@/lib/api";
 const TEAM_URL = `${API_URL}/accounts/team`;
 
 const ACCOUNTS_URL = `${API_URL}/accounts`;
+const CHECK_EMAIL_URL = `${TEAM_URL}/check-email`;
 
 interface AddTeamMemberBody {
   email: string;
@@ -63,6 +64,12 @@ async function updateTeamMember({ id, body }: { id: string; body: { has_outbound
     const data = await response.json().catch(() => ({}));
     throw new Error(data.message || `Failed to update team member: ${response.status}`);
   }
+}
+
+export async function checkTeamEmail(email: string): Promise<{ exists: boolean; first_name?: string; last_name?: string }> {
+  const response = await fetchWithAuth(`${CHECK_EMAIL_URL}?email=${encodeURIComponent(email)}`);
+  if (!response.ok) return { exists: false };
+  return response.json();
 }
 
 export function useTeamMembers(accountId?: string) {
