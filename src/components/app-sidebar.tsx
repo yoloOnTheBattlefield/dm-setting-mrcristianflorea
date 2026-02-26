@@ -6,14 +6,18 @@ import {
   Check,
   Database,
   Eye,
-  MessageSquare,
   MessageSquareText,
+  Plug,
+  ScanSearch,
+  Search,
   Send,
   Settings2,
   Telescope,
   TrendingUp,
+  Upload,
   Users,
   UserPlus,
+  UsersRound,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -40,68 +44,6 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useAdminView } from "@/contexts/AdminViewContext"
 import { useToast } from "@/hooks/use-toast"
 
-const navMain = [
-    {
-      title: "Dashboard",
-      url: "/",
-      icon: BarChart3,
-      isActive: true,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: TrendingUp,
-      items: [
-        {
-          title: "Outbound",
-          url: "/analytics/outbound",
-        },
-      ],
-    },
-    {
-      title: "Contacts",
-      url: "#",
-      icon: Users,
-      items: [
-        {
-          title: "All Contacts",
-          url: "/contacts/all",
-        },
-        {
-          title: "Converted",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Messages",
-      url: "#",
-      icon: MessageSquare,
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "User Settings",
-          url: "/settings",
-        },
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "/settings/team",
-        },
-        {
-          title: "Integrations",
-          url: "/settings/integrations",
-        },
-      ],
-    },
-]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, accounts, switchAccount } = useAuth()
@@ -128,105 +70,65 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   }
 
-  // Build navigation items based on user role
-  const navigationItems = React.useMemo(() => {
-    const items = [...navMain]
+  // Build navigation sections based on user permissions
+  const sections = React.useMemo(() => {
+    const dashboardItems = [
+      { title: "Dashboard", url: "/", icon: BarChart3, isActive: true },
+    ]
 
-    // Add admin-only nav items (role === 0)
-    if (user?.role === 0) {
-      items.splice(1, 0,
-        {
-          title: "Clients",
-          url: "#",
-          icon: UserPlus,
-          items: [
-            {
-              title: "New Client",
-              url: "/clients/new",
-            },
-            {
-              title: "Clients Overview",
-              url: "/clients",
-            },
-          ],
-        },
-        {
-          title: "Data Migration",
-          url: "/data-migration",
-          icon: Database,
-        },
-      )
-    }
+    const acquisitionItems = user?.has_outbound ? [
+      { title: "Scraper", url: "/scraper", icon: Search },
+      { title: "Deep Scraper", url: "/deep-scraper", icon: ScanSearch },
+      { title: "Upload", url: "/contacts/upload", icon: Upload },
+      { title: "Prompts", url: "/prompts", icon: MessageSquareText },
+    ] : []
 
-    // Add outbound nav items for users with outbound access
-    if (user?.has_outbound) {
-      items.splice(user?.role === 0 ? 2 : 1, 0,
-        {
-          title: "Outbound",
-          url: "#",
-          icon: Send,
-          items: [
-            {
-              title: "Campaigns",
-              url: "/campaigns",
-            },
-            {
-              title: "Leads",
-              url: "/outbound-leads",
-            },
-            {
-              title: "Accounts",
-              url: "/outbound-accounts",
-            },
-            {
-              title: "Prompts",
-              url: "/prompts",
-            },
-            {
-              title: "Comment Post",
-              url: "/comment-post",
-            },
-            {
-              title: "Scraper",
-              url: "/scraper",
-            },
-            {
-              title: "Deep Scraper",
-              url: "/deep-scraper",
-            },
-            {
-              title: "Upload",
-              url: "/contacts/upload",
-            },
-          ],
-        },
-      )
-    }
+    const outboundItems = user?.has_outbound ? [
+      { title: "Leads", url: "/outbound-leads", icon: Users },
+      { title: "Campaigns", url: "/campaigns", icon: Send },
+      { title: "Accounts", url: "/outbound-accounts", icon: Building2 },
+      { title: "Analytics", url: "/analytics/outbound", icon: TrendingUp },
+    ] : []
 
-    // Add research nav items for users with research access
-    if (user?.has_research) {
-      // Insert before Settings (last item)
-      items.splice(items.length - 1, 0,
-        {
-          title: "Research",
-          url: "#",
-          icon: Telescope,
-          items: [
-            { title: "Overview", url: "/research" },
-            { title: "Scraper", url: "/deep-scraper" },
-            { title: "Competitors", url: "/research/competitors" },
-            { title: "Posts Library", url: "/research/posts" },
-            { title: "Comments Intel", url: "/research/comments" },
-            { title: "Lead Magnets", url: "/research/lead-magnets" },
-            { title: "Ideas Bank", url: "/research/ideas" },
-            { title: "Alerts", url: "/research/alerts" },
-            { title: "Reports", url: "/research/reports" },
-          ],
-        },
-      )
-    }
+    const researchItems = user?.has_research ? [
+      {
+        title: "Research",
+        url: "#",
+        icon: Telescope,
+        items: [
+          { title: "Overview", url: "/research" },
+          { title: "Scraper", url: "/deep-scraper" },
+          { title: "Competitors", url: "/research/competitors" },
+          { title: "Posts Library", url: "/research/posts" },
+          { title: "Comments Intel", url: "/research/comments" },
+          { title: "Lead Magnets", url: "/research/lead-magnets" },
+          { title: "Ideas Bank", url: "/research/ideas" },
+          { title: "Alerts", url: "/research/alerts" },
+          { title: "Reports", url: "/research/reports" },
+        ],
+      },
+    ] : []
 
-    return items
+    const workspaceItems = [
+      { title: "Settings", url: "/settings", icon: Settings2 },
+      { title: "Team", url: "/settings/team", icon: UsersRound },
+      { title: "Integrations", url: "/settings/integrations", icon: Plug },
+    ]
+
+    const adminItems = user?.role === 0 ? [
+      {
+        title: "Clients",
+        url: "#",
+        icon: UserPlus,
+        items: [
+          { title: "New Client", url: "/clients/new" },
+          { title: "Clients Overview", url: "/clients" },
+        ],
+      },
+      { title: "Data Migration", url: "/data-migration", icon: Database },
+    ] : []
+
+    return { dashboardItems, acquisitionItems, outboundItems, researchItems, workspaceItems, adminItems }
   }, [user?.role, user?.has_outbound, user?.has_research])
 
   return (
@@ -283,7 +185,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarHeader>
       )}
       <SidebarContent>
-        <NavMain items={navigationItems} />
+        <NavMain items={sections.dashboardItems} />
+        {sections.acquisitionItems.length > 0 && (
+          <NavMain label="Acquisition" items={sections.acquisitionItems} />
+        )}
+        {sections.outboundItems.length > 0 && (
+          <NavMain label="Outbound" items={sections.outboundItems} />
+        )}
+        {sections.researchItems.length > 0 && (
+          <NavMain items={sections.researchItems} />
+        )}
+        <NavMain label="Workspace" items={sections.workspaceItems} />
+        {sections.adminItems.length > 0 && (
+          <NavMain label="Admin" items={sections.adminItems} />
+        )}
       </SidebarContent>
       <SidebarFooter>
         {isAdmin && (

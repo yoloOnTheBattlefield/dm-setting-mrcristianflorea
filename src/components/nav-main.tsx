@@ -20,8 +20,10 @@ import {
 } from "@/components/ui/sidebar"
 
 export function NavMain({
+  label,
   items,
 }: {
+  label?: string
   items: {
     title: string
     url: string
@@ -38,7 +40,7 @@ export function NavMain({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      {label && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
       <SidebarMenu>
         {items.map((item) => {
           // Auto-open sections that contain the current route
