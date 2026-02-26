@@ -169,6 +169,7 @@ export default function CampaignDetail() {
   const [savePromptName, setSavePromptName] = useState("");
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [showAiModal, setShowAiModal] = useState(false);
+  const [genScope, setGenScope] = useState<"unsent" | "without_message">("unsent");
   const [showSendersModal, setShowSendersModal] = useState(false);
   const [showDuplicate, setShowDuplicate] = useState(false);
   const [dupLeadFilter, setDupLeadFilter] = useState("all");
@@ -355,9 +356,12 @@ export default function CampaignDetail() {
     );
   }
 
-  const s = stats || { total: 0, pending: 0, queued: 0, sent: 0, replied: 0, booked: 0, failed: 0, skipped: 0 };
+  const s = stats || { total: 0, pending: 0, queued: 0, sent: 0, replied: 0, booked: 0, failed: 0, skipped: 0, without_message: 0 };
   const processed = (s.sent || 0) + (s.failed || 0) + (s.skipped || 0);
   const progressPct = s.total > 0 ? Math.round((processed / s.total) * 100) : 0;
+  const unsentCount = s.total - (s.sent || 0) - (s.delivered || 0) - (s.replied || 0);
+  const withoutMessageCount = s.without_message ?? 0;
+  const scopeCount = genScope === "unsent" ? unsentCount : withoutMessageCount;
 
   const badge = STATUS_BADGE[campaign.status] || STATUS_BADGE.draft;
   const canStartPause = campaign.status !== "completed";
@@ -1027,12 +1031,27 @@ export default function CampaignDetail() {
                 <BookmarkPlus className="h-3.5 w-3.5 mr-1" />
                 Save As New
               </Button>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground font-medium">Generation scope</Label>
+              <RadioGroup value={genScope} onValueChange={(v) => setGenScope(v as "unsent" | "without_message")} className="space-y-1.5">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="unsent" id="scope-unsent" />
+                  <Label htmlFor="scope-unsent" className="text-sm font-normal">All unsent leads ({unsentCount})</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="without_message" id="scope-without-message" />
+                  <Label htmlFor="scope-without-message" className="text-sm font-normal">Leads without message ({withoutMessageCount})</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
                 onClick={() => {
                   if (!campaignId || !aiPrompt.trim()) return;
                   generateMutation.mutate(
-                    { campaignId, prompt: aiPrompt.trim() },
+                    { campaignId, prompt: aiPrompt.trim(), scope: genScope },
                     {
                       onSuccess: (data) => {
                         setGenProgress({ progress: 0, total: data.total });
@@ -1044,14 +1063,14 @@ export default function CampaignDetail() {
                     },
                   );
                 }}
-                disabled={!aiPrompt.trim() || generateMutation.isPending || campaign.ai_personalization?.status === "generating"}
+                disabled={!aiPrompt.trim() || scopeCount === 0 || generateMutation.isPending || campaign.ai_personalization?.status === "generating"}
               >
                 {generateMutation.isPending || campaign.ai_personalization?.status === "generating" ? (
                   <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
                 ) : (
                   <Sparkles className="h-3.5 w-3.5 mr-1" />
                 )}
-                Generate for {s.pending} lead{s.pending !== 1 ? "s" : ""}
+                Generate for {scopeCount} lead{scopeCount !== 1 ? "s" : ""}
               </Button>
               <Button
                 variant="outline"

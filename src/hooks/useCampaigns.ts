@@ -23,6 +23,7 @@ export interface CampaignStats {
   booked: number;
   failed: number;
   skipped: number;
+  without_message: number;
 }
 
 export interface CampaignAIPersonalization {
@@ -519,11 +520,11 @@ export function useSaveAIPrompt() {
 export function useGenerateMessages() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, prompt }: { campaignId: string; prompt: string }) => {
+    mutationFn: async ({ campaignId, prompt, scope }: { campaignId: string; prompt: string; scope: string }) => {
       const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/generate-messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, scope }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
