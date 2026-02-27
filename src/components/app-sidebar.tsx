@@ -30,12 +30,14 @@ import {
 import { useAuth } from "@/contexts/AuthContext"
 import { useAdminView } from "@/contexts/AdminViewContext"
 import { useToast } from "@/hooks/use-toast"
+import { useQueryClient } from "@tanstack/react-query"
 
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, accounts, switchAccount } = useAuth()
   const { viewAll, toggleViewAll } = useAdminView()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const isAdmin = user?.role === 0
 
   const userData = {
@@ -51,6 +53,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (accountId === user?.account_id) return
     try {
       await switchAccount(accountId)
+      queryClient.clear()
       toast({ title: "Account switched", description: "You are now viewing a different account." })
     } catch {
       toast({ title: "Switch failed", description: "Could not switch accounts.", variant: "destructive" })

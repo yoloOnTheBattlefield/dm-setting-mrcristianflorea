@@ -564,6 +564,28 @@ export function useGenerateMessages() {
   });
 }
 
+export function usePreviewMessage() {
+  return useMutation({
+    mutationFn: async ({ campaignId, prompt, provider }: { campaignId: string; prompt: string; provider?: string }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/preview-message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, provider }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json() as Promise<{
+        lead_name: string;
+        lead_username: string | null;
+        lead_bio: string | null;
+        generated_message: string | null;
+      }>;
+    },
+  });
+}
+
 export function useRegenerateLeadMessage() {
   const qc = useQueryClient();
   return useMutation({

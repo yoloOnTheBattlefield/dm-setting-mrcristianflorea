@@ -59,6 +59,11 @@ export default function Integrations() {
   const [savedClaudeToken, setSavedClaudeToken] = useState("");
   const [isSavingClaude, setIsSavingClaude] = useState(false);
 
+  // Gemini token state
+  const [geminiToken, setGeminiToken] = useState("");
+  const [savedGeminiToken, setSavedGeminiToken] = useState("");
+  const [isSavingGemini, setIsSavingGemini] = useState(false);
+
   // Apify tokens (multi-token)
   const { data: apifyTokensData, isLoading: apifyTokensLoading } = useApifyTokens();
   const hasApifyTokens = (apifyTokensData?.tokens?.length ?? 0) > 0;
@@ -107,6 +112,10 @@ export default function Integrations() {
         if (data?.claude_token) {
           setClaudeToken(data.claude_token);
           setSavedClaudeToken(data.claude_token);
+        }
+        if (data?.gemini_token) {
+          setGeminiToken(data.gemini_token);
+          setSavedGeminiToken(data.gemini_token);
         }
         if (data?.calendly_token) {
           setCalendlyConnected(true);
@@ -166,6 +175,32 @@ export default function Integrations() {
   };
 
   const claudeTokenChanged = claudeToken.trim() !== savedClaudeToken;
+
+  const handleSaveGeminiToken = async () => {
+    if (!user?.id) return;
+    setIsSavingGemini(true);
+    try {
+      const response = await fetchWithAuth(`${ACCOUNTS_API_URL}/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gemini_token: geminiToken.trim() || null }),
+      });
+      if (response.ok) {
+        const trimmed = geminiToken.trim();
+        setSavedGeminiToken(trimmed);
+        toast({ title: "Saved", description: trimmed ? "Gemini API key updated." : "Gemini API key removed." });
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast({ title: "Error", description: data.error || "Failed to save API key", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
+    } finally {
+      setIsSavingGemini(false);
+    }
+  };
+
+  const geminiTokenChanged = geminiToken.trim() !== savedGeminiToken;
 
   const handleAddApifyToken = async () => {
     const token = newApifyToken.trim();
@@ -357,6 +392,50 @@ export default function Integrations() {
               disabled={isSavingClaude || !claudeTokenChanged}
             >
               {isSavingClaude ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gemini API Key */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Gemini API Key</CardTitle>
+              <CardDescription>
+                Provide your own Gemini API key for AI-powered features.
+              </CardDescription>
+            </div>
+            {savedGeminiToken && (
+              <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                Connected
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="gemini-token">API Key</Label>
+            <Input
+              id="gemini-token"
+              type="password"
+              placeholder="AIza..."
+              value={geminiToken}
+              onChange={(e) => setGeminiToken(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {savedGeminiToken ? "Custom key active" : "No key configured"}
+            </p>
+            <Button
+              size="sm"
+              onClick={handleSaveGeminiToken}
+              disabled={isSavingGemini || !geminiTokenChanged}
+            >
+              {isSavingGemini ? "Saving..." : "Save"}
             </Button>
           </div>
         </CardContent>
