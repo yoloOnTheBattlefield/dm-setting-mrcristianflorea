@@ -106,6 +106,8 @@ import {
   Search,
   CalendarCheck,
   Link,
+  Eye,
+  X,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -155,6 +157,7 @@ export default function CampaignDetail() {
   const recalcMutation = useRecalcCampaignStats();
   const statusMutation = useUpdateCampaignLeadStatus();
   const generateMutation = useGenerateMessages();
+  const previewMutation = usePreviewMessage();
   const regenerateMutation = useRegenerateLeadMessage();
   const editMessageMutation = useEditLeadMessage();
   const clearMessagesMutation = useClearMessages();
@@ -175,6 +178,12 @@ export default function CampaignDetail() {
   const [showAiModal, setShowAiModal] = useState(false);
   const [genScope, setGenScope] = useState<"unsent" | "without_message">("unsent");
   const [aiProvider, setAiProvider] = useState<"openai" | "claude" | "gemini">("openai");
+  const [previewResult, setPreviewResult] = useState<{
+    lead_name: string;
+    lead_username: string | null;
+    lead_bio: string | null;
+    generated_message: string | null;
+  } | null>(null);
   const [showSendersModal, setShowSendersModal] = useState(false);
   const [showDuplicate, setShowDuplicate] = useState(false);
   const [dupLeadFilter, setDupLeadFilter] = useState("all");
@@ -988,7 +997,7 @@ export default function CampaignDetail() {
       </Dialog>
 
       {/* AI Personalization Modal */}
-      <Dialog open={showAiModal} onOpenChange={setShowAiModal}>
+      <Dialog open={showAiModal} onOpenChange={(open) => { setShowAiModal(open); if (!open) setPreviewResult(null); }}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1148,6 +1157,31 @@ export default function CampaignDetail() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!campaignId || !aiPrompt.trim()) return;
+                  setPreviewResult(null);
+                  previewMutation.mutate(
+                    { campaignId, prompt: aiPrompt.trim(), provider: aiProvider },
+                    {
+                      onSuccess: (data) => setPreviewResult(data),
+                      onError: (err) => {
+                        toast({ title: "Preview Failed", description: err instanceof Error ? err.message : "Failed to preview", variant: "destructive" });
+                      },
+                    },
+                  );
+                }}
+                disabled={!aiPrompt.trim() || previewMutation.isPending || campaign.ai_personalization?.status === "generating"}
+              >
+                {previewMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Eye className="h-3.5 w-3.5 mr-1" />
+                )}
+                {previewMutation.isPending ? "Previewing..." : "Preview"}
+              </Button>
+              <Button
                 size="sm"
                 onClick={() => {
                   if (!campaignId || !aiPrompt.trim()) return;
@@ -1192,6 +1226,32 @@ export default function CampaignDetail() {
                 Clear All Messages
               </Button>
             </div>
+            {previewResult && (
+              <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground">
+                    Preview for: <span className="font-medium text-foreground">
+                      {previewResult.lead_name}
+                      {previewResult.lead_username && ` (@${previewResult.lead_username})`}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => setPreviewResult(null)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                {previewResult.lead_bio && (
+                  <p className="text-xs text-muted-foreground italic">Bio: {previewResult.lead_bio}</p>
+                )}
+                <div className="rounded-md bg-background border p-3 text-sm whitespace-pre-wrap">
+                  {previewResult.generated_message || "No message generated."}
+                </div>
+              </div>
+            )}
             {(genProgress || campaign.ai_personalization?.status === "generating") && (
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground">
