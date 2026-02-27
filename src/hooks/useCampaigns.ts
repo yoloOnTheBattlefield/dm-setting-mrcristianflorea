@@ -545,11 +545,11 @@ export function useSaveAIPrompt() {
 export function useGenerateMessages() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, prompt, scope }: { campaignId: string; prompt: string; scope: string }) => {
+    mutationFn: async ({ campaignId, prompt, scope, provider }: { campaignId: string; prompt: string; scope: string; provider?: string }) => {
       const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/generate-messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, scope }),
+        body: JSON.stringify({ prompt, scope, provider }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -566,11 +566,11 @@ export function useGenerateMessages() {
 export function useRegenerateLeadMessage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, leadId, prompt }: { campaignId: string; leadId: string; prompt?: string }) => {
+    mutationFn: async ({ campaignId, leadId, prompt, provider }: { campaignId: string; leadId: string; prompt?: string; provider?: string }) => {
       const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/${leadId}/regenerate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, provider }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
