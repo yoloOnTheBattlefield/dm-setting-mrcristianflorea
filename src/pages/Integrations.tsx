@@ -54,6 +54,11 @@ export default function Integrations() {
   const [savedOpenaiToken, setSavedOpenaiToken] = useState("");
   const [isSavingOpenai, setIsSavingOpenai] = useState(false);
 
+  // Claude token state
+  const [claudeToken, setClaudeToken] = useState("");
+  const [savedClaudeToken, setSavedClaudeToken] = useState("");
+  const [isSavingClaude, setIsSavingClaude] = useState(false);
+
   // Apify tokens (multi-token)
   const { data: apifyTokensData, isLoading: apifyTokensLoading } = useApifyTokens();
   const hasApifyTokens = (apifyTokensData?.tokens?.length ?? 0) > 0;
@@ -89,15 +94,19 @@ export default function Integrations() {
     }
   }, [trackingSettings?.tracking_conversion_rules]);
 
-  // Fetch current account data (openai_token, calendly_token)
+  // Fetch current account data (openai_token, claude_token, calendly_token)
   useEffect(() => {
     if (!user?.id) return;
-    fetchWithAuth(`${ACCOUNTS_API_URL}/${user.id}`)
+    fetchWithAuth(`${ACCOUNTS_API_URL}/me`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.openai_token) {
           setOpenaiToken(data.openai_token);
           setSavedOpenaiToken(data.openai_token);
+        }
+        if (data?.claude_token) {
+          setClaudeToken(data.claude_token);
+          setSavedClaudeToken(data.claude_token);
         }
         if (data?.calendly_token) {
           setCalendlyConnected(true);
@@ -131,6 +140,32 @@ export default function Integrations() {
   };
 
   const openaiTokenChanged = openaiToken.trim() !== savedOpenaiToken;
+
+  const handleSaveClaudeToken = async () => {
+    if (!user?.id) return;
+    setIsSavingClaude(true);
+    try {
+      const response = await fetchWithAuth(`${ACCOUNTS_API_URL}/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claude_token: claudeToken.trim() || null }),
+      });
+      if (response.ok) {
+        const trimmed = claudeToken.trim();
+        setSavedClaudeToken(trimmed);
+        toast({ title: "Saved", description: trimmed ? "Claude API key updated." : "Claude API key removed." });
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast({ title: "Error", description: data.error || "Failed to save API key", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
+    } finally {
+      setIsSavingClaude(false);
+    }
+  };
+
+  const claudeTokenChanged = claudeToken.trim() !== savedClaudeToken;
 
   const handleAddApifyToken = async () => {
     const token = newApifyToken.trim();
@@ -278,6 +313,50 @@ export default function Integrations() {
               disabled={isSavingOpenai || !openaiTokenChanged}
             >
               {isSavingOpenai ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Claude API Key */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Claude API Key</CardTitle>
+              <CardDescription>
+                Provide your own Claude API key for AI-powered features.
+              </CardDescription>
+            </div>
+            {savedClaudeToken && (
+              <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                Connected
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="claude-token">API Key</Label>
+            <Input
+              id="claude-token"
+              type="password"
+              placeholder="sk-ant-..."
+              value={claudeToken}
+              onChange={(e) => setClaudeToken(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {savedClaudeToken ? "Custom key active" : "No key configured"}
+            </p>
+            <Button
+              size="sm"
+              onClick={handleSaveClaudeToken}
+              disabled={isSavingClaude || !claudeTokenChanged}
+            >
+              {isSavingClaude ? "Saving..." : "Save"}
             </Button>
           </div>
         </CardContent>
