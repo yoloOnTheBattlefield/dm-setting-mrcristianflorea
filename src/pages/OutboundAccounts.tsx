@@ -75,6 +75,7 @@ import {
   ShieldEllipsis,
   Link2,
   Unlink,
+  Globe,
 } from "lucide-react";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
@@ -97,6 +98,7 @@ interface FormData {
   isBlacklisted: boolean;
   notes: string;
   twoFA: string;
+  hidemyacc_profile_id: string;
 }
 
 const DEFAULT_FORM: FormData = {
@@ -111,6 +113,7 @@ const DEFAULT_FORM: FormData = {
   isBlacklisted: false,
   notes: "",
   twoFA: "",
+  hidemyacc_profile_id: "",
 };
 
 export default function OutboundAccounts() {
@@ -153,6 +156,24 @@ export default function OutboundAccounts() {
   const stopWarmup = useStopWarmup();
   const toggleChecklist = useToggleChecklistItem();
 
+  // HideMyAcc profiles
+  const [hmaProfiles, setHmaProfiles] = useState<{ id: string; name: string }[]>([]);
+  const [hmaAvailable, setHmaAvailable] = useState(false);
+  const [openingBrowserId, setOpeningBrowserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:2268/profiles")
+      .then((r) => r.json())
+      .then((data) => {
+        const profiles = Array.isArray(data) ? data : data?.data ?? [];
+        setHmaProfiles(profiles.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
+        setHmaAvailable(true);
+      })
+      .catch(() => {
+        setHmaAvailable(false);
+      });
+  }, []);
+
   const { data, isLoading } = useOutboundAccounts({
     page: currentPage,
     limit,
@@ -193,6 +214,7 @@ export default function OutboundAccounts() {
       isBlacklisted: account.isBlacklisted,
       notes: account.notes || "",
       twoFA: account.twoFA || "",
+      hidemyacc_profile_id: account.hidemyacc_profile_id || "",
     });
     setDialogOpen(true);
   };
@@ -224,6 +246,7 @@ export default function OutboundAccounts() {
             isBlacklisted: form.isBlacklisted,
             notes: form.notes || null,
             twoFA: form.twoFA || null,
+            hidemyacc_profile_id: form.hidemyacc_profile_id || null,
           },
         });
         toast({ title: "Updated", description: `@${form.username} updated.` });
@@ -240,6 +263,7 @@ export default function OutboundAccounts() {
           isBlacklisted: form.isBlacklisted,
           notes: form.notes || undefined,
           twoFA: form.twoFA || undefined,
+          hidemyacc_profile_id: form.hidemyacc_profile_id || undefined,
         });
         toast({ title: "Added", description: `@${form.username} added to vault.` });
       }
@@ -558,6 +582,32 @@ export default function OutboundAccounts() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
+                              {a.hidemyacc_profile_id && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Open HideMyAcc Browser"
+                                  disabled={openingBrowserId === a._id}
+                                  onClick={async () => {
+                                    setOpeningBrowserId(a._id);
+                                    try {
+                                      const res = await fetch(`http://127.0.0.1:2268/profiles/start/${a.hidemyacc_profile_id}`, { method: "POST" });
+                                      if (!res.ok) throw new Error("Failed to start profile");
+                                      toast({ title: "Browser opened", description: `HideMyAcc profile started for @${a.username}` });
+                                    } catch {
+                                      toast({ title: "Error", description: "Failed to open browser — is HideMyAcc running?", variant: "destructive" });
+                                    } finally {
+                                      setOpeningBrowserId(null);
+                                    }
+                                  }}
+                                >
+                                  {openingBrowserId === a._id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Globe className="h-3.5 w-3.5 text-blue-400" />
+                                  )}
+                                </Button>
+                              )}
                               {a.warmup?.enabled ? (
                                 <Button
                                   variant="ghost"
@@ -760,6 +810,32 @@ export default function OutboundAccounts() {
                 onChange={(e) => setForm((p) => ({ ...p, twoFA: e.target.value }))}
                 placeholder="2FA secret or backup code"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>HideMyAcc Profile <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              {hmaAvailable ? (
+                <Select
+                  value={form.hidemyacc_profile_id || "none"}
+                  onValueChange={(v) => setForm((p) => ({ ...p, hidemyacc_profile_id: v === "none" ? "" : v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {hmaProfiles.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={form.hidemyacc_profile_id}
+                  onChange={(e) => setForm((p) => ({ ...p, hidemyacc_profile_id: e.target.value }))}
+                  placeholder="Profile ID (HideMyAcc not detected)"
+                />
+              )}
             </div>
 
             <div className="flex gap-6">

@@ -15,6 +15,7 @@ export interface OutboundAccount {
   isBlacklisted: boolean;
   notes: string | null;
   twoFA: string | null;
+  hidemyacc_profile_id: string | null;
   browser_token: string | null;
   linked_sender_status: "online" | "offline" | "restricted" | null;
   warmup?: {
@@ -93,6 +94,7 @@ export function useCreateOutboundAccount() {
       isBlacklisted?: boolean;
       notes?: string;
       twoFA?: string;
+      hidemyacc_profile_id?: string;
     }) => {
       const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts`, {
         method: "POST",
