@@ -97,6 +97,7 @@ export interface CampaignLead {
   error: string | null;
   manually_overridden?: boolean;
   custom_message?: string | null;
+  ai_provider?: string | null;
   createdAt: string;
 }
 
