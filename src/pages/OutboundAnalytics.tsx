@@ -1,10 +1,18 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import {
   useOutboundFunnel,
   useMessageAnalytics,
   useSenderAnalytics,
   useCampaignAnalytics,
+  useDailyActivity,
+  useResponseSpeed,
+  useConversationDepth,
+  useAIModelAnalytics,
+  useEditedComparison,
+  useTimeOfDay,
+  useEffortOutcome,
+  useTrendOverTime,
 } from "@/hooks/useOutboundAnalytics";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,7 +45,22 @@ import {
   CalendarCheck,
   DollarSign,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  ArrowUpDown,
 } from "lucide-react";
+
+// New components
+import { ActivityHeatmap } from "@/components/outbound-analytics/ActivityHeatmap";
+import { DailyPerformanceChart } from "@/components/outbound-analytics/DailyPerformanceChart";
+import { FunnelDropoff } from "@/components/outbound-analytics/FunnelDropoff";
+import { ResponseSpeedPanel } from "@/components/outbound-analytics/ResponseSpeedPanel";
+import { ConversationDepthMetrics } from "@/components/outbound-analytics/ConversationDepthMetrics";
+import { AIModelComparison } from "@/components/outbound-analytics/AIModelComparison";
+import { EditedComparison } from "@/components/outbound-analytics/EditedComparison";
+import { TimeOfDayHeatmap } from "@/components/outbound-analytics/TimeOfDayHeatmap";
+import { EffortOutcomePanel } from "@/components/outbound-analytics/EffortOutcomePanel";
+import { TrendOverTime } from "@/components/outbound-analytics/TrendOverTime";
 
 function rateColor(rate: number | undefined | null) {
   if (rate == null) return "text-muted-foreground";
@@ -55,10 +78,26 @@ function pct(a: number, b: number) {
   return `${((a / b) * 100).toFixed(1)}%`;
 }
 
+type MessageSortField = "reply_rate" | "book_rate";
+type SortDir = "asc" | "desc";
+
 export default function OutboundAnalytics() {
   const { user } = useAuth();
   const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>("ob-analytics-dateRange", "all");
   const [campaignId, setCampaignId] = usePersistedState<string>("ob-analytics-campaign", "all");
+  const [senderFilter, setSenderFilter] = usePersistedState<string>("ob-analytics-sender", "all");
+
+  // Collapsible sections
+  const [showHeatmap, setShowHeatmap] = useState(true);
+  const [showDailyChart, setShowDailyChart] = useState(true);
+  const [showResponseSpeed, setShowResponseSpeed] = useState(true);
+  const [showConversationDepth, setShowConversationDepth] = useState(true);
+  const [showEffort, setShowEffort] = useState(true);
+  const [showTrend, setShowTrend] = useState(true);
+
+  // Message tab sorting
+  const [msgSortField, setMsgSortField] = useState<MessageSortField>("reply_rate");
+  const [msgSortDir, setMsgSortDir] = useState<SortDir>("desc");
 
   const endDate = useMemo(() => {
     if (dateRange === "all") return undefined;
@@ -73,24 +112,56 @@ export default function OutboundAnalytics() {
   }, [dateRange]);
 
   const cid = campaignId === "all" ? undefined : campaignId;
+  const filterParams = { start_date: startDate, end_date: endDate, campaign_id: cid };
 
   // Campaigns for filter dropdown
   const { data: campaignsData } = useCampaigns({ limit: 100 });
   const campaigns = campaignsData?.campaigns || [];
 
-  // Analytics queries
-  const { data: funnel, isLoading: funnelLoading } = useOutboundFunnel({
-    start_date: startDate,
-    end_date: endDate,
-    campaign_id: cid,
-  });
+  // Core analytics queries
+  const { data: funnel, isLoading: funnelLoading } = useOutboundFunnel(filterParams);
   const { data: messagesData, isLoading: messagesLoading } = useMessageAnalytics({ campaign_id: cid });
   const { data: sendersData, isLoading: sendersLoading } = useSenderAnalytics({ campaign_id: cid });
   const { data: campaignsAnalytics, isLoading: campaignsAnalyticsLoading } = useCampaignAnalytics();
 
+  // New analytics queries
+  const { data: dailyData } = useDailyActivity(filterParams);
+  const { data: responseSpeedData } = useResponseSpeed(filterParams);
+  const { data: conversationDepthData } = useConversationDepth(filterParams);
+  const { data: aiModelsData, isLoading: aiModelsLoading } = useAIModelAnalytics({
+    ...filterParams,
+    sender_id: senderFilter === "all" ? undefined : senderFilter,
+  });
+  const { data: editedData } = useEditedComparison(filterParams);
+  const { data: todData } = useTimeOfDay(filterParams);
+  const { data: effortData } = useEffortOutcome(filterParams);
+  const { data: trendData } = useTrendOverTime(filterParams);
+
   const messages = messagesData?.messages || [];
   const senders = sendersData?.senders || [];
   const campaignPerf = campaignsAnalytics?.campaigns || [];
+  const dailyDays = dailyData?.days || [];
+  const aiModels = aiModelsData?.models || [];
+  const todHours = todData?.hours || [];
+  const trends = trendData?.trends || [];
+
+  // Sorted messages for template performance
+  const sortedMessages = useMemo(() => {
+    return [...messages].sort((a, b) => {
+      const aVal = a[msgSortField] ?? 0;
+      const bVal = b[msgSortField] ?? 0;
+      return msgSortDir === "desc" ? bVal - aVal : aVal - bVal;
+    });
+  }, [messages, msgSortField, msgSortDir]);
+
+  function handleMsgSort(field: MessageSortField) {
+    if (msgSortField === field) {
+      setMsgSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setMsgSortField(field);
+      setMsgSortDir("desc");
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -133,9 +204,10 @@ export default function OutboundAnalytics() {
             <TabsTrigger value="messages">Messages</TabsTrigger>
             <TabsTrigger value="senders">Senders</TabsTrigger>
             <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+            <TabsTrigger value="ai-models">AI Models</TabsTrigger>
           </TabsList>
 
-          {/* Tab 1: Funnel */}
+          {/* ─── Tab 1: Funnel ─── */}
           <TabsContent value="funnel">
             {funnelLoading ? (
               <DashboardSkeleton />
@@ -202,11 +274,75 @@ export default function OutboundAnalytics() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Funnel Drop-Off */}
+                <FunnelDropoff data={funnel} />
+
+                {/* Activity Heatmap - Collapsible */}
+                <CollapsibleSection
+                  title="Activity Heatmap"
+                  open={showHeatmap}
+                  onToggle={() => setShowHeatmap(!showHeatmap)}
+                >
+                  <ActivityHeatmap data={dailyDays} />
+                </CollapsibleSection>
+
+                {/* Daily Performance Chart - Collapsible */}
+                <CollapsibleSection
+                  title="Daily Performance"
+                  open={showDailyChart}
+                  onToggle={() => setShowDailyChart(!showDailyChart)}
+                >
+                  <DailyPerformanceChart data={dailyDays} />
+                </CollapsibleSection>
+
+                {/* Trend Over Time */}
+                <CollapsibleSection
+                  title="Rolling Performance Trends"
+                  open={showTrend}
+                  onToggle={() => setShowTrend(!showTrend)}
+                >
+                  <TrendOverTime data={trends} />
+                </CollapsibleSection>
+
+                {/* Response Speed + Conversation Depth - side by side */}
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <CollapsibleSection
+                    title="Response Speed"
+                    open={showResponseSpeed}
+                    onToggle={() => setShowResponseSpeed(!showResponseSpeed)}
+                  >
+                    {responseSpeedData && <ResponseSpeedPanel data={responseSpeedData} />}
+                  </CollapsibleSection>
+
+                  <CollapsibleSection
+                    title="Conversation Depth"
+                    open={showConversationDepth}
+                    onToggle={() => setShowConversationDepth(!showConversationDepth)}
+                  >
+                    {conversationDepthData && <ConversationDepthMetrics data={conversationDepthData} />}
+                  </CollapsibleSection>
+                </div>
+
+                {/* Effort vs Outcome + Edited Comparison + Time of Day */}
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <CollapsibleSection
+                    title="Effort vs Outcome"
+                    open={showEffort}
+                    onToggle={() => setShowEffort(!showEffort)}
+                  >
+                    {effortData && <EffortOutcomePanel data={effortData} />}
+                  </CollapsibleSection>
+
+                  {editedData && <EditedComparison data={editedData} />}
+
+                  {todHours.length > 0 && <TimeOfDayHeatmap data={todHours} />}
+                </div>
               </div>
             ) : null}
           </TabsContent>
 
-          {/* Tab 2: Messages */}
+          {/* ─── Tab 2: Messages (with Template Performance) ─── */}
           <TabsContent value="messages">
             {messagesLoading ? (
               <DashboardSkeleton />
@@ -216,23 +352,39 @@ export default function OutboundAnalytics() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Campaign</TableHead>
-                      <TableHead className="w-[35%]">Template</TableHead>
+                      <TableHead className="w-[30%]">Template</TableHead>
                       <TableHead className="text-right">Sent</TableHead>
                       <TableHead className="text-right">Replied</TableHead>
-                      <TableHead className="text-right">Reply Rate</TableHead>
+                      <TableHead
+                        className="text-right cursor-pointer select-none hover:text-foreground"
+                        onClick={() => handleMsgSort("reply_rate")}
+                      >
+                        <div className="flex items-center justify-end gap-1">
+                          Reply Rate
+                          <SortIndicator field="reply_rate" current={msgSortField} dir={msgSortDir} />
+                        </div>
+                      </TableHead>
                       <TableHead className="text-right">Converted</TableHead>
-                      <TableHead className="text-right">Conv. Rate</TableHead>
+                      <TableHead
+                        className="text-right cursor-pointer select-none hover:text-foreground"
+                        onClick={() => handleMsgSort("book_rate")}
+                      >
+                        <div className="flex items-center justify-end gap-1">
+                          Conv. Rate
+                          <SortIndicator field="book_rate" current={msgSortField} dir={msgSortDir} />
+                        </div>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {messages.length === 0 ? (
+                    {sortedMessages.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="h-24 text-center">
                           No message data available.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      messages.map((m, i) => (
+                      sortedMessages.map((m, i) => (
                         <TableRow key={i}>
                           <TableCell className="text-sm whitespace-nowrap">
                             <div className="flex items-center gap-2">
@@ -253,7 +405,7 @@ export default function OutboundAnalytics() {
                             {fmtRate(m.reply_rate)}
                           </TableCell>
                           <TableCell className="text-right">{m.booked ?? 0}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className={`text-right font-medium ${rateColor(m.book_rate)}`}>
                             {fmtRate(m.book_rate)}
                           </TableCell>
                         </TableRow>
@@ -265,7 +417,7 @@ export default function OutboundAnalytics() {
             )}
           </TabsContent>
 
-          {/* Tab 3: Senders */}
+          {/* ─── Tab 3: Senders ─── */}
           <TabsContent value="senders">
             {sendersLoading ? (
               <DashboardSkeleton />
@@ -313,7 +465,7 @@ export default function OutboundAnalytics() {
             )}
           </TabsContent>
 
-          {/* Tab 4: Campaigns */}
+          {/* ─── Tab 4: Campaigns ─── */}
           <TabsContent value="campaigns">
             {campaignsAnalyticsLoading ? (
               <DashboardSkeleton />
@@ -381,11 +533,40 @@ export default function OutboundAnalytics() {
               </div>
             )}
           </TabsContent>
+
+          {/* ─── Tab 5: AI Models ─── */}
+          <TabsContent value="ai-models">
+            <div className="space-y-4">
+              {/* Sender filter for AI Models tab */}
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col gap-1.5 w-52">
+                  <Label className="text-xs">Sender</Label>
+                  <Select value={senderFilter} onValueChange={setSenderFilter}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="All Senders" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Senders</SelectItem>
+                      {senders.map((s) => (
+                        <SelectItem key={s.sender_id} value={s.sender_id}>
+                          @{s.ig_username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <AIModelComparison data={aiModels} isLoading={aiModelsLoading} />
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
   );
 }
+
+// ─── Helper Components ───
 
 function FunnelCard({
   label,
@@ -409,5 +590,47 @@ function FunnelCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function CollapsibleSection({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2"
+      >
+        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        {title}
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
+function SortIndicator({
+  field,
+  current,
+  dir,
+}: {
+  field: string;
+  current: string;
+  dir: SortDir;
+}) {
+  if (field !== current) return <ArrowUpDown className="h-3 w-3 text-muted-foreground" />;
+  return dir === "desc" ? (
+    <ChevronDown className="h-3 w-3" />
+  ) : (
+    <ChevronUp className="h-3 w-3" />
   );
 }
