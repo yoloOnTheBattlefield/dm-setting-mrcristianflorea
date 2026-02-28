@@ -33,14 +33,9 @@ function formatTime(minutes: number): string {
 
 function modelDisplayName(model: string): string {
   const names: Record<string, string> = {
-    "gpt-4": "GPT-4",
-    "gpt-4o": "GPT-4o",
-    "gpt-4o-mini": "GPT-4o Mini",
-    "claude-sonnet": "Claude Sonnet",
-    "claude-haiku": "Claude Haiku",
-    "claude-opus": "Claude Opus",
-    "gemini-pro": "Gemini Pro",
-    "gemini-flash": "Gemini Flash",
+    openai: "OpenAI",
+    claude: "Claude",
+    gemini: "Gemini",
   };
   return names[model] || model;
 }
