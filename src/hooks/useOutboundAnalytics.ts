@@ -159,11 +159,10 @@ export interface ConversationDepthData {
 
 export interface AIModelPerformance {
   model: string;
+  provider: string;
   messages_sent: number;
   replied: number;
   reply_rate: number;
-  link_sent: number;
-  link_sent_rate: number;
   booked: number;
   booked_rate: number;
   avg_response_time_min: number;
