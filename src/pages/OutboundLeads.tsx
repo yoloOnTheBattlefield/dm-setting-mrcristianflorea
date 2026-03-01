@@ -676,9 +676,9 @@ export default function OutboundLeads() {
         </div>
       </div>
 
-      {/* Funnel */}
+      {/* Funnel – hidden on mobile */}
       {funnelStats && (
-        <div className="px-6 pt-4">
+        <div className="hidden md:block px-6 pt-4">
           <div className="flex items-center gap-2 w-full">
             <FunnelCard
               label="Total"
