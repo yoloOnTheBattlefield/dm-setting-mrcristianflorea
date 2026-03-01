@@ -537,8 +537,49 @@ export default function OutboundLeads() {
 
   return (
     <div className="flex flex-1 flex-col min-w-0">
-      {/* Sticky header with filters */}
-      <div className="sticky top-16 z-50 bg-background border-b border-border">
+      {/* ── Mobile sticky header ── */}
+      <div className="md:hidden sticky top-16 z-50 bg-background border-b border-border">
+        <div className="px-4 py-3 space-y-2">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search username or name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 h-9"
+            />
+          </div>
+          {/* Quick pill filters */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setRepliedFilter((v) => v === "true" ? "all" : "true")}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${repliedFilter === "true" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-foreground/30"}`}
+            >
+              Replied
+            </button>
+            <button
+              type="button"
+              onClick={() => setBookedFilter((v) => v === "true" ? "all" : "true")}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${bookedFilter === "true" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-foreground/30"}`}
+            >
+              Converted
+            </button>
+            <button
+              type="button"
+              onClick={() => setMessagedFilter((v) => v === "true" ? "all" : "true")}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${messagedFilter === "true" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-foreground/30"}`}
+            >
+              Messaged
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Desktop sticky header ── */}
+      <div className="hidden md:block sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4 space-y-3">
           {/* Row 1: Title + Import */}
           <div className="flex items-center justify-between">
