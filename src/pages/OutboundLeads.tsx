@@ -258,7 +258,7 @@ export default function OutboundLeads() {
 
   // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
