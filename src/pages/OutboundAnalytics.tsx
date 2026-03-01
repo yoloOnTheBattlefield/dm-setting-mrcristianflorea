@@ -39,7 +39,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Users,
   Send,
   MessageCircle,
   CalendarCheck,
@@ -120,9 +119,9 @@ export default function OutboundAnalytics() {
 
   // Core analytics queries
   const { data: funnel, isLoading: funnelLoading } = useOutboundFunnel(filterParams);
-  const { data: messagesData, isLoading: messagesLoading } = useMessageAnalytics({ campaign_id: cid });
-  const { data: sendersData, isLoading: sendersLoading } = useSenderAnalytics({ campaign_id: cid });
-  const { data: campaignsAnalytics, isLoading: campaignsAnalyticsLoading } = useCampaignAnalytics();
+  const { data: messagesData, isLoading: messagesLoading } = useMessageAnalytics(filterParams);
+  const { data: sendersData, isLoading: sendersLoading } = useSenderAnalytics(filterParams);
+  const { data: campaignsAnalytics, isLoading: campaignsAnalyticsLoading } = useCampaignAnalytics(filterParams);
 
   // New analytics queries
   const { data: dailyData } = useDailyActivity(filterParams);
@@ -216,15 +215,8 @@ export default function OutboundAnalytics() {
                 {/* Funnel cards */}
                 <div className="flex items-center gap-2">
                   <FunnelCard
-                    label="Total"
-                    value={funnel.total}
-                    icon={<Users className="h-4 w-4 text-blue-400" />}
-                  />
-                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <FunnelCard
                     label="Messaged"
                     value={funnel.messaged}
-                    sub={pct(funnel.messaged, funnel.total)}
                     icon={<Send className="h-4 w-4 text-violet-400" />}
                   />
                   <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -254,11 +246,7 @@ export default function OutboundAnalytics() {
                 <Card>
                   <CardContent className="py-4 px-6">
                     <h3 className="text-sm font-medium mb-3">Stage Conversion Rates</h3>
-                    <div className="grid grid-cols-4 gap-4 text-center">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Total → Messaged</p>
-                        <p className="text-lg font-bold">{pct(funnel.messaged, funnel.total)}</p>
-                      </div>
+                    <div className="grid grid-cols-3 gap-4 text-center">
                       <div>
                         <p className="text-xs text-muted-foreground">Messaged → Replied</p>
                         <p className="text-lg font-bold">{pct(funnel.replied, funnel.messaged)}</p>
@@ -268,8 +256,8 @@ export default function OutboundAnalytics() {
                         <p className="text-lg font-bold">{pct(funnel.booked, funnel.replied)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Overall (Total → Converted)</p>
-                        <p className="text-lg font-bold">{pct(funnel.booked, funnel.total)}</p>
+                        <p className="text-xs text-muted-foreground">Overall (Messaged → Converted)</p>
+                        <p className="text-lg font-bold">{pct(funnel.booked, funnel.messaged)}</p>
                       </div>
                     </div>
                   </CardContent>

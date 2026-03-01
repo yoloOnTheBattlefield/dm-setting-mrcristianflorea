@@ -17,11 +17,9 @@ interface FunnelStage {
 export function FunnelDropoff({ data }: FunnelDropoffProps) {
   const stages = useMemo(() => {
     const raw = [
-      { label: "Total", value: data.total },
-      { label: "Sent", value: data.messaged },
+      { label: "Messaged", value: data.messaged },
       { label: "Replied", value: data.replied },
-      { label: "Link Sent", value: data.booked }, // funnel includes link_sent if available
-      { label: "Booked", value: data.booked },
+      { label: "Converted", value: data.booked },
       { label: "Closed", value: data.contracts },
     ];
 

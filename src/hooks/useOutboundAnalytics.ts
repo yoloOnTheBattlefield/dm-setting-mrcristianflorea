@@ -4,7 +4,6 @@ import { API_URL, fetchWithAuth } from "@/lib/api";
 // --- Interfaces ---
 
 export interface OutboundFunnelData {
-  total: number;
   messaged: number;
   replied: number;
   booked: number;
@@ -72,14 +71,11 @@ export function useOutboundFunnel(params?: {
   });
 }
 
-export function useMessageAnalytics(params?: { campaign_id?: string }) {
+export function useMessageAnalytics(params?: AnalyticsParams) {
   return useQuery({
-    queryKey: ["analytics-messages", params?.campaign_id],
+    queryKey: ["analytics-messages", params?.start_date, params?.end_date, params?.campaign_id],
     queryFn: async (): Promise<{ messages: MessagePerformance[] }> => {
-      const sp = new URLSearchParams();
-      if (params?.campaign_id) sp.append("campaign_id", params.campaign_id);
-      const url = sp.toString() ? `${API_URL}/analytics/messages?${sp.toString()}` : `${API_URL}/analytics/messages`;
-      const res = await fetchWithAuth(url);
+      const res = await fetchWithAuth(buildUrl("/analytics/messages", params));
       if (!res.ok) throw new Error(`Failed to fetch message analytics: ${res.status}`);
       return res.json();
     },
@@ -88,14 +84,11 @@ export function useMessageAnalytics(params?: { campaign_id?: string }) {
   });
 }
 
-export function useSenderAnalytics(params?: { campaign_id?: string }) {
+export function useSenderAnalytics(params?: AnalyticsParams) {
   return useQuery({
-    queryKey: ["analytics-senders", params?.campaign_id],
+    queryKey: ["analytics-senders", params?.start_date, params?.end_date, params?.campaign_id],
     queryFn: async (): Promise<{ senders: SenderPerformance[] }> => {
-      const sp = new URLSearchParams();
-      if (params?.campaign_id) sp.append("campaign_id", params.campaign_id);
-      const url = sp.toString() ? `${API_URL}/analytics/senders?${sp.toString()}` : `${API_URL}/analytics/senders`;
-      const res = await fetchWithAuth(url);
+      const res = await fetchWithAuth(buildUrl("/analytics/senders", params));
       if (!res.ok) throw new Error(`Failed to fetch sender analytics: ${res.status}`);
       return res.json();
     },
@@ -104,11 +97,11 @@ export function useSenderAnalytics(params?: { campaign_id?: string }) {
   });
 }
 
-export function useCampaignAnalytics() {
+export function useCampaignAnalytics(params?: AnalyticsParams) {
   return useQuery({
-    queryKey: ["analytics-campaigns"],
+    queryKey: ["analytics-campaigns", params?.start_date, params?.end_date, params?.campaign_id],
     queryFn: async (): Promise<{ campaigns: CampaignPerformance[] }> => {
-      const res = await fetchWithAuth(`${API_URL}/analytics/campaigns`);
+      const res = await fetchWithAuth(buildUrl("/analytics/campaigns", params));
       if (!res.ok) throw new Error(`Failed to fetch campaign analytics: ${res.status}`);
       return res.json();
     },
