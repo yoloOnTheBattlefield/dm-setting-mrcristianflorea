@@ -266,6 +266,7 @@ export default function CampaignDetail() {
     : nextSend;
 
   const [leadStatusFilter, setLeadStatusFilter] = useState("all");
+  const [leadSenderFilter, setLeadSenderFilter] = useState("all");
   const [leadSearch, setLeadSearch] = useState("");
   const [leadSearchDebounced, setLeadSearchDebounced] = useState("");
   const [leadPage, setLeadPage] = useState(1);
@@ -273,13 +274,14 @@ export default function CampaignDetail() {
   const [confirmRemoveSelected, setConfirmRemoveSelected] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => { setLeadSearchDebounced(leadSearch); setLeadPage(1); }, 300);
+    const t = setTimeout(() => { setLeadSearchDebounced(leadSearch.trim()); setLeadPage(1); }, 300);
     return () => clearTimeout(t);
   }, [leadSearch]);
 
   const { data: leadsData, isLoading: leadsLoading } = useCampaignLeads(campaignId ?? null, {
     status: leadStatusFilter === "all" ? undefined : leadStatusFilter,
     search: leadSearchDebounced || undefined,
+    sender_id: leadSenderFilter === "all" ? undefined : leadSenderFilter,
     page: leadPage,
     limit: 50,
   });
@@ -612,6 +614,22 @@ export default function CampaignDetail() {
                   <SelectItem value="replied">Replied</SelectItem>
                   <SelectItem value="failed">Failed</SelectItem>
                   <SelectItem value="skipped">Skipped</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5 w-48">
+              <Label>Sender</Label>
+              <Select value={leadSenderFilter} onValueChange={(v) => { setLeadSenderFilter(v); setLeadPage(1); }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Senders" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Senders</SelectItem>
+                  {(sendersData?.senders ?? []).map((s) => (
+                    <SelectItem key={s._id ?? s.ig_username} value={s._id ?? s.ig_username}>
+                      {s.display_name ? `${s.display_name} (@${s.ig_username})` : `@${s.ig_username}`}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

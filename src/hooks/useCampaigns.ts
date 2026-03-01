@@ -207,14 +207,15 @@ export function useCampaignNextSend(campaignId: string | null, campaignStatus?: 
 
 export function useCampaignLeads(
   campaignId: string | null,
-  params: { status?: string; search?: string; page?: number; limit?: number }
+  params: { status?: string; search?: string; sender_id?: string; page?: number; limit?: number }
 ) {
   return useQuery({
-    queryKey: ["campaign-leads", campaignId, params.status, params.search, params.page, params.limit],
+    queryKey: ["campaign-leads", campaignId, params.status, params.search, params.sender_id, params.page, params.limit],
     queryFn: async (): Promise<CampaignLeadsResponse> => {
       const sp = new URLSearchParams();
       if (params.status) sp.append("status", params.status);
       if (params.search) sp.append("search", params.search);
+      if (params.sender_id) sp.append("sender_id", params.sender_id);
       if (params.page) sp.append("page", String(params.page));
       if (params.limit) sp.append("limit", String(params.limit));
       const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads?${sp.toString()}`);
