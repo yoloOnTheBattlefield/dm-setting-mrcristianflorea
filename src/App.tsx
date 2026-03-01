@@ -36,6 +36,7 @@ import LeadMagnetTracker from "./pages/research/LeadMagnetTracker";
 import IdeasBank from "./pages/research/IdeasBank";
 import ResearchAlerts from "./pages/research/Alerts";
 import ResearchReports from "./pages/research/Reports";
+import Landing from "./pages/Landing";
 import { LoginForm } from "@/components/login-form";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -230,6 +231,7 @@ const App = () => (
               <Route path="/research/reports" element={<ProtectedRoute><DashboardLayout><ResearchReports /></DashboardLayout></ProtectedRoute>} />
               <Route path="/comment-post" element={<ProtectedRoute><RequireOutbound><DashboardLayout><CommentPost /></DashboardLayout></RequireOutbound></ProtectedRoute>} />
               <Route path="/data-migration" element={<ProtectedRoute><DashboardLayout><DataMigration /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/landing" element={<Landing />} />
               <Route path="/login" element={
                 <div className="flex min-h-screen items-center justify-center">
                   <LoginForm />
