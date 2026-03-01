@@ -461,8 +461,19 @@ export default function CampaignDetail() {
 
   return (
     <div className="flex-1 p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Mobile Header */}
+      <div className="md:hidden space-y-1">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => navigate("/campaigns")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Badge className={badge.className}>{badge.label}</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground pl-1">{campaign.name}</p>
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden md:flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate("/campaigns")}>
             <ArrowLeft className="h-4 w-4 mr-1" />
@@ -504,7 +515,7 @@ export default function CampaignDetail() {
 
       {/* Stats */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="hidden md:flex items-center justify-between">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Performance</p>
           <Button
             variant="ghost"
@@ -533,8 +544,8 @@ export default function CampaignDetail() {
             subtitle={s.sent > 0 ? `${((s.booked || 0) / s.sent * 100).toFixed(1)}% of sent${(s.replied || 0) > 0 ? ` · ${((s.booked || 0) / (s.replied || 1) * 100).toFixed(1)}% of replies` : ""}` : undefined}
           />
         </div>
-        {/* Secondary metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Secondary metrics – desktop only */}
+        <div className="hidden md:grid grid-cols-4 gap-3">
           <SecondaryStatCard label="Total" value={s.total} icon={<ListTodo className="h-3.5 w-3.5" />} />
           <SecondaryStatCard label="Pending" value={s.pending} icon={<Clock className="h-3.5 w-3.5" />} />
           <SecondaryStatCard label="Failed" value={s.failed} icon={<XCircle className="h-3.5 w-3.5" />}
@@ -544,9 +555,9 @@ export default function CampaignDetail() {
         </div>
       </div>
 
-      {/* Senders – always visible regardless of campaign status */}
+      {/* Senders – desktop only */}
       {sendersData && (
-        <Card>
+        <Card className="hidden md:block">
           <CardContent className="py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -573,10 +584,12 @@ export default function CampaignDetail() {
         </Card>
       )}
 
-      {/* Next Send – only for active campaigns */}
-      {campaign.status === "active" && effectiveNextSend && (
-        <NextSendBar nextSend={effectiveNextSend} />
-      )}
+      {/* Next Send – desktop only, active campaigns */}
+      <div className="hidden md:block">
+        {campaign.status === "active" && effectiveNextSend && (
+          <NextSendBar nextSend={effectiveNextSend} />
+        )}
+      </div>
 
       {/* Progress */}
       <div className="space-y-1">
@@ -584,7 +597,7 @@ export default function CampaignDetail() {
           <span>Progress</span>
           <span>{processed} / {s.total} processed ({progressPct}%)</span>
         </div>
-        <Progress value={progressPct} className="h-3" />
+        <Progress value={progressPct} className="h-2 md:h-3" />
       </div>
 
       {/* Leads */}
