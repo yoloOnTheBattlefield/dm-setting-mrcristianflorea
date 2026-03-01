@@ -518,7 +518,7 @@ export default function CampaignDetail() {
           </Button>
         </div>
         {/* Primary metrics */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <PrimaryStatCard label="Sent" value={s.sent} icon={<Send className="h-4 w-4 text-green-400" />} className="text-green-400"
             subtitle={s.total > 0 ? `${((s.sent || 0) / s.total * 100).toFixed(1)}% of total` : undefined} />
           <PrimaryStatCard label="Replied" value={s.replied || 0} icon={<MessageSquare className="h-4 w-4 text-purple-400" />} className="text-purple-400"
@@ -534,7 +534,7 @@ export default function CampaignDetail() {
           />
         </div>
         {/* Secondary metrics */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <SecondaryStatCard label="Total" value={s.total} icon={<ListTodo className="h-3.5 w-3.5" />} />
           <SecondaryStatCard label="Pending" value={s.pending} icon={<Clock className="h-3.5 w-3.5" />} />
           <SecondaryStatCard label="Failed" value={s.failed} icon={<XCircle className="h-3.5 w-3.5" />}
