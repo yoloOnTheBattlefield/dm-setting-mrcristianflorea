@@ -17,10 +17,10 @@ interface FunnelStage {
 export function FunnelDropoff({ data }: FunnelDropoffProps) {
   const stages = useMemo(() => {
     const raw = [
-      { label: "Messaged", value: data.messaged },
-      { label: "Replied", value: data.replied },
-      { label: "Converted", value: data.booked },
-      { label: "Closed", value: data.contracts },
+      { label: "Messaged", value: data.messaged ?? 0 },
+      { label: "Replied", value: data.replied ?? 0 },
+      { label: "Converted", value: data.booked ?? 0 },
+      { label: "Closed", value: data.contracts ?? 0 },
     ];
 
     // Calculate drops
