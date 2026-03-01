@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Upload,
   Trash2,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -243,6 +244,17 @@ export default function OutboundLeads() {
   const [dmMessage, setDmMessage] = useState("");
   const [dmDate, setDmDate] = useState("");
   const [isSavingDm, setIsSavingDm] = useState(false);
+
+  // Mobile expanded card state
+  const [expandedLeadIds, setExpandedLeadIds] = useState<Set<string>>(new Set());
+  const toggleExpandLead = useCallback((id: string) => {
+    setExpandedLeadIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   // Debounce search
   useEffect(() => {
@@ -769,7 +781,148 @@ export default function OutboundLeads() {
               </div>
             )}
 
-            <div className={`rounded-lg border bg-card overflow-x-auto relative${isFetching && !showTableSkeleton ? " opacity-60 pointer-events-none" : ""}`}>
+            {/* ── Mobile card layout ── */}
+            <div className={`md:hidden space-y-2 relative${isFetching && !showTableSkeleton ? " opacity-60 pointer-events-none" : ""}`}>
+              {isFetching && !showTableSkeleton && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              {showTableSkeleton ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-lg border bg-card p-3 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <div className="flex gap-4">
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 w-4" />
+                    </div>
+                  </div>
+                ))
+              ) : leads.length === 0 ? (
+                <div className="rounded-lg border bg-card p-6 text-center text-muted-foreground">
+                  No outbound leads found.
+                </div>
+              ) : (
+                leads.map((lead) => {
+                  const isExpanded = expandedLeadIds.has(lead._id);
+                  return (
+                    <div
+                      key={lead._id}
+                      className={`rounded-lg border bg-card${selectAll || selectedIds.has(lead._id) ? " bg-muted" : ""}`}
+                    >
+                      {/* Primary row: checkbox, name, status ticks */}
+                      <div className="flex items-center gap-3 px-3 py-2.5">
+                        <Checkbox
+                          checked={selectAll || selectedIds.has(lead._id)}
+                          onCheckedChange={() => {
+                            if (selectAll) {
+                              setSelectAll(false);
+                              const next = new Set(leads.map((l) => l._id));
+                              next.delete(lead._id);
+                              setSelectedIds(next);
+                            } else {
+                              toggleSelectOne(lead._id);
+                            }
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <a
+                            href={lead.profileLink || `https://instagram.com/${lead.username}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-foreground hover:underline text-sm truncate block"
+                          >
+                            @{lead.username}
+                          </a>
+                          {lead.fullName && (
+                            <span className="text-xs text-muted-foreground truncate block">{lead.fullName}</span>
+                          )}
+                        </div>
+
+                        {/* Status ticks */}
+                        <div className="flex items-center gap-3 shrink-0">
+                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                            <Checkbox
+                              checked={!!lead.isMessaged}
+                              onCheckedChange={() => toggleMessaged(lead)}
+                            />
+                            <span className="text-[10px] text-muted-foreground leading-none">Sent</span>
+                          </label>
+                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                            <Checkbox
+                              checked={!!lead.replied}
+                              onCheckedChange={() => toggleField(lead, "replied")}
+                            />
+                            <span className="text-[10px] text-muted-foreground leading-none">Reply</span>
+                          </label>
+                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                            <Checkbox
+                              checked={!!lead.booked}
+                              onCheckedChange={() => toggleField(lead, "booked")}
+                            />
+                            <span className="text-[10px] text-muted-foreground leading-none">Conv</span>
+                          </label>
+                        </div>
+
+                        {/* Expand toggle */}
+                        <button
+                          type="button"
+                          onClick={() => toggleExpandLead(lead._id)}
+                          className="shrink-0 p-1 rounded hover:bg-muted"
+                        >
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform${isExpanded ? " rotate-180" : ""}`} />
+                        </button>
+                      </div>
+
+                      {/* Expanded details */}
+                      {isExpanded && (
+                        <div className="border-t px-3 py-2.5 space-y-2 text-sm">
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                            <div>
+                              <span className="text-muted-foreground">Followers</span>
+                              <p className="font-medium">{formatNumber(lead.followersCount)}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Source</span>
+                              <p><Badge variant="outline" className="text-xs">@{lead.source}</Badge></p>
+                            </div>
+                            {lead.promptLabel && (
+                              <div>
+                                <span className="text-muted-foreground">Prompt</span>
+                                <p><Badge variant="outline" className="text-xs">{lead.promptLabel}</Badge></p>
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-muted-foreground">Contract</span>
+                              <Input
+                                type="number"
+                                className="w-24 h-7 text-xs mt-0.5"
+                                placeholder="-"
+                                defaultValue={lead.contract_value ?? ""}
+                                onBlur={(e) => saveContractValue(lead, e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end pt-1">
+                            <Button variant="ghost" size="sm" onClick={() => openDmDialog(lead)}>
+                              <MessageSquare className="h-4 w-4 mr-1.5" />
+                              DM
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* ── Desktop table layout ── */}
+            <div className={`hidden md:block rounded-lg border bg-card overflow-x-auto relative${isFetching && !showTableSkeleton ? " opacity-60 pointer-events-none" : ""}`}>
               {isFetching && !showTableSkeleton && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">
                   <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
