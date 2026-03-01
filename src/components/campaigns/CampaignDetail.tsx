@@ -108,6 +108,7 @@ import {
   Link,
   Eye,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -272,6 +273,15 @@ export default function CampaignDetail() {
   const [leadPage, setLeadPage] = useState(1);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [confirmRemoveSelected, setConfirmRemoveSelected] = useState(false);
+  const [expandedLeadIds, setExpandedLeadIds] = useState<Set<string>>(new Set());
+  const toggleExpandLead = useCallback((id: string) => {
+    setExpandedLeadIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => { setLeadSearchDebounced(leadSearch.trim()); setLeadPage(1); }, 300);
@@ -602,7 +612,50 @@ export default function CampaignDetail() {
 
       {/* Leads */}
       <div className="space-y-3">
-        <div className="flex items-end justify-between">
+        {/* ── Mobile filters ── */}
+        <div className="md:hidden space-y-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search leads..."
+              value={leadSearch}
+              onChange={(e) => setLeadSearch(e.target.value)}
+              className="pl-8 h-9"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Select value={leadStatusFilter} onValueChange={(v) => { setLeadStatusFilter(v); setLeadPage(1); }}>
+              <SelectTrigger className="h-9 flex-1">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="queued">Queued</SelectItem>
+                <SelectItem value="sent">Sent</SelectItem>
+                <SelectItem value="replied">Replied</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="skipped">Skipped</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={leadSenderFilter} onValueChange={(v) => { setLeadSenderFilter(v); setLeadPage(1); }}>
+              <SelectTrigger className="h-9 flex-1">
+                <SelectValue placeholder="Sender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Senders</SelectItem>
+                {(sendersData?.senders ?? []).map((sender) => (
+                  <SelectItem key={sender._id ?? sender.ig_username} value={sender._id ?? sender.ig_username}>
+                    {sender.display_name ? `${sender.display_name} (@${sender.ig_username})` : `@${sender.ig_username}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* ── Desktop filters ── */}
+        <div className="hidden md:flex items-end justify-between">
           <div className="flex gap-3 items-end">
             <div className="relative w-56">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -638,9 +691,9 @@ export default function CampaignDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Senders</SelectItem>
-                  {(sendersData?.senders ?? []).map((s) => (
-                    <SelectItem key={s._id ?? s.ig_username} value={s._id ?? s.ig_username}>
-                      {s.display_name ? `${s.display_name} (@${s.ig_username})` : `@${s.ig_username}`}
+                  {(sendersData?.senders ?? []).map((sender) => (
+                    <SelectItem key={sender._id ?? sender.ig_username} value={sender._id ?? sender.ig_username}>
+                      {sender.display_name ? `${sender.display_name} (@${sender.ig_username})` : `@${sender.ig_username}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -689,7 +742,170 @@ export default function CampaignDetail() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card">
+        {/* ── Mobile card layout ── */}
+        <div className="md:hidden space-y-2">
+          {leadsLoading ? (
+            <div className="rounded-lg border bg-card p-6 text-center text-muted-foreground">Loading...</div>
+          ) : leads.length === 0 ? (
+            <div className="rounded-lg border bg-card p-6 text-center text-muted-foreground">No leads found.</div>
+          ) : (
+            leads.map((cl) => {
+              const lb = LEAD_STATUS_BADGE[cl.status] || LEAD_STATUS_BADGE.pending;
+              const lead = cl.outbound_lead_id;
+              const sender = cl.sender_id;
+              const isExpanded = expandedLeadIds.has(cl._id);
+              return (
+                <div key={cl._id} className={`rounded-lg border bg-card${selectedLeadIds.has(cl._id) ? " bg-muted" : ""}`}>
+                  {/* Primary row: name, status badge, replied/booked ticks */}
+                  <div className="flex items-center gap-3 px-3 py-2.5">
+                    <Checkbox
+                      checked={selectedLeadIds.has(cl._id)}
+                      onCheckedChange={() => toggleLeadSelection(cl._id)}
+                    />
+                    <div className="flex-1 min-w-0">
+                      {lead ? (
+                        <a
+                          href={lead.profileLink || `https://instagram.com/${lead.username}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-foreground hover:underline text-sm truncate block"
+                        >
+                          @{lead.username}
+                        </a>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
+                      <Badge className={`${lb.className} text-[10px] mt-0.5`}>{lb.label}</Badge>
+                    </div>
+
+                    {/* Status ticks */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                        <Checkbox
+                          checked={lead?.replied ?? false}
+                          onCheckedChange={() => lead && toggleLeadField(lead._id, "replied", lead.replied ?? false)}
+                        />
+                        <span className="text-[10px] text-muted-foreground leading-none">Reply</span>
+                      </label>
+                      <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                        <Checkbox
+                          checked={lead?.booked ?? false}
+                          onCheckedChange={() => lead && toggleLeadField(lead._id, "booked", lead.booked ?? false)}
+                        />
+                        <span className="text-[10px] text-muted-foreground leading-none">Book</span>
+                      </label>
+                    </div>
+
+                    {/* Expand toggle */}
+                    <button
+                      type="button"
+                      onClick={() => toggleExpandLead(cl._id)}
+                      className="shrink-0 p-1 rounded hover:bg-muted"
+                    >
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform${isExpanded ? " rotate-180" : ""}`} />
+                    </button>
+                  </div>
+
+                  {/* Expanded details */}
+                  {isExpanded && (
+                    <div className="border-t px-3 py-2.5 space-y-2 text-xs">
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                        <div>
+                          <span className="text-muted-foreground">Sender</span>
+                          <p className="font-medium">{sender ? `@${sender.ig_username}` : "-"}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Sent At</span>
+                          <p className="font-medium">{cl.sent_at ? formatDate(cl.sent_at) : "-"}</p>
+                        </div>
+                        {cl.template_index != null && (
+                          <div>
+                            <span className="text-muted-foreground">Template</span>
+                            <p className="font-medium">#{cl.template_index + 1}</p>
+                          </div>
+                        )}
+                        {cl.error && (
+                          <div className="col-span-2">
+                            <span className="text-muted-foreground">Error</span>
+                            <p className="text-red-400">{cl.error}</p>
+                          </div>
+                        )}
+                      </div>
+                      {(cl.custom_message || cl.message_used) && (
+                        <div>
+                          <span className="text-muted-foreground">Message</span>
+                          <p className="text-foreground mt-0.5 whitespace-pre-wrap line-clamp-3">{cl.custom_message || cl.message_used}</p>
+                        </div>
+                      )}
+                      <div className="flex justify-end pt-1">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs">
+                              <MoreHorizontal className="h-3.5 w-3.5 mr-1" />
+                              Actions
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingLeadId(cl._id);
+                                setEditingMessage(cl.custom_message || cl.message_used || "");
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5 mr-2" />
+                              Edit Message
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={!campaign.ai_personalization?.prompt || regenerateMutation.isPending}
+                              onClick={() => {
+                                if (!campaignId || !campaign.ai_personalization?.prompt) return;
+                                regenerateMutation.mutate(
+                                  { campaignId, leadId: cl._id, prompt: campaign.ai_personalization.prompt, provider: aiProvider },
+                                  {
+                                    onSuccess: () => { toast({ title: "Regenerated", description: "Message regenerated for this lead." }); },
+                                    onError: (err) => { toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to regenerate", variant: "destructive" }); },
+                                  },
+                                );
+                              }}
+                            >
+                              <Sparkles className="h-3.5 w-3.5 mr-2" />
+                              Regenerate
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {MANUAL_STATUSES.map((ms) => {
+                              const badge = LEAD_STATUS_BADGE[ms];
+                              return (
+                                <DropdownMenuItem
+                                  key={ms}
+                                  disabled={cl.status === ms}
+                                  onClick={() => {
+                                    if (!campaignId) return;
+                                    statusMutation.mutate(
+                                      { campaignId, leadId: cl._id, status: ms },
+                                      {
+                                        onSuccess: () => { toast({ title: "Status updated", description: `Lead marked as ${badge?.label || ms}.` }); },
+                                        onError: (err) => { toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update", variant: "destructive" }); },
+                                      },
+                                    );
+                                  }}
+                                >
+                                  <span className={cl.status === ms ? "font-semibold" : ""}>{badge?.label || ms}</span>
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* ── Desktop table ── */}
+        <div className="hidden md:block rounded-lg border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
