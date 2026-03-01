@@ -764,14 +764,23 @@ export default function CampaignDetail() {
                     />
                     <div className="flex-1 min-w-0">
                       {lead ? (
-                        <a
-                          href={lead.profileLink || `https://instagram.com/${lead.username}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium text-foreground hover:underline text-sm truncate block"
-                        >
-                          @{lead.username}
-                        </a>
+                        <div className="flex items-center gap-1">
+                          <a
+                            href={lead.profileLink || `https://instagram.com/${lead.username}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-foreground hover:underline text-sm truncate"
+                          >
+                            @{lead.username}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => { navigator.clipboard.writeText(lead.username); toast({ title: "Copied", description: `@${lead.username}` }); }}
+                            className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </div>
                       ) : (
                         <span className="text-sm text-muted-foreground">-</span>
                       )}
@@ -957,14 +966,23 @@ export default function CampaignDetail() {
                       </TableCell>
                       <TableCell className="font-medium">
                         {lead ? (
-                          <a
-                            href={lead.profileLink || `https://instagram.com/${lead.username}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-foreground hover:underline"
-                          >
-                            @{lead.username}
-                          </a>
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={lead.profileLink || `https://instagram.com/${lead.username}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-foreground hover:underline"
+                            >
+                              @{lead.username}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => { navigator.clipboard.writeText(lead.username); toast({ title: "Copied", description: `@${lead.username}` }); }}
+                              className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
