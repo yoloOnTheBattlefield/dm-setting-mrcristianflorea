@@ -109,6 +109,11 @@ const STATUS_BADGE: Record<DeepScrapeJobStatus, { label: string; className: stri
   paused: { label: "Paused", className: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
 };
 
+function getStatusLabel(status: DeepScrapeJobStatus, scrapeType?: string): string {
+  if (status === "scraping_reels" && scrapeType === "posts") return "Scraping Posts";
+  return STATUS_BADGE[status].label;
+}
+
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-US", {
     month: "short",
@@ -204,7 +209,7 @@ function JobProgress({ job }: { job: DeepScrapeJob }) {
   if (job.status === "scraping_reels") {
     return (
       <span className="text-xs text-muted-foreground">
-        Reels: {s.reels_scraped}
+        {job.scrape_type === "posts" ? "Posts" : "Reels"}: {s.reels_scraped}
       </span>
     );
   }
@@ -259,7 +264,7 @@ function JobProgress({ job }: { job: DeepScrapeJob }) {
     if (s.reels_scraped > 0) {
       return (
         <span className="text-xs text-orange-400">
-          {s.reels_scraped} reels (paused)
+          {s.reels_scraped} {job.scrape_type === "posts" ? "posts" : "reels"} (paused)
         </span>
       );
     }
@@ -406,7 +411,7 @@ function JobInlineDetail({ jobId }: { jobId: string }) {
         <div className="flex items-center gap-3">
           <Badge className={STATUS_BADGE[job.status].className}>
             {active && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-            {STATUS_BADGE[job.status].label}
+            {getStatusLabel(job.status, job.scrape_type)}
           </Badge>
           {job.comments_skipped && (
             <Badge className="bg-purple-500/15 text-purple-400 border-purple-500/30 text-[10px]">
@@ -437,7 +442,7 @@ function JobInlineDetail({ jobId }: { jobId: string }) {
       {(active || job.status === "paused") && (
         <div className="space-y-1">
           <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>{STATUS_BADGE[job.status].label}</span>
+            <span>{getStatusLabel(job.status, job.scrape_type)}</span>
             <span>{Math.round(progress)}%</span>
           </div>
           <Progress value={progress} className="h-2" />
@@ -462,7 +467,7 @@ function JobInlineDetail({ jobId }: { jobId: string }) {
       {/* Stats grid */}
       <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
         <div className="rounded-lg border p-2 space-y-0.5">
-          <p className="text-[10px] text-muted-foreground">Reels</p>
+          <p className="text-[10px] text-muted-foreground">{job.scrape_type === "posts" ? "Posts" : "Reels"}</p>
           <p className="text-sm font-semibold">{(job.stats.reels_scraped || 0).toLocaleString()}</p>
         </div>
         <div className="rounded-lg border p-2 space-y-0.5">
@@ -591,6 +596,7 @@ export default function DeepScraper() {
 
   // New job form state
   const [jobName, setJobName] = useState("");
+  const [scrapeType, setScrapeType] = useState<"reels" | "posts">("reels");
   const [seedText, setSeedText] = useState("");
   const [reelLimit, setReelLimit] = useState(10);
   const [commentLimit, setCommentLimit] = useState(100);
@@ -665,6 +671,7 @@ export default function DeepScraper() {
       await startMutation.mutateAsync({
         name: jobName.trim() || undefined,
         seed_usernames: parsedSeeds,
+        scrape_type: scrapeType,
         reel_limit: reelLimit,
         comment_limit: commentLimit,
         min_followers: minFollowers,
@@ -675,10 +682,11 @@ export default function DeepScraper() {
       });
       toast({
         title: "Deep Scrape Started",
-        description: `Scraping reels from ${parsedSeeds.length} seed account${parsedSeeds.length > 1 ? "s" : ""}`,
+        description: `Scraping ${scrapeType} from ${parsedSeeds.length} seed account${parsedSeeds.length > 1 ? "s" : ""}`,
       });
       setShowNewDialog(false);
       setJobName("");
+      setScrapeType("reels");
       setSeedText("");
       setReelLimit(10);
       setCommentLimit(100);
@@ -739,6 +747,7 @@ export default function DeepScraper() {
 
   const handleReplicate = (job: DeepScrapeJob) => {
     setJobName(job.name || "");
+    setScrapeType(job.scrape_type || "reels");
     setSeedText(job.seed_usernames.join("\n"));
     setReelLimit(job.reel_limit);
     setCommentLimit(job.comment_limit);
@@ -755,6 +764,7 @@ export default function DeepScraper() {
       await startMutation.mutateAsync({
         name: job.name || undefined,
         seed_usernames: job.seed_usernames,
+        scrape_type: job.scrape_type || "reels",
         reel_limit: job.reel_limit,
         comment_limit: job.comment_limit,
         min_followers: job.min_followers,
@@ -1111,7 +1121,7 @@ export default function DeepScraper() {
                                 <div className="flex items-center gap-1.5">
                                   <Badge className={badge.className}>
                                     {active && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                                    {badge.label}
+                                    {getStatusLabel(job.status, job.scrape_type)}
                                   </Badge>
                                   {job.is_recurring && (
                                     <RefreshCw className="h-3 w-3 text-indigo-400" />
@@ -1297,7 +1307,7 @@ export default function DeepScraper() {
           <DialogHeader>
             <DialogTitle>New Deep Scrape Job</DialogTitle>
             <DialogDescription>
-              Scrape reels, comments, and commenter profiles from seed accounts.
+              Scrape reels or posts, comments, and commenter profiles from seed accounts.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
@@ -1309,6 +1319,33 @@ export default function DeepScraper() {
                 value={jobName}
                 onChange={(e) => setJobName(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Content Type</Label>
+              <div className="flex rounded-lg border p-1 gap-1">
+                <button
+                  type="button"
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    scrapeType === "reels"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setScrapeType("reels")}
+                >
+                  Reels
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    scrapeType === "posts"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setScrapeType("posts")}
+                >
+                  Posts
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="seeds">Seed Usernames</Label>
@@ -1343,7 +1380,7 @@ export default function DeepScraper() {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="reelLimit">Reel Limit</Label>
+                <Label htmlFor="reelLimit">{scrapeType === "posts" ? "Post Limit" : "Reel Limit"}</Label>
                 <Input
                   id="reelLimit"
                   type="number"
@@ -1737,7 +1774,7 @@ export default function DeepScraper() {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Reel Limit</Label>
+                <Label>{editingJob?.scrape_type === "posts" ? "Post Limit" : "Reel Limit"}</Label>
                 <Input type="number" min={1} value={editReelLimit} onChange={(e) => setEditReelLimit(Number(e.target.value))} />
               </div>
               <div className="space-y-2">

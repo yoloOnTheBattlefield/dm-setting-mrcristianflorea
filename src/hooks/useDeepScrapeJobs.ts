@@ -77,6 +77,7 @@ export function useStartDeepScrape() {
     mutationFn: async (body: {
       name?: string;
       seed_usernames: string[];
+      scrape_type?: "reels" | "posts";
       reel_limit?: number;
       comment_limit?: number;
       min_followers?: number;

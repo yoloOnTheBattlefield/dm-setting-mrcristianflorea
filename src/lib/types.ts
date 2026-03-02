@@ -208,6 +208,7 @@ export interface DeepScrapeJob {
   name: string | null;
   status: DeepScrapeJobStatus;
   seed_usernames: string[];
+  scrape_type: "reels" | "posts";
   reel_limit: number;
   comment_limit: number;
   min_followers: number;
