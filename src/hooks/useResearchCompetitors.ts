@@ -1,12 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { COMPETITORS } from "@/lib/research-mock-data";
+import { API_URL, fetchWithAuth } from "@/lib/api";
+import type { ResearchCompetitor } from "@/lib/research-types";
 
 export function useResearchCompetitors() {
   return useQuery({
     queryKey: ["research-competitors"],
     queryFn: async () => {
-      await new Promise((r) => setTimeout(r, 300));
-      return COMPETITORS;
+      const res = await fetchWithAuth(
+        `${API_URL}/api/research/competitors`,
+      );
+      if (!res.ok) throw new Error("Failed to fetch competitors");
+      return res.json() as Promise<ResearchCompetitor[]>;
     },
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
@@ -17,8 +21,14 @@ export function useResearchCompetitor(id: string | undefined) {
   return useQuery({
     queryKey: ["research-competitor", id],
     queryFn: async () => {
-      await new Promise((r) => setTimeout(r, 200));
-      return COMPETITORS.find((c) => c.id === id) ?? null;
+      const res = await fetchWithAuth(
+        `${API_URL}/api/research/competitors/${id}`,
+      );
+      if (!res.ok) {
+        if (res.status === 404) return null;
+        throw new Error("Failed to fetch competitor");
+      }
+      return res.json() as Promise<ResearchCompetitor>;
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5,

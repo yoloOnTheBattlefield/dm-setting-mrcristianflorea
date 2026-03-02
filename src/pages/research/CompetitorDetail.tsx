@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/table";
 
 import { useResearchCompetitor } from "@/hooks/useResearchCompetitors";
-import { POSTS } from "@/lib/research-mock-data";
+import { useResearchPosts } from "@/hooks/useResearchPosts";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-800 border-green-200",
@@ -41,10 +41,11 @@ export default function CompetitorDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: competitor, isLoading } = useResearchCompetitor(id);
+  const { data: postsData } = useResearchPosts({ competitorId: id, page: 1, limit: 50, sortBy: "newest" });
 
   const competitorPosts = useMemo(
-    () => POSTS.filter((p) => p.competitorId === id).slice(0, 15),
-    [id],
+    () => postsData?.posts ?? [],
+    [postsData],
   );
 
   const leadMagnetPosts = useMemo(
@@ -161,14 +162,16 @@ export default function CompetitorDetail() {
                   Lead Magnet Rate
                 </p>
                 <p className="text-lg font-semibold">
-                  {(competitor.leadMagnetHitRate * 100).toFixed(1)}%
+                  {competitor.leadMagnetHitRate ? `${(competitor.leadMagnetHitRate * 100).toFixed(1)}%` : "—"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Top Keyword</p>
-                <Badge variant="outline" className="mt-1">
-                  {competitor.topKeyword}
-                </Badge>
+                {competitor.topKeyword ? (
+                  <Badge variant="outline" className="mt-1">
+                    {competitor.topKeyword}
+                  </Badge>
+                ) : <p className="text-lg font-semibold">—</p>}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
@@ -248,12 +251,9 @@ export default function CompetitorDetail() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   @{competitor.handle} has been tracked with{" "}
-                  {competitor.postsTracked} posts. Their most common CTA keyword
-                  is "{competitor.topKeyword}" and they maintain an average of{" "}
-                  {competitor.avgComments} comments per post. The lead magnet hit
-                  rate of {(competitor.leadMagnetHitRate * 100).toFixed(1)}%
-                  indicates strong audience engagement with keyword-driven
-                  funnels.
+                  {competitor.postsTracked} posts
+                  {competitor.topKeyword ? `. Their most common CTA keyword is "${competitor.topKeyword}"` : ""} and they maintain an average of{" "}
+                  {competitor.avgComments} comments per post.
                 </p>
               </CardContent>
             </Card>
@@ -298,10 +298,10 @@ export default function CompetitorDetail() {
                             <Badge variant="secondary">{post.postType}</Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{post.hookStyle}</Badge>
+                            {post.hookStyle ? <Badge variant="outline">{post.hookStyle}</Badge> : <span className="text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{post.ctaType}</Badge>
+                            {post.ctaType ? <Badge variant="outline">{post.ctaType}</Badge> : <span className="text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell className="text-right">
                             {post.commentsCount.toLocaleString()}
@@ -370,7 +370,7 @@ export default function CompetitorDetail() {
                             Most Used Keyword
                           </p>
                           <p className="text-xl font-bold">
-                            {competitor.topKeyword}
+                            {competitor.topKeyword || "—"}
                           </p>
                         </CardContent>
                       </Card>
@@ -502,14 +502,12 @@ export default function CompetitorDetail() {
                 <p className="text-sm text-muted-foreground">
                   @{competitor.handle} primarily uses{" "}
                   {competitorPosts.filter((p) => p.postType === "reel").length >
-                  competitorPosts.filter((p) => p.postType === "carousel")
+                  competitorPosts.filter((p) => p.postType === "post")
                     .length
                     ? "reels"
-                    : "carousels"}{" "}
-                  as their main content format. Their CTA strategy revolves
-                  around the "{competitor.topKeyword}" keyword with a{" "}
-                  {(competitor.leadMagnetHitRate * 100).toFixed(1)}% lead magnet
-                  hit rate, indicating an established comment-to-DM funnel.
+                    : "posts"}{" "}
+                  as their main content format
+                  {competitor.topKeyword ? `, with CTA strategy around the "${competitor.topKeyword}" keyword` : ""}.
                 </p>
               </CardContent>
             </Card>

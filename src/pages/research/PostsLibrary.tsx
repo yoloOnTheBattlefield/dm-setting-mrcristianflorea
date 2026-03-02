@@ -325,14 +325,18 @@ export default function PostsLibrary() {
                           <Badge variant="secondary">{post.postType}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">
-                            {post.hookStyle.replace(/_/g, " ")}
-                          </Badge>
+                          {post.hookStyle ? (
+                            <Badge variant="outline">
+                              {post.hookStyle.replace(/_/g, " ")}
+                            </Badge>
+                          ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">
-                            {post.ctaType.replace(/_/g, " ")}
-                          </Badge>
+                          {post.ctaType ? (
+                            <Badge variant="outline">
+                              {post.ctaType.replace(/_/g, " ")}
+                            </Badge>
+                          ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="text-right">
                           {post.commentsCount.toLocaleString()}

@@ -32,7 +32,7 @@ export function CommenterTable({ commenters, isLoading }: CommenterTableProps) {
     return commenters.filter(
       (c) =>
         c.username.toLowerCase().includes(q) ||
-        c.keywordsUsed.some((k) => k.toLowerCase().includes(q)),
+        (c.keywordsUsed || []).some((k) => k.toLowerCase().includes(q)),
     );
   }, [commenters, search]);
 
@@ -95,19 +95,23 @@ export function CommenterTable({ commenters, isLoading }: CommenterTableProps) {
                   <TableCell>{c.commentCount}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {c.keywordsUsed.slice(0, 3).map((k) => (
-                        <Badge key={k} variant="secondary" className="text-xs">
-                          {k}
-                        </Badge>
-                      ))}
-                      {c.keywordsUsed.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{c.keywordsUsed.length - 3}
-                        </Badge>
-                      )}
+                      {(c.keywordsUsed || []).length > 0 ? (
+                        <>
+                          {c.keywordsUsed.slice(0, 3).map((k) => (
+                            <Badge key={k} variant="secondary" className="text-xs">
+                              {k}
+                            </Badge>
+                          ))}
+                          {c.keywordsUsed.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{c.keywordsUsed.length - 3}
+                            </Badge>
+                          )}
+                        </>
+                      ) : <span className="text-muted-foreground">—</span>}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">@{c.mostCommentedCompetitor}</TableCell>
+                  <TableCell className="text-sm">{c.mostCommentedCompetitor ? `@${c.mostCommentedCompetitor}` : <span className="text-muted-foreground">—</span>}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(c.lastActivity), "MMM d, yyyy")}
                   </TableCell>

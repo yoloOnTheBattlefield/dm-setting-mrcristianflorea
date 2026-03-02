@@ -5,7 +5,7 @@ export interface ResearchCompetitor {
   postsTracked: number;
   avgComments: number;
   leadMagnetHitRate: number;
-  topKeyword: string;
+  topKeyword: string | null;
   lastPost: string;
   trackingStatus: "active" | "paused" | "pending";
 }
@@ -14,18 +14,19 @@ export interface ResearchPost {
   id: string;
   competitorId: string;
   competitorHandle: string;
-  postType: "reel" | "carousel" | "image";
+  postType: string;
   caption: string;
-  hookPattern: string;
-  ctaType: "comment_keyword" | "link_in_bio" | "dm_me" | "save_this" | "none";
-  ctaKeyword?: string;
+  hookPattern?: string | null;
+  ctaType?: string | null;
+  ctaKeyword?: string | null;
   topicTags: string[];
-  hookStyle: "question" | "bold_claim" | "story" | "statistic" | "curiosity_gap" | "listicle";
+  hookStyle?: string | null;
   hasLeadMagnetKeyword: boolean;
-  leadMagnetKeyword?: string;
+  leadMagnetKeyword?: string | null;
   commentsCount: number;
   likesCount: number;
   postedAt: string;
+  reelUrl?: string;
   keywordDistribution: { keyword: string; count: number }[];
 }
 

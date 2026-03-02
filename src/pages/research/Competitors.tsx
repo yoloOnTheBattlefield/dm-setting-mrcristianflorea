@@ -93,10 +93,10 @@ export default function Competitors() {
                         {comp.avgComments}
                       </TableCell>
                       <TableCell className="text-right">
-                        {(comp.leadMagnetHitRate * 100).toFixed(1)}%
+                        {comp.leadMagnetHitRate ? `${(comp.leadMagnetHitRate * 100).toFixed(1)}%` : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{comp.topKeyword}</Badge>
+                        {comp.topKeyword ? <Badge variant="outline">{comp.topKeyword}</Badge> : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
                         <Badge
