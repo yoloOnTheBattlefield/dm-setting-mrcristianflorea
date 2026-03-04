@@ -60,6 +60,7 @@ interface FormData {
   messages_per_group: number;
   min_group_break_seconds: number;
   max_group_break_seconds: number;
+  skip_wait_time: boolean;
 }
 
 export default function CampaignEdit() {
@@ -91,6 +92,7 @@ export default function CampaignEdit() {
         messages_per_group: campaign.schedule.messages_per_group ?? 10,
         min_group_break_seconds: campaign.schedule.min_group_break_seconds ?? 600,
         max_group_break_seconds: campaign.schedule.max_group_break_seconds ?? 1200,
+        skip_wait_time: campaign.schedule.skip_wait_time ?? false,
       });
     }
   }, [campaign, form]);
@@ -161,6 +163,7 @@ export default function CampaignEdit() {
         messages_per_group: form.messages_per_group,
         min_group_break_seconds: form.min_group_break_seconds,
         max_group_break_seconds: form.max_group_break_seconds,
+        skip_wait_time: form.skip_wait_time,
       },
       daily_limit_per_sender: form.daily_limit_per_sender,
       warmup_days: form.warmup_days,
@@ -443,6 +446,21 @@ export default function CampaignEdit() {
                 }
               </p>
             </div>
+
+            {form.mode === "manual" && (
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-sm">Skip Wait Time</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Skip the cooldown delay between messages in VA mode. The VA can send the next message immediately.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.skip_wait_time}
+                  onCheckedChange={(checked) => setForm((p) => p ? { ...p, skip_wait_time: checked } : p)}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

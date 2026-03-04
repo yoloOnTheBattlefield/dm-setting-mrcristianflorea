@@ -209,6 +209,7 @@ export interface DeepScrapeJob {
   mode?: "outbound" | "research";
   status: DeepScrapeJobStatus;
   seed_usernames: string[];
+  direct_urls?: string[];
   scrape_type: "reels" | "posts";
   reel_limit: number;
   comment_limit: number;

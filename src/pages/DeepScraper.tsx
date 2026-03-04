@@ -694,9 +694,11 @@ export default function DeepScraper() {
 
   // New job form state
   const [jobMode, setJobMode] = useState<"outbound" | "research">("outbound");
+  const [jobSource, setJobSource] = useState<"accounts" | "direct_urls">("accounts");
   const [jobName, setJobName] = useState("");
   const [scrapeType, setScrapeType] = useState<"reels" | "posts">("reels");
   const [seedText, setSeedText] = useState("");
+  const [directUrlText, setDirectUrlText] = useState("");
   const [reelLimit, setReelLimit] = useState(10);
   const [commentLimit, setCommentLimit] = useState(100);
   const [minFollowers, setMinFollowers] = useState(1000);
@@ -812,16 +814,26 @@ export default function DeepScraper() {
     .map((s) => s.replace(/^@/, "").trim())
     .filter(Boolean);
 
+  const parsedDirectUrls = directUrlText
+    .split("\n")
+    .map((s) => s.trim())
+    .filter((s) => /instagram\.com\/(?:.*\/)?(reel|p)\/[^/?#&]+/.test(s));
+
+  const canStart = jobSource === "accounts" ? parsedSeeds.length > 0 : parsedDirectUrls.length > 0;
+
   const handleStart = async () => {
-    if (parsedSeeds.length === 0) return;
+    if (!canStart) return;
 
     try {
+      const isDirectMode = jobSource === "direct_urls";
       await startMutation.mutateAsync({
         name: jobName.trim() || undefined,
         mode: jobMode,
-        seed_usernames: parsedSeeds,
+        ...(isDirectMode
+          ? { direct_urls: parsedDirectUrls }
+          : { seed_usernames: parsedSeeds }),
         scrape_type: scrapeType,
-        reel_limit: reelLimit,
+        ...(!isDirectMode && { reel_limit: reelLimit }),
         comment_limit: commentLimit,
         ...(jobMode === "outbound" && {
           min_followers: minFollowers,
@@ -834,15 +846,19 @@ export default function DeepScraper() {
       });
       toast({
         title: "Deep Scrape Started",
-        description: jobMode === "research"
-          ? `Research scrape of ${scrapeType} from ${parsedSeeds.length} seed account${parsedSeeds.length > 1 ? "s" : ""}`
-          : `Scraping ${scrapeType} from ${parsedSeeds.length} seed account${parsedSeeds.length > 1 ? "s" : ""}`,
+        description: isDirectMode
+          ? `Scraping comments from ${parsedDirectUrls.length} URL${parsedDirectUrls.length > 1 ? "s" : ""}`
+          : jobMode === "research"
+            ? `Research scrape of ${scrapeType} from ${parsedSeeds.length} seed account${parsedSeeds.length > 1 ? "s" : ""}`
+            : `Scraping ${scrapeType} from ${parsedSeeds.length} seed account${parsedSeeds.length > 1 ? "s" : ""}`,
       });
       setShowNewDialog(false);
       setJobMode("outbound");
+      setJobSource("accounts");
       setJobName("");
       setScrapeType("reels");
       setSeedText("");
+      setDirectUrlText("");
       setReelLimit(10);
       setCommentLimit(100);
       setMinFollowers(1000);

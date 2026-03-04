@@ -11,6 +11,7 @@ export interface CampaignSchedule {
   messages_per_group: number;
   min_group_break_seconds: number;
   max_group_break_seconds: number;
+  skip_wait_time: boolean;
 }
 
 export interface CampaignStats {

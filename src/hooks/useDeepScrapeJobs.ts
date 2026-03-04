@@ -77,7 +77,8 @@ export function useStartDeepScrape() {
     mutationFn: async (body: {
       name?: string;
       mode?: "outbound" | "research";
-      seed_usernames: string[];
+      seed_usernames?: string[];
+      direct_urls?: string[];
       scrape_type?: "reels" | "posts";
       reel_limit?: number;
       comment_limit?: number;

@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateCampaign, useUpdateCampaign, type Campaign } from "@/hooks/useCampaigns";
 import type { OutboundAccount } from "@/hooks/useOutboundAccounts";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -58,6 +59,7 @@ interface FormData {
   max_delay_seconds: number;
   timezone: string;
   daily_limit_per_sender: number;
+  skip_wait_time: boolean;
 }
 
 const DEFAULT_FORM: FormData = {
@@ -71,6 +73,7 @@ const DEFAULT_FORM: FormData = {
   max_delay_seconds: 180,
   timezone: "America/New_York",
   daily_limit_per_sender: 50,
+  skip_wait_time: false,
 };
 
 export default function CampaignCreateEditDialog({
@@ -100,6 +103,7 @@ export default function CampaignCreateEditDialog({
           max_delay_seconds: campaign.schedule.max_delay_seconds,
           timezone: campaign.schedule.timezone,
           daily_limit_per_sender: campaign.daily_limit_per_sender,
+          skip_wait_time: campaign.schedule.skip_wait_time ?? false,
         });
       } else {
         setForm(DEFAULT_FORM);
@@ -152,6 +156,7 @@ export default function CampaignCreateEditDialog({
         min_delay_seconds: form.min_delay_seconds,
         max_delay_seconds: form.max_delay_seconds,
         timezone: form.timezone,
+        skip_wait_time: form.skip_wait_time,
       },
       daily_limit_per_sender: form.daily_limit_per_sender,
     };
@@ -348,6 +353,21 @@ export default function CampaignCreateEditDialog({
                 onChange={(e) => setForm((p) => ({ ...p, daily_limit_per_sender: Number(e.target.value) }))}
               />
             </div>
+
+            {form.mode === "manual" && (
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-sm">Skip Wait Time</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Skip the cooldown delay between messages in VA mode.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.skip_wait_time}
+                  onCheckedChange={(checked) => setForm((p) => ({ ...p, skip_wait_time: checked }))}
+                />
+              </div>
+            )}
           </div>
         </ScrollArea>
 
