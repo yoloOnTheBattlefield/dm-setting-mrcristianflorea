@@ -28,6 +28,7 @@ import {
   Filter,
   ExternalLink,
   TrendingUp,
+  Repeat2,
 } from "lucide-react";
 import {
   BarChart,
@@ -237,6 +238,22 @@ export default function InboundAnalytics() {
                 }
                 highlight
               />
+              {overview.cross_channel > 0 && (
+                <>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <KpiCard
+                    label="Cross-Channel"
+                    value={overview.cross_channel}
+                    sub={`${overview.cross_channel_rate.toFixed(1)}% were outbound first`}
+                    icon={
+                      <Repeat2
+                        className="h-4 w-4"
+                        style={{ color: "#F59E0B" }}
+                      />
+                    }
+                  />
+                </>
+              )}
             </div>
 
             {/* Source Breakdown */}

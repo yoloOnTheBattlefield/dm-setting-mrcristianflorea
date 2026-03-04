@@ -10,6 +10,8 @@ export interface InboundOverview {
   book_rate: number;
   close_rate: number;
   revenue: number;
+  cross_channel: number;
+  cross_channel_rate: number;
   sources: SourceBreakdown[];
 }
 
