@@ -206,6 +206,7 @@ export interface DeepScrapeJob {
   _id: string;
   account_id: string;
   name: string | null;
+  mode?: "outbound" | "research";
   status: DeepScrapeJobStatus;
   seed_usernames: string[];
   scrape_type: "reels" | "posts";

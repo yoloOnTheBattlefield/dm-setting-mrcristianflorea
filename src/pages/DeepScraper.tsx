@@ -427,16 +427,19 @@ function formatDuration(startStr: string | null, endStr: string | null): string 
 
 function computeProgress(job: DeepScrapeJob): number {
   const s = job.stats;
+  const isResearch = job.mode === "research";
   switch (job.status) {
     case "pending":
       return 0;
     case "scraping_reels": {
       const expected = job.seed_usernames.length * job.reel_limit;
       const pct = expected > 0 ? (s.reels_scraped / expected) : 0;
+      if (isResearch) return Math.min(5 + pct * 45, 50);
       return Math.min(5 + pct * 20, 25);
     }
     case "scraping_comments": {
       const pct = s.reels_scraped > 0 ? (s.comments_scraped / (s.reels_scraped * job.comment_limit)) : 0;
+      if (isResearch) return Math.min(50 + pct * 45, 95);
       return Math.min(25 + pct * 25, 50);
     }
     case "scraping_profiles":
@@ -503,6 +506,11 @@ function JobInlineDetail({ jobId }: { jobId: string }) {
             {active && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
             {getStatusLabel(job.status, job.scrape_type)}
           </Badge>
+          {job.mode === "research" && (
+            <Badge className="bg-teal-500/15 text-teal-400 border-teal-500/30 text-[10px]">
+              Research
+            </Badge>
+          )}
           {job.comments_skipped && (
             <Badge className="bg-purple-500/15 text-purple-400 border-purple-500/30 text-[10px]">
               Comments Skipped
@@ -685,6 +693,7 @@ export default function DeepScraper() {
   const limit = 20;
 
   // New job form state
+  const [jobMode, setJobMode] = useState<"outbound" | "research">("outbound");
   const [jobName, setJobName] = useState("");
   const [scrapeType, setScrapeType] = useState<"reels" | "posts">("reels");
   const [seedText, setSeedText] = useState("");
@@ -809,22 +818,28 @@ export default function DeepScraper() {
     try {
       await startMutation.mutateAsync({
         name: jobName.trim() || undefined,
+        mode: jobMode,
         seed_usernames: parsedSeeds,
         scrape_type: scrapeType,
         reel_limit: reelLimit,
         comment_limit: commentLimit,
-        min_followers: minFollowers,
-        force_reprocess: forceReprocess,
-        scrape_emails: scrapeEmails,
-        prompt_id: selectedPromptId !== "none" ? selectedPromptId : undefined,
+        ...(jobMode === "outbound" && {
+          min_followers: minFollowers,
+          force_reprocess: forceReprocess,
+          scrape_emails: scrapeEmails,
+          prompt_id: selectedPromptId !== "none" ? selectedPromptId : undefined,
+        }),
         is_recurring: isRecurring,
         repeat_interval_days: isRecurring ? repeatIntervalDays : undefined,
       });
       toast({
         title: "Deep Scrape Started",
-        description: `Scraping ${scrapeType} from ${parsedSeeds.length} seed account${parsedSeeds.length > 1 ? "s" : ""}`,
+        description: jobMode === "research"
+          ? `Research scrape of ${scrapeType} from ${parsedSeeds.length} seed account${parsedSeeds.length > 1 ? "s" : ""}`
+          : `Scraping ${scrapeType} from ${parsedSeeds.length} seed account${parsedSeeds.length > 1 ? "s" : ""}`,
       });
       setShowNewDialog(false);
+      setJobMode("outbound");
       setJobName("");
       setScrapeType("reels");
       setSeedText("");
@@ -887,6 +902,7 @@ export default function DeepScraper() {
   };
 
   const handleReplicate = (job: DeepScrapeJob) => {
+    setJobMode(job.mode || "outbound");
     setJobName(job.name || "");
     setScrapeType(job.scrape_type || "reels");
     setSeedText(job.seed_usernames.join("\n"));
@@ -902,15 +918,19 @@ export default function DeepScraper() {
 
   const handleRerun = async (job: DeepScrapeJob) => {
     try {
+      const rerunMode = job.mode || "outbound";
       await startMutation.mutateAsync({
         name: job.name || undefined,
+        mode: rerunMode,
         seed_usernames: job.seed_usernames,
         scrape_type: job.scrape_type || "reels",
         reel_limit: job.reel_limit,
         comment_limit: job.comment_limit,
-        min_followers: job.min_followers,
-        force_reprocess: false,
-        prompt_id: job.promptId || undefined,
+        ...(rerunMode === "outbound" && {
+          min_followers: job.min_followers,
+          force_reprocess: false,
+          prompt_id: job.promptId || undefined,
+        }),
         is_recurring: job.is_recurring,
         repeat_interval_days: job.is_recurring ? (job.repeat_interval_days || undefined) : undefined,
       });
@@ -1400,6 +1420,11 @@ export default function DeepScraper() {
                                     {active && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
                                     {getStatusLabel(job.status, job.scrape_type)}
                                   </Badge>
+                                  {job.mode === "research" && (
+                                    <Badge className="bg-teal-500/15 text-teal-400 border-teal-500/30 text-[10px] px-1.5 py-0">
+                                      Research
+                                    </Badge>
+                                  )}
                                 </div>
                                 {job.is_recurring && job.next_run_at && (
                                   <Badge variant="outline" className="w-fit gap-1 text-[10px] px-1.5 py-0 text-indigo-400 border-indigo-500/30">
@@ -1588,7 +1613,9 @@ export default function DeepScraper() {
           <DialogHeader>
             <DialogTitle>New Deep Scrape Job</DialogTitle>
             <DialogDescription>
-              Scrape reels or posts, comments, and commenter profiles from seed accounts.
+              {jobMode === "research"
+                ? "Scrape reels or posts and comments for competitive intelligence."
+                : "Scrape reels or posts, comments, and commenter profiles from seed accounts."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
@@ -1600,6 +1627,38 @@ export default function DeepScraper() {
                 value={jobName}
                 onChange={(e) => setJobName(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Mode</Label>
+              <div className="flex rounded-lg border p-1 gap-1">
+                <button
+                  type="button"
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    jobMode === "outbound"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setJobMode("outbound")}
+                >
+                  Outbound
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    jobMode === "research"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setJobMode("research")}
+                >
+                  Research
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {jobMode === "outbound"
+                  ? "Scrape posts, comments, enrich profiles, qualify leads."
+                  : "Scrape posts and comments only \u2014 no profile enrichment or leads."}
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Content Type</Label>
@@ -1659,7 +1718,7 @@ export default function DeepScraper() {
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className={`grid gap-4 ${jobMode === "research" ? "grid-cols-2" : "grid-cols-3"}`}>
               <div className="space-y-2">
                 <Label htmlFor="reelLimit">{scrapeType === "posts" ? "Post Limit" : "Reel Limit"}</Label>
                 <Input
@@ -1680,43 +1739,49 @@ export default function DeepScraper() {
                   onChange={(e) => setCommentLimit(Number(e.target.value))}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="minFollowers">Min Followers</Label>
-                <Input
-                  id="minFollowers"
-                  type="number"
-                  min={0}
-                  value={minFollowers}
-                  onChange={(e) => setMinFollowers(Number(e.target.value))}
+              {jobMode === "outbound" && (
+                <div className="space-y-2">
+                  <Label htmlFor="minFollowers">Min Followers</Label>
+                  <Input
+                    id="minFollowers"
+                    type="number"
+                    min={0}
+                    value={minFollowers}
+                    onChange={(e) => setMinFollowers(Number(e.target.value))}
+                  />
+                </div>
+              )}
+            </div>
+            {jobMode === "outbound" && (
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="forceReprocess">Force Reprocess</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Re-process profiles that have already been scraped.
+                  </p>
+                </div>
+                <Switch
+                  id="forceReprocess"
+                  checked={forceReprocess}
+                  onCheckedChange={setForceReprocess}
                 />
               </div>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <Label htmlFor="forceReprocess">Force Reprocess</Label>
-                <p className="text-xs text-muted-foreground">
-                  Re-process profiles that have already been scraped.
-                </p>
+            )}
+            {jobMode === "outbound" && (
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="scrapeEmails">Scrape Emails</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Extract emails from profile data when available.
+                  </p>
+                </div>
+                <Switch
+                  id="scrapeEmails"
+                  checked={scrapeEmails}
+                  onCheckedChange={setScrapeEmails}
+                />
               </div>
-              <Switch
-                id="forceReprocess"
-                checked={forceReprocess}
-                onCheckedChange={setForceReprocess}
-              />
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <Label htmlFor="scrapeEmails">Scrape Emails</Label>
-                <p className="text-xs text-muted-foreground">
-                  Extract emails from profile data when available.
-                </p>
-              </div>
-              <Switch
-                id="scrapeEmails"
-                checked={scrapeEmails}
-                onCheckedChange={setScrapeEmails}
-              />
-            </div>
+            )}
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="space-y-0.5">
                 <Label htmlFor="recurring">Recurring</Label>
@@ -1744,25 +1809,27 @@ export default function DeepScraper() {
                 <span className="text-sm text-muted-foreground">days</span>
               </div>
             )}
-            <div className="space-y-2">
-              <Label>Prompt</Label>
-              <Select value={selectedPromptId} onValueChange={setSelectedPromptId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a prompt..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {promptsList.map((p) => (
-                    <SelectItem key={p._id} value={p._id}>
-                      {p.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Optional AI prompt for qualifying leads.
-              </p>
-            </div>
+            {jobMode === "outbound" && (
+              <div className="space-y-2">
+                <Label>Prompt</Label>
+                <Select value={selectedPromptId} onValueChange={setSelectedPromptId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a prompt..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {promptsList.map((p) => (
+                      <SelectItem key={p._id} value={p._id}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Optional AI prompt for qualifying leads.
+                </p>
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowNewDialog(false)}>
                 Cancel
