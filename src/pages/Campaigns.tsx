@@ -1,50 +1,36 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Loader2,
-  Copy,
-  Check,
-  Zap,
-  CheckCircle2,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
 import { useOutboundAccounts } from "@/hooks/useOutboundAccounts";
-import { API_URL, fetchWithAuth } from "@/lib/api";
+import { useCampaigns } from "@/hooks/useCampaigns";
 import CampaignList from "@/components/campaigns/CampaignList";
 import CampaignCreateEditDialog from "@/components/campaigns/CampaignCreateEditDialog";
 
-const ACCOUNTS_URL = `${API_URL}/accounts`;
-
-const TASKS_API_URL = `${API_URL}/api/tasks`;
-
 export default function Campaigns() {
-  const { user, updateUser } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const { socket } = useSocket();
-  const apiKey = user?.api_key;
-
-  const [generatingKey, setGeneratingKey] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [pinging, setPinging] = useState(false);
-  const [pongStatus, setPongStatus] = useState<"idle" | "waiting" | "received">("idle");
 
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data: outboundData } = useOutboundAccounts({ page: 1, limit: 100 });
   const outboundAccounts = outboundData?.accounts ?? [];
 
+  const { data, isLoading, isError, error, refetch } = useCampaigns({ limit: 1000 });
+  const campaigns = data?.campaigns ?? [];
+
+  // Compute stat line
+  const statLine = useMemo(() => {
+    if (campaigns.length === 0) return null;
+    const total = campaigns.length;
+    const active = campaigns.filter((c) => c.status === "active").length;
+    const sentSum = campaigns.reduce((s, c) => s + (c.stats.sent || 0), 0);
+    const totalLeads = campaigns.reduce((s, c) => s + (c.stats.total || 0), 0);
+    return `${total} campaign${total !== 1 ? "s" : ""} · ${active} active · ${sentSum}/${totalLeads} DMs sent`;
+  }, [campaigns]);
+
   // Socket listeners for real-time updates
   useEffect(() => {
     if (!socket) return;
-
-    const onPong = (data: unknown) => {
-      console.log("GOT PONG FROM EXTENSION:", data);
-      setPongStatus("received");
-    };
 
     const onSenderChange = () => {
       queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
@@ -57,7 +43,6 @@ export default function Campaigns() {
       queryClient.invalidateQueries({ queryKey: ["campaign-leads"] });
     };
 
-    socket.on("ext:pong", onPong);
     socket.on("sender:online", onSenderChange);
     socket.on("sender:offline", onSenderChange);
     socket.on("task:completed", onTaskUpdate);
@@ -65,7 +50,6 @@ export default function Campaigns() {
     socket.on("task:new", onTaskUpdate);
 
     return () => {
-      socket.off("ext:pong", onPong);
       socket.off("sender:online", onSenderChange);
       socket.off("sender:offline", onSenderChange);
       socket.off("task:completed", onTaskUpdate);
@@ -74,99 +58,25 @@ export default function Campaigns() {
     };
   }, [socket, queryClient]);
 
-  const sendPing = async () => {
-    setPinging(true);
-    setPongStatus("waiting");
-    try {
-      const res = await fetchWithAuth(`${TASKS_API_URL}/ping`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: "hello extension" }),
-      });
-      if (!res.ok) throw new Error(`Ping failed: ${res.status}`);
-      toast({ title: "Ping sent", description: "Waiting for extension pong..." });
-    } catch (err) {
-      toast({
-        title: "Ping failed",
-        description: err instanceof Error ? err.message : "Failed to send ping",
-        variant: "destructive",
-      });
-      setPongStatus("idle");
-    } finally {
-      setPinging(false);
-    }
-  };
-
-  const generateApiKey = async () => {
-    if (!user?.id) return;
-    setGeneratingKey(true);
-    try {
-      const res = await fetchWithAuth(`${ACCOUNTS_URL}/${user.id}/api-key`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error(`Failed: ${res.status}`);
-      const data = await res.json();
-      updateUser({ api_key: data.api_key });
-      toast({ title: "API Key Generated", description: "Your extension can now connect." });
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to generate API key",
-        variant: "destructive",
-      });
-    } finally {
-      setGeneratingKey(false);
-    }
-  };
-
   return (
     <div className="flex flex-1 flex-col">
       {/* Sticky Header */}
       <div className="sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold tracking-tight">Campaigns</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs text-muted-foreground h-7 px-2"
-                onClick={() => {
-                  navigator.clipboard.writeText(apiKey);
-                  setCopied(true);
-                  toast({ title: "Copied", description: "API key copied to clipboard" });
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-              >
-                {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                {copied ? "Copied" : "Copy API Key"}
-              </Button>
-            </div>
-            <p className="text-muted-foreground">Manage outreach campaigns</p>
-          </div>
-
-          <Button
-            variant={pongStatus === "received" ? "outline" : "secondary"}
-            onClick={sendPing}
-            disabled={pinging}
-            className={pongStatus === "received" ? "border-green-500/50 text-green-400" : ""}
-          >
-            {pinging ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : pongStatus === "received" ? (
-              <CheckCircle2 className="h-4 w-4 mr-2 text-green-400" />
-            ) : (
-              <Zap className="h-4 w-4 mr-2" />
-            )}
-            {pongStatus === "waiting" ? "Waiting..." : pongStatus === "received" ? "Pong!" : "Ping Extension"}
-          </Button>
+        <div className="px-6 py-4">
+          <h2 className="text-2xl font-bold tracking-tight">Campaigns</h2>
+          {statLine && (
+            <p className="text-sm text-muted-foreground">{statLine}</p>
+          )}
         </div>
       </div>
 
       {/* Campaign List */}
       <CampaignList
+        campaigns={campaigns}
+        isLoading={isLoading}
+        isError={isError}
+        error={error as Error | null}
+        refetch={refetch}
         outboundAccounts={outboundAccounts}
         onCreateCampaign={() => setCreateOpen(true)}
       />
