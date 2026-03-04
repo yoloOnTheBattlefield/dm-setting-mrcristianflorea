@@ -13,14 +13,14 @@ export interface OutboundFunnelData {
 }
 
 export interface MessagePerformance {
-  campaign_id: string | null;
-  campaign_name: string;
-  template_index: number | null;
-  template: string;
+  message: string;
   sent: number;
   replied: number;
-  reply_rate: number;
+  link_sent: number;
   booked: number;
+  contracts: number;
+  contract_value: number;
+  reply_rate: number;
   book_rate: number;
 }
 
@@ -318,6 +318,76 @@ export function useTrendOverTime(params?: AnalyticsParams) {
     queryFn: async (): Promise<{ trends: TrendData[] }> => {
       const res = await fetchWithAuth(buildUrl("/analytics/outbound/trends", params));
       if (!res.ok) throw new Error(`Failed to fetch trends: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  });
+}
+
+// --- Insights Interfaces ---
+
+export interface FollowerTierData {
+  tier: string;
+  sent: number;
+  replied: number;
+  booked: number;
+  reply_rate: number;
+  book_rate: number;
+}
+
+export interface PromptLabelData {
+  label: string;
+  sent: number;
+  replied: number;
+  booked: number;
+  reply_rate: number;
+  book_rate: number;
+}
+
+export interface QuestionTypeData {
+  type: string;
+  sent: number;
+  replied: number;
+  booked: number;
+  reply_rate: number;
+  book_rate: number;
+}
+
+// --- Insights Hooks ---
+
+export function useFollowerTiers(params?: AnalyticsParams) {
+  return useQuery({
+    queryKey: ["analytics-follower-tiers", params?.start_date, params?.end_date, params?.campaign_id],
+    queryFn: async (): Promise<{ tiers: FollowerTierData[] }> => {
+      const res = await fetchWithAuth(buildUrl("/analytics/outbound/follower-tiers", params));
+      if (!res.ok) throw new Error(`Failed to fetch follower tier analytics: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function usePromptLabels(params?: AnalyticsParams) {
+  return useQuery({
+    queryKey: ["analytics-prompt-labels", params?.start_date, params?.end_date, params?.campaign_id],
+    queryFn: async (): Promise<{ labels: PromptLabelData[] }> => {
+      const res = await fetchWithAuth(buildUrl("/analytics/outbound/prompt-labels", params));
+      if (!res.ok) throw new Error(`Failed to fetch prompt label analytics: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useQuestionTypes(params?: AnalyticsParams) {
+  return useQuery({
+    queryKey: ["analytics-question-types", params?.start_date, params?.end_date, params?.campaign_id],
+    queryFn: async (): Promise<{ types: QuestionTypeData[] }> => {
+      const res = await fetchWithAuth(buildUrl("/analytics/outbound/question-types", params));
+      if (!res.ok) throw new Error(`Failed to fetch question type analytics: ${res.status}`);
       return res.json();
     },
     staleTime: 1000 * 60 * 5,

@@ -13,6 +13,9 @@ import {
   useTimeOfDay,
   useEffortOutcome,
   useTrendOverTime,
+  useFollowerTiers,
+  usePromptLabels,
+  useQuestionTypes,
   OutboundFunnelData,
 } from "@/hooks/useOutboundAnalytics";
 import { useCampaigns } from "@/hooks/useCampaigns";
@@ -62,6 +65,7 @@ import {
   Sparkles,
   MessageSquare,
   Link2,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -75,6 +79,7 @@ import { EditedComparison } from "@/components/outbound-analytics/EditedComparis
 import { TimeOfDayHeatmap } from "@/components/outbound-analytics/TimeOfDayHeatmap";
 import { EffortOutcomePanel } from "@/components/outbound-analytics/EffortOutcomePanel";
 import { TrendOverTime } from "@/components/outbound-analytics/TrendOverTime";
+import { InsightsTab } from "@/components/outbound-analytics/InsightsTab";
 
 // ─── Benchmarks & Constants ───
 const BENCHMARK_REPLY_RATE = 8;
@@ -219,6 +224,9 @@ export default function OutboundAnalytics() {
   const { data: todData } = useTimeOfDay(filterParams);
   const { data: effortData } = useEffortOutcome(filterParams);
   const { data: trendData } = useTrendOverTime(filterParams);
+  const { data: followerTiersData, isLoading: tiersLoading } = useFollowerTiers(filterParams);
+  const { data: promptLabelsData, isLoading: labelsLoading } = usePromptLabels(filterParams);
+  const { data: questionTypesData, isLoading: questionTypesLoading } = useQuestionTypes(filterParams);
 
   const messages = messagesData?.messages || [];
   const senders = sendersData?.senders || [];
@@ -227,6 +235,10 @@ export default function OutboundAnalytics() {
   const aiModels = aiModelsData?.models || [];
   const todHours = todData?.hours || [];
   const trends = trendData?.trends || [];
+  const followerTiers = followerTiersData?.tiers || [];
+  const promptLabels = promptLabelsData?.labels || [];
+  const questionTypes = questionTypesData?.types || [];
+  const insightsLoading = tiersLoading || labelsLoading || questionTypesLoading;
 
   const insight = useMemo(() => {
     if (!funnel) return null;
@@ -331,6 +343,14 @@ export default function OutboundAnalytics() {
                   </TabsTrigger>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Compare AI-generated vs manually edited message performance</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="insights" className="gap-1.5">
+                    <BarChart3 className="h-3.5 w-3.5" />Insights
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Breakdown by follower count, industry, and message type</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </TabsList>
@@ -478,8 +498,7 @@ export default function OutboundAnalytics() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Campaign</TableHead>
-                      <TableHead className="w-[30%]">Template</TableHead>
+                      <TableHead className="w-[45%]">Message</TableHead>
                       <TableHead className="text-right">Sent</TableHead>
                       <TableHead className="text-right">Replied</TableHead>
                       <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleMsgSort("reply_rate")}>
@@ -499,19 +518,22 @@ export default function OutboundAnalytics() {
                   </TableHeader>
                   <TableBody>
                     {sortedMessages.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="h-24 text-center">No message data available.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={6} className="h-24 text-center">No message data available.</TableCell></TableRow>
                     ) : (
                       sortedMessages.map((m, i) => (
                         <TableRow key={i}>
-                          <TableCell className="text-sm whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <span>{m.campaign_name}</span>
-                              {m.template_index != null && (
-                                <Badge variant="outline" className="text-[10px] font-normal">#{m.template_index + 1}</Badge>
-                              )}
-                            </div>
+                          <TableCell className="font-mono text-xs max-w-[500px]">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="block truncate">{m.message}</span>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="max-w-[600px] whitespace-pre-wrap text-xs">
+                                  {m.message}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </TableCell>
-                          <TableCell className="font-mono text-xs max-w-[400px] truncate">{m.template}</TableCell>
                           <TableCell className="text-right">{m.sent}</TableCell>
                           <TableCell className="text-right">{m.replied}</TableCell>
                           <TableCell className={`text-right font-medium ${rateColor(m.reply_rate)}`}>{fmtRate(m.reply_rate)}</TableCell>
@@ -643,6 +665,16 @@ export default function OutboundAnalytics() {
               </div>
               <AIModelComparison data={aiModels} isLoading={aiModelsLoading} />
             </div>
+          </TabsContent>
+
+          {/* ─── Insights Tab ─── */}
+          <TabsContent value="insights">
+            <InsightsTab
+              tiers={followerTiers}
+              labels={promptLabels}
+              questionTypes={questionTypes}
+              isLoading={insightsLoading}
+            />
           </TabsContent>
         </Tabs>
       </div>
