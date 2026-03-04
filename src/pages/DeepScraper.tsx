@@ -602,6 +602,7 @@ export default function DeepScraper() {
   const [commentLimit, setCommentLimit] = useState(100);
   const [minFollowers, setMinFollowers] = useState(1000);
   const [forceReprocess, setForceReprocess] = useState(false);
+  const [scrapeEmails, setScrapeEmails] = useState(true);
   const [selectedPromptId, setSelectedPromptId] = useState("none");
   const [isRecurring, setIsRecurring] = useState(false);
   const [repeatIntervalDays, setRepeatIntervalDays] = useState(3);
@@ -676,6 +677,7 @@ export default function DeepScraper() {
         comment_limit: commentLimit,
         min_followers: minFollowers,
         force_reprocess: forceReprocess,
+        scrape_emails: scrapeEmails,
         prompt_id: selectedPromptId !== "none" ? selectedPromptId : undefined,
         is_recurring: isRecurring,
         repeat_interval_days: isRecurring ? repeatIntervalDays : undefined,
@@ -692,6 +694,7 @@ export default function DeepScraper() {
       setCommentLimit(100);
       setMinFollowers(1000);
       setForceReprocess(false);
+      setScrapeEmails(true);
       setSelectedPromptId("none");
       setIsRecurring(false);
       setRepeatIntervalDays(3);
@@ -1421,6 +1424,19 @@ export default function DeepScraper() {
                 id="forceReprocess"
                 checked={forceReprocess}
                 onCheckedChange={setForceReprocess}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="scrapeEmails">Scrape Emails</Label>
+                <p className="text-xs text-muted-foreground">
+                  Extract emails from profile data when available.
+                </p>
+              </div>
+              <Switch
+                id="scrapeEmails"
+                checked={scrapeEmails}
+                onCheckedChange={setScrapeEmails}
               />
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
