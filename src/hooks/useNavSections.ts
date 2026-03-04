@@ -43,6 +43,13 @@ export function useNavSections(): NavSection[] {
       items: [{ title: "Dashboard", url: "/", icon: BarChart3, isActive: true }],
     })
 
+    sections.push({
+      label: "Inbound",
+      items: [
+        { title: "Contacts", url: "/contacts/all", icon: Users },
+      ],
+    })
+
     if (user?.has_outbound) {
       sections.push({
         label: "Acquisition",
