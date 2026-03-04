@@ -20,12 +20,12 @@ const METRIC_OPTIONS: { value: HeatmapMetric; label: string }[] = [
 const DAY_LABELS = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
 
 function getIntensityClass(value: number, max: number): string {
-  if (max === 0 || value === 0) return "bg-muted/50";
+  if (max === 0 || value === 0) return "bg-muted/40";
   const ratio = value / max;
-  if (ratio <= 0.25) return "bg-emerald-900/40";
-  if (ratio <= 0.5) return "bg-emerald-700/60";
-  if (ratio <= 0.75) return "bg-emerald-500/80";
-  return "bg-emerald-400";
+  if (ratio <= 0.25) return "bg-teal-800/50";
+  if (ratio <= 0.5) return "bg-teal-600/70";
+  if (ratio <= 0.75) return "bg-teal-500";
+  return "bg-teal-400";
 }
 
 export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
@@ -120,7 +120,7 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                   className="text-[10px] text-muted-foreground"
                   style={{
                     position: "relative",
-                    left: `${m.weekIndex * 14}px`,
+                    left: `${m.weekIndex * 19}px`,
                     marginRight: i < monthLabels.length - 1 ? 0 : undefined,
                   }}
                 >
@@ -131,30 +131,30 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
 
             <div className="flex gap-0.5">
               {/* Day labels */}
-              <div className="flex flex-col gap-0.5 mr-1 shrink-0">
+              <div className="flex flex-col gap-[3px] mr-1 shrink-0">
                 {DAY_LABELS.map((label, i) => (
-                  <div key={i} className="h-[12px] flex items-center">
+                  <div key={i} className="h-[16px] flex items-center">
                     <span className="text-[9px] text-muted-foreground w-6 text-right">{label}</span>
                   </div>
                 ))}
               </div>
 
-              {/* Heatmap grid */}
+              {/* Heatmap grid — larger cells */}
               <TooltipProvider delayDuration={0}>
-                <div className="flex gap-[2px]">
+                <div className="flex gap-[3px]">
                   {weeks.map((week, wi) => (
-                    <div key={wi} className="flex flex-col gap-[2px]">
+                    <div key={wi} className="flex flex-col gap-[3px]">
                       {Array.from({ length: 7 }).map((_, di) => {
                         const day = week.find((d) => d.dayOfWeek === di);
                         if (!day) {
-                          return <div key={di} className="w-[12px] h-[12px]" />;
+                          return <div key={di} className="w-[16px] h-[16px]" />;
                         }
                         return (
                           <Tooltip key={di}>
                             <TooltipTrigger asChild>
                               <div
                                 className={cn(
-                                  "w-[12px] h-[12px] rounded-[2px] transition-colors cursor-default",
+                                  "w-[16px] h-[16px] rounded-[3px] transition-colors cursor-default",
                                   getIntensityClass(day.value, max)
                                 )}
                               />
@@ -172,14 +172,14 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
               </TooltipProvider>
             </div>
 
-            {/* Legend */}
+            {/* Legend — larger cells */}
             <div className="flex items-center gap-1.5 mt-2 ml-8">
               <span className="text-[9px] text-muted-foreground">Less</span>
-              <div className="w-[10px] h-[10px] rounded-[2px] bg-muted/50" />
-              <div className="w-[10px] h-[10px] rounded-[2px] bg-emerald-900/40" />
-              <div className="w-[10px] h-[10px] rounded-[2px] bg-emerald-700/60" />
-              <div className="w-[10px] h-[10px] rounded-[2px] bg-emerald-500/80" />
-              <div className="w-[10px] h-[10px] rounded-[2px] bg-emerald-400" />
+              <div className="w-[12px] h-[12px] rounded-[3px] bg-muted/40" />
+              <div className="w-[12px] h-[12px] rounded-[3px] bg-teal-800/50" />
+              <div className="w-[12px] h-[12px] rounded-[3px] bg-teal-600/70" />
+              <div className="w-[12px] h-[12px] rounded-[3px] bg-teal-500" />
+              <div className="w-[12px] h-[12px] rounded-[3px] bg-teal-400" />
               <span className="text-[9px] text-muted-foreground">More</span>
             </div>
           </div>
