@@ -52,6 +52,36 @@ export default function ResearchOverview() {
     }
   }
 
+  // Compute max value across all competitor series
+  let maxValue = 0;
+  if (trend && trend.length > 0) {
+    for (const point of trend) {
+      for (const key of lineKeys) {
+        const v = Number((point as Record<string, unknown>)[key]) || 0;
+        if (v > maxValue) maxValue = v;
+      }
+    }
+  }
+  const allZero = maxValue === 0;
+
+  // Calculate nice Y-axis domain and ticks (4–5 clean marks)
+  let yDomain: [number, number] = [0, 1];
+  let yTicks: number[] = [0];
+  if (!allZero) {
+    const paddedMax = maxValue * 1.12;
+    const rawInterval = paddedMax / 4;
+    const mag = Math.pow(10, Math.floor(Math.log10(rawInterval)));
+    const residual = rawInterval / mag;
+    const niceInterval =
+      residual <= 1.5 ? mag : residual <= 3.5 ? 2 * mag : residual <= 7.5 ? 5 * mag : 10 * mag;
+    const ticks: number[] = [];
+    for (let t = 0; t <= paddedMax + niceInterval * 0.5; t += niceInterval) {
+      ticks.push(t);
+    }
+    yTicks = ticks;
+    yDomain = [0, ticks[ticks.length - 1]];
+  }
+
   const kpiCards = [
     {
       label: "Posts Tracked",
@@ -131,6 +161,10 @@ export default function ResearchOverview() {
           <CardContent>
             {trendLoading ? (
               <Skeleton className="h-[350px] w-full" />
+            ) : allZero ? (
+              <div className="flex items-center justify-center h-[350px] text-muted-foreground text-sm">
+                No engagement data for this period. Run a scrape job to populate.
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={trend}>
@@ -142,7 +176,12 @@ export default function ResearchOverview() {
                     }
                     fontSize={12}
                   />
-                  <YAxis fontSize={12} />
+                  <YAxis
+                    fontSize={12}
+                    domain={yDomain}
+                    ticks={yTicks}
+                    allowDataOverflow={false}
+                  />
                   <Tooltip
                     labelFormatter={(val: string) =>
                       format(new Date(val), "MMM d, yyyy")
