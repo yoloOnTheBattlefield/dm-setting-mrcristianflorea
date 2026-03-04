@@ -371,7 +371,29 @@ function getSortVal(t: { total_scraped: number; avg_followers: number; qualified
   }
 }
 
-function SeedsDisplay({ seeds, name }: { seeds: string[]; name: string | null }) {
+function SeedsDisplay({ seeds, name, directUrls }: { seeds: string[]; name: string | null; directUrls?: string[] }) {
+  const isDirectUrl = seeds.length === 0 && directUrls && directUrls.length > 0;
+
+  if (isDirectUrl) {
+    const label = directUrls.length === 1
+      ? directUrls[0].replace(/^https?:\/\/(www\.)?instagram\.com\//, "").replace(/\/$/, "")
+      : `${directUrls.length} URLs`;
+
+    const content = (
+      <span className="text-xs text-muted-foreground truncate">{label}</span>
+    );
+
+    if (name) {
+      return (
+        <div>
+          <div className="font-medium truncate">{name}</div>
+          <div className="text-[10px] text-muted-foreground truncate">{content}</div>
+        </div>
+      );
+    }
+    return <div className="font-medium truncate">{content}</div>;
+  }
+
   const shown = seeds.slice(0, 2).map((s) => `@${s}`).join(", ");
   const rest = seeds.slice(2);
 
@@ -664,7 +686,9 @@ function JobInlineDetail({ jobId }: { jobId: string }) {
       </div>
 
       <div className="text-xs text-muted-foreground">
-        Seeds: {job.seed_usernames.map((u) => `@${u}`).join(", ")}
+        {job.direct_urls && job.direct_urls.length > 0
+          ? `URLs: ${job.direct_urls.join(", ")}`
+          : `Seeds: ${job.seed_usernames.map((u) => `@${u}`).join(", ")}`}
         {" \u00b7 "}Started {formatDate(job.createdAt)}
         {job.updatedAt !== job.createdAt && ` \u00b7 Updated ${formatDate(job.updatedAt)}`}
       </div>
@@ -1427,7 +1451,7 @@ export default function DeepScraper() {
                         <React.Fragment key={job._id}>
                           <TableRow className={isExpanded ? "border-b-0" : ""}>
                             <TableCell className="max-w-[200px]">
-                              <SeedsDisplay seeds={job.seed_usernames} name={job.name} />
+                              <SeedsDisplay seeds={job.seed_usernames} name={job.name} directUrls={job.direct_urls} />
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-col gap-1">
@@ -1677,74 +1701,131 @@ export default function DeepScraper() {
               </p>
             </div>
             <div className="space-y-2">
-              <Label>Content Type</Label>
+              <Label>Source</Label>
               <div className="flex rounded-lg border p-1 gap-1">
                 <button
                   type="button"
                   className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                    scrapeType === "reels"
+                    jobSource === "accounts"
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
-                  onClick={() => setScrapeType("reels")}
+                  onClick={() => setJobSource("accounts")}
                 >
-                  Reels
+                  Accounts
                 </button>
                 <button
                   type="button"
                   className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                    scrapeType === "posts"
+                    jobSource === "direct_urls"
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
-                  onClick={() => setScrapeType("posts")}
+                  onClick={() => setJobSource("direct_urls")}
                 >
-                  Posts
+                  Direct URL
                 </button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {jobSource === "accounts"
+                  ? "Scrape reels/posts from seed accounts, then scrape comments."
+                  : "Paste a direct reel or post link to scrape its comments."}
+              </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="seeds">Seed Usernames</Label>
-              <Textarea
-                id="seeds"
-                placeholder={"username1\nusername2\nusername3"}
-                value={seedText}
-                onChange={(e) => setSeedText(e.target.value)}
-                rows={4}
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  One username per line (without @). {parsedSeeds.length > 0 && `${parsedSeeds.length} account${parsedSeeds.length > 1 ? "s" : ""} detected.`}
-                </p>
-                {targets.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => {
-                      setShowTargetPicker(true);
-                      setTargetSearch("");
-                      setTargetSort("best_qual");
-                      setSelectedTargets(new Set());
-                    }}
-                  >
-                    <Clock className="h-3 w-3 mr-1" />
-                    Add from history
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className={`grid gap-4 ${jobMode === "research" ? "grid-cols-2" : "grid-cols-3"}`}>
+            {jobSource === "accounts" && (
               <div className="space-y-2">
-                <Label htmlFor="reelLimit">{scrapeType === "posts" ? "Post Limit" : "Reel Limit"}</Label>
-                <Input
-                  id="reelLimit"
-                  type="number"
-                  min={1}
-                  value={reelLimit}
-                  onChange={(e) => setReelLimit(Number(e.target.value))}
-                />
+                <Label>Content Type</Label>
+                <div className="flex rounded-lg border p-1 gap-1">
+                  <button
+                    type="button"
+                    className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                      scrapeType === "reels"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => setScrapeType("reels")}
+                  >
+                    Reels
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                      scrapeType === "posts"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => setScrapeType("posts")}
+                  >
+                    Posts
+                  </button>
+                </div>
               </div>
+            )}
+            {jobSource === "accounts" ? (
+              <div className="space-y-2">
+                <Label htmlFor="seeds">Seed Usernames</Label>
+                <Textarea
+                  id="seeds"
+                  placeholder={"username1\nusername2\nusername3"}
+                  value={seedText}
+                  onChange={(e) => setSeedText(e.target.value)}
+                  rows={4}
+                />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    One username per line (without @). {parsedSeeds.length > 0 && `${parsedSeeds.length} account${parsedSeeds.length > 1 ? "s" : ""} detected.`}
+                  </p>
+                  {targets.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        setShowTargetPicker(true);
+                        setTargetSearch("");
+                        setTargetSort("best_qual");
+                        setSelectedTargets(new Set());
+                      }}
+                    >
+                      <Clock className="h-3 w-3 mr-1" />
+                      Add from history
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="directUrls">Post / Reel URL</Label>
+                <Textarea
+                  id="directUrls"
+                  placeholder={"https://www.instagram.com/reel/ABC123/\nhttps://www.instagram.com/p/XYZ789/"}
+                  value={directUrlText}
+                  onChange={(e) => setDirectUrlText(e.target.value)}
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  One Instagram reel or post URL per line.{" "}
+                  {parsedDirectUrls.length > 0 && `${parsedDirectUrls.length} valid URL${parsedDirectUrls.length > 1 ? "s" : ""} detected.`}
+                </p>
+              </div>
+            )}
+            <div className={`grid gap-4 ${
+              jobSource === "direct_urls"
+                ? jobMode === "outbound" ? "grid-cols-2" : "grid-cols-1"
+                : jobMode === "research" ? "grid-cols-2" : "grid-cols-3"
+            }`}>
+              {jobSource === "accounts" && (
+                <div className="space-y-2">
+                  <Label htmlFor="reelLimit">{scrapeType === "posts" ? "Post Limit" : "Reel Limit"}</Label>
+                  <Input
+                    id="reelLimit"
+                    type="number"
+                    min={1}
+                    value={reelLimit}
+                    onChange={(e) => setReelLimit(Number(e.target.value))}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="commentLimit">Comment Limit</Label>
                 <Input
@@ -1852,7 +1933,7 @@ export default function DeepScraper() {
               </Button>
               <Button
                 onClick={handleStart}
-                disabled={parsedSeeds.length === 0 || startMutation.isPending}
+                disabled={!canStart || startMutation.isPending}
               >
                 {startMutation.isPending ? (
                   <>
