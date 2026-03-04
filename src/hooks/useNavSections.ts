@@ -47,6 +47,7 @@ export function useNavSections(): NavSection[] {
       label: "Inbound",
       items: [
         { title: "Contacts", url: "/contacts/all", icon: Users },
+        { title: "Analytics", url: "/analytics/inbound", icon: TrendingUp },
       ],
     })
 

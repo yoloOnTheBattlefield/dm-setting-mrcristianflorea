@@ -23,6 +23,7 @@ import CampaignAddLeads from "./pages/CampaignAddLeads";
 import CampaignEdit from "./pages/CampaignEdit";
 import OutboundAccounts from "./pages/OutboundAccounts";
 import OutboundAnalytics from "./pages/OutboundAnalytics";
+import InboundAnalytics from "./pages/InboundAnalytics";
 import Scraper from "./pages/Scraper";
 import DeepScraper from "./pages/DeepScraper";
 import CommentPost from "./pages/CommentPost";
@@ -97,6 +98,13 @@ const App = () => (
                 <ProtectedRoute>
                   <DashboardLayout>
                     <AllContacts />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics/inbound" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <InboundAnalytics />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
