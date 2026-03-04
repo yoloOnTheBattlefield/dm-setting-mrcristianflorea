@@ -1,13 +1,15 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRawLeads, type LeadSortField, type SortOrder } from "@/hooks/useRawLeads";
 import { useAccounts } from "@/hooks/useAccounts";
 import { ContactsTable } from "@/components/contacts-table";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { readPersisted, writePersisted } from "@/hooks/usePersistedState";
-import { AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { DateFilter } from "@/components/dashboard/DateFilter";
 import { DateRangeFilter } from "@/lib/types";
 import {
@@ -18,6 +20,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -27,15 +36,105 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminView } from "@/contexts/AdminViewContext";
+import { API_URL, fetchWithAuth } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const STATUS_OPTIONS = [
   { value: "link_sent", label: "Link Sent" },
   { value: "booked", label: "Converted" },
 ];
 
+type LeadStatus = "new" | "link_sent" | "booked" | "closed";
+
+const LEAD_STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
+  { value: "new", label: "New" },
+  { value: "link_sent", label: "Link Sent" },
+  { value: "booked", label: "Booked" },
+  { value: "closed", label: "Closed" },
+];
+
 export default function AllContacts() {
   const { user } = useAuth();
   const { viewAll } = useAdminView();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Add Lead modal state
+  const [addLeadOpen, setAddLeadOpen] = useState(false);
+  const [addLeadSubmitting, setAddLeadSubmitting] = useState(false);
+  const [leadForm, setLeadForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    contact_id: "",
+    score: "",
+    contract_value: "",
+    status: "new" as LeadStatus,
+    summary: "",
+  });
+
+  const resetLeadForm = () => {
+    setLeadForm({
+      first_name: "",
+      last_name: "",
+      email: "",
+      contact_id: "",
+      score: "",
+      contract_value: "",
+      status: "new",
+      summary: "",
+    });
+  };
+
+  const handleAddLead = async () => {
+    if (!leadForm.first_name.trim()) return;
+    setAddLeadSubmitting(true);
+    try {
+      const now = new Date().toISOString();
+      const body: Record<string, unknown> = {
+        first_name: leadForm.first_name.trim(),
+        date_created: now,
+        account_id: user?.ghl,
+      };
+      if (leadForm.last_name.trim()) body.last_name = leadForm.last_name.trim();
+      if (leadForm.email.trim()) body.email = leadForm.email.trim();
+      if (leadForm.contact_id.trim()) body.contact_id = leadForm.contact_id.trim();
+      if (leadForm.score && leadForm.score !== "none") body.score = Number(leadForm.score);
+      if (leadForm.contract_value) body.contract_value = Number(leadForm.contract_value);
+      if (leadForm.summary.trim()) body.summary = leadForm.summary.trim();
+
+      if (leadForm.status === "link_sent" || leadForm.status === "booked" || leadForm.status === "closed") {
+        body.link_sent_at = now;
+      }
+      if (leadForm.status === "booked" || leadForm.status === "closed") {
+        body.booked_at = now;
+      }
+      if (leadForm.status === "closed") {
+        body.closed_at = now;
+      }
+
+      const res = await fetchWithAuth(`${API_URL}/leads`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) throw new Error(`Failed to create lead: ${res.status}`);
+
+      await queryClient.invalidateQueries({ queryKey: ["rawLeads"] });
+      toast({ title: "Success", description: "Lead created successfully" });
+      setAddLeadOpen(false);
+      resetLeadForm();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to create lead",
+        variant: "destructive",
+      });
+    } finally {
+      setAddLeadSubmitting(false);
+    }
+  };
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Initialize state from URL params, falling back to localStorage
@@ -170,6 +269,40 @@ export default function AllContacts() {
   const contacts = data?.leads || [];
   const pagination = data?.pagination;
 
+  // Stats query: same filters, large limit to get all records for counting
+  const { data: statsData, isLoading: statsLoading } = useRawLeads({
+    statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+    startDate,
+    endDate,
+    search: debouncedSearchQuery || undefined,
+    page: 1,
+    limit: 9999,
+    accountId: user?.role === 0
+      ? (viewAll
+          ? (selectedAccount !== "all" ? selectedAccount : "all")
+          : undefined)
+      : undefined,
+    sortBy,
+    sortOrder,
+  });
+
+  const stats = useMemo(() => {
+    if (!statsData?.leads) return null;
+    const leads = statsData.leads;
+    const total = statsData.pagination.total;
+    const linkSent = leads.filter((l) => l.link_sent_at).length;
+    const booked = leads.filter((l) => l.booked_at).length;
+    const closed = leads.filter((l) => l.closed_at).length;
+    return {
+      total,
+      linkSent,
+      booked,
+      closed,
+      bookRate: total > 0 ? ((booked / total) * 100).toFixed(1) : "0.0",
+      closeRate: total > 0 ? ((closed / total) * 100).toFixed(1) : "0.0",
+    };
+  }, [statsData]);
+
   // Get accounts from /accounts endpoint
   const { data: accounts = [] } = useAccounts();
 
@@ -185,11 +318,20 @@ export default function AllContacts() {
     <div className="flex flex-1 flex-col">
       <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4 flex items-end justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">All Contacts</h2>
-            <p className="text-muted-foreground">
-              View and manage all your contacts
-            </p>
+          <div className="flex items-center gap-4">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">All Contacts</h2>
+              <p className="text-muted-foreground">
+                View and manage all your contacts
+              </p>
+            </div>
+            <Button
+              onClick={() => setAddLeadOpen(true)}
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Lead
+            </Button>
           </div>
 
           <div className="flex gap-4 items-end">
@@ -306,6 +448,49 @@ export default function AllContacts() {
         </div>
       ) : (
         <>
+          {/* Conversion Rate Stats Bar */}
+          {statsLoading ? (
+            <div className="mb-4 rounded-lg border bg-card p-4 animate-pulse">
+              <div className="flex gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex-1">
+                    <div className="h-4 bg-muted rounded w-16 mb-2" />
+                    <div className="h-6 bg-muted rounded w-10" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : stats && stats.total > 0 ? (
+            <div className="mb-4 rounded-lg border bg-card p-4">
+              <div className="flex gap-6 flex-wrap">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Leads</p>
+                  <p className="text-lg font-bold">{stats.total}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Link Sent</p>
+                  <p className="text-lg font-bold">{stats.linkSent}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Booked</p>
+                  <p className="text-lg font-bold">{stats.booked}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Closed</p>
+                  <p className="text-lg font-bold">{stats.closed}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Book Rate</p>
+                  <p className="text-lg font-bold">{stats.bookRate}%</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Close Rate</p>
+                  <p className="text-lg font-bold">{stats.closeRate}%</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           <ContactsTable
             contacts={contacts}
             isLoading={isLoading}
@@ -376,6 +561,125 @@ export default function AllContacts() {
         </>
       )}
       </div>
+
+      {/* Add Lead Modal */}
+      <Dialog open={addLeadOpen} onOpenChange={(open) => { setAddLeadOpen(open); if (!open) resetLeadForm(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Lead</DialogTitle>
+            <DialogDescription>Manually create a new lead.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="lead-first-name">First Name *</Label>
+              <Input
+                id="lead-first-name"
+                value={leadForm.first_name}
+                onChange={(e) => setLeadForm((f) => ({ ...f, first_name: e.target.value }))}
+                placeholder="First name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="lead-last-name">Last Name</Label>
+              <Input
+                id="lead-last-name"
+                value={leadForm.last_name}
+                onChange={(e) => setLeadForm((f) => ({ ...f, last_name: e.target.value }))}
+                placeholder="Last name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="lead-email">Email</Label>
+              <Input
+                id="lead-email"
+                type="email"
+                value={leadForm.email}
+                onChange={(e) => setLeadForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="email@example.com"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="lead-contact-id">Instagram / Social Handle</Label>
+              <Input
+                id="lead-contact-id"
+                value={leadForm.contact_id}
+                onChange={(e) => setLeadForm((f) => ({ ...f, contact_id: e.target.value }))}
+                placeholder="@handle"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="lead-score">Score</Label>
+                <Select
+                  value={leadForm.score || "none"}
+                  onValueChange={(v) => setLeadForm((f) => ({ ...f, score: v === "none" ? "" : v }))}
+                >
+                  <SelectTrigger id="lead-score">
+                    <SelectValue placeholder="Not scored" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not scored</SelectItem>
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>
+                        {i + 1}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="lead-contract-value">Contract Value $</Label>
+                <Input
+                  id="lead-contract-value"
+                  type="number"
+                  value={leadForm.contract_value}
+                  onChange={(e) => setLeadForm((f) => ({ ...f, contract_value: e.target.value }))}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Status</Label>
+              <div className="flex gap-1">
+                {LEAD_STATUS_OPTIONS.map((opt) => (
+                  <Button
+                    key={opt.value}
+                    type="button"
+                    size="sm"
+                    variant={leadForm.status === opt.value ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => setLeadForm((f) => ({ ...f, status: opt.value }))}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="lead-summary">Notes / Summary</Label>
+              <Textarea
+                id="lead-summary"
+                value={leadForm.summary}
+                onChange={(e) => setLeadForm((f) => ({ ...f, summary: e.target.value }))}
+                placeholder="Optional notes..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setAddLeadOpen(false)} disabled={addLeadSubmitting}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddLead}
+              disabled={!leadForm.first_name.trim() || addLeadSubmitting}
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
+            >
+              {addLeadSubmitting ? "Creating..." : "Create Lead"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

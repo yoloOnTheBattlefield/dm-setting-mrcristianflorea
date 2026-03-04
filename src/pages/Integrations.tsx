@@ -941,17 +941,66 @@ export default function Integrations() {
           </CardContent>
         </Card>
 
-        <Card className="opacity-50">
+        {/* ManyChat Integration Card */}
+        <Card>
           <CardHeader>
-            <CardTitle>Slack</CardTitle>
-            <CardDescription>
-              Get notifications in your Slack workspace
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>ManyChat</CardTitle>
+                <CardDescription>
+                  Capture inbound leads from Instagram DMs and comments
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <Button disabled className="w-full">
-              Coming Soon
-            </Button>
+          <CardContent className="space-y-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Webhook URL</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  readOnly
+                  value={`${API_URL}/api/manychat/webhook`}
+                  className="text-xs font-mono"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${API_URL}/api/manychat/webhook`);
+                    toast({ title: "Copied", description: "Webhook URL copied to clipboard" });
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">API Key Header</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  readOnly
+                  value={user?.api_key || "No API key found"}
+                  className="text-xs font-mono"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => {
+                    if (user?.api_key) {
+                      navigator.clipboard.writeText(user.api_key);
+                      toast({ title: "Copied", description: "API key copied to clipboard" });
+                    }
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                Add as <span className="font-mono">x-api-key</span> header in ManyChat's External Request
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
