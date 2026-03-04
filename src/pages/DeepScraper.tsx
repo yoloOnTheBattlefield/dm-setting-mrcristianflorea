@@ -44,6 +44,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -66,7 +80,7 @@ import {
   useSkipComments,
   useResumeComments,
 } from "@/hooks/useDeepScrapeJobs";
-import type { DeepScrapeJob, DeepScrapeJobStatus, DeepScrapeLeadEntry, DeepScrapeTargetStat } from "@/lib/types";
+import type { DeepScrapeJob, DeepScrapeJobStatus, DeepScrapeLeadEntry } from "@/lib/types";
 import {
   Plus,
   AlertCircle,
@@ -95,6 +109,12 @@ import {
   ChevronUp,
   FastForward,
   MessageSquare,
+  SlidersHorizontal,
+  CalendarClock,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Inbox,
 } from "lucide-react";
 
 const STATUS_BADGE: Record<DeepScrapeJobStatus, { label: string; className: string }> = {
@@ -130,14 +150,6 @@ function formatShortDate(dateStr: string) {
   });
 }
 
-function formatFullDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 function formatTime(dateStr: string) {
   const d = new Date(dateStr);
   return [
@@ -155,13 +167,6 @@ function isActiveJob(status: DeepScrapeJobStatus) {
     status === "scraping_profiles" ||
     status === "qualifying"
   );
-}
-
-function formatSeeds(seeds: string[]) {
-  if (seeds.length === 0) return "\u2014";
-  const shown = seeds.slice(0, 2).map((s) => `@${s}`).join(", ");
-  if (seeds.length > 2) return `${shown} +${seeds.length - 2} more`;
-  return shown;
 }
 
 function truncateBio(bio: string | null, maxLen = 50): string {
@@ -311,14 +316,99 @@ function JobStats({ job }: { job: DeepScrapeJob }) {
   const s = job.stats;
   if (s.qualified > 0 || s.filtered_low_followers > 0 || s.rejected > 0) {
     return (
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-        <span className="text-green-500">Q:{s.qualified}</span>
-        <span>F:{s.filtered_low_followers}</span>
-        <span>R:{s.rejected}</span>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium bg-green-500/15 text-green-400 border border-green-500/30">
+          {s.qualified} qualified
+        </span>
+        <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">
+          {s.filtered_low_followers} filtered
+        </span>
+        <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium bg-zinc-500/15 text-zinc-400 border border-zinc-500/30">
+          {s.rejected} rejected
+        </span>
       </div>
     );
   }
   return <span className="text-xs text-muted-foreground">&mdash;</span>;
+}
+
+function ActionBtn({ tooltip, children, ...props }: { tooltip: string } & React.ComponentProps<typeof Button>) {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button {...props}>{children}</Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom"><p className="text-xs">{tooltip}</p></TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function SortHeader({ col, label, sortCol, sortAsc, onSort, className }: { col: string; label: string; sortCol: string; sortAsc: boolean; onSort: (col: string) => void; className?: string }) {
+  return (
+    <button onClick={() => onSort(col)} className={`flex items-center gap-1 hover:text-foreground transition-colors ${className || ""}`}>
+      {label}
+      {sortCol === col ? (sortAsc ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+    </button>
+  );
+}
+
+function getSortVal(t: { total_scraped: number; avg_followers: number; qualified: number; qualRate: number | null; messaged: number; replied: number; reply_rate: number; booked: number; book_rate: number; total_contract_value: number; seed: string }, col: string): number | string | null {
+  switch (col) {
+    case "seed": return t.seed;
+    case "scraped": return t.total_scraped;
+    case "avg_followers": return t.avg_followers;
+    case "qualified": return t.qualified;
+    case "qual_pct": return t.qualRate;
+    case "messaged": return t.messaged;
+    case "replied": return t.replied;
+    case "reply_pct": return t.reply_rate;
+    case "booked": return t.booked;
+    case "book_pct": return t.book_rate;
+    case "revenue": return t.total_contract_value;
+    default: return null;
+  }
+}
+
+function SeedsDisplay({ seeds, name }: { seeds: string[]; name: string | null }) {
+  const shown = seeds.slice(0, 2).map((s) => `@${s}`).join(", ");
+  const rest = seeds.slice(2);
+
+  const seedsContent = (
+    <>
+      <span>{shown}</span>
+      {rest.length > 0 && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="ml-1 text-muted-foreground hover:text-foreground underline decoration-dotted underline-offset-2 transition-colors">
+              +{rest.length} more
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="bottom" align="start" className="w-64 max-h-60 overflow-auto p-3">
+            <p className="text-xs font-medium mb-2">All seeds ({seeds.length})</p>
+            <div className="flex flex-wrap gap-1">
+              {seeds.map((s) => (
+                <Badge key={s} variant="secondary" className="text-[11px] px-1.5 py-0">
+                  @{s}
+                </Badge>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+    </>
+  );
+
+  if (name) {
+    return (
+      <div>
+        <div className="font-medium truncate">{name}</div>
+        <div className="text-[10px] text-muted-foreground truncate">{seedsContent}</div>
+      </div>
+    );
+  }
+  return <div className="font-medium truncate">{seedsContent}</div>;
 }
 
 function formatDuration(startStr: string | null, endStr: string | null): string {
@@ -646,6 +736,54 @@ export default function DeepScraper() {
   const targets = targetStatsData?.targets || [];
   const [showTargetStats, setShowTargetStats] = usePersistedState("deep-scraper-show-targets", true);
 
+  // Target Analytics state
+  const [taSearch, setTaSearch] = useState("");
+  const [taSortCol, setTaSortCol] = useState<string>("qual_pct");
+  const [taSortAsc, setTaSortAsc] = useState(false);
+  const [taLowFitFilter, setTaLowFitFilter] = useState<"all" | "hide_low" | "only_low">("all");
+  const [taVisibleCols, setTaVisibleCols] = useState<Set<string>>(
+    () => new Set(["scraped", "avg_followers", "qualified", "qual_pct", "messaged", "replied", "reply_pct"])
+  );
+
+  const toggleTaCol = (col: string) => {
+    setTaVisibleCols((prev) => {
+      const next = new Set(prev);
+      if (next.has(col)) next.delete(col);
+      else next.add(col);
+      return next;
+    });
+  };
+
+  const handleTaSort = (col: string) => {
+    if (taSortCol === col) setTaSortAsc((prev) => !prev);
+    else { setTaSortCol(col); setTaSortAsc(false); }
+  };
+
+  const filteredTargets = React.useMemo(() => {
+    return targets
+      .map((t) => {
+        const total = t.qualified + t.rejected;
+        const qualRate = total > 0 ? +((t.qualified / total) * 100).toFixed(1) : null;
+        const isLowFit = total >= 10 && qualRate !== null && qualRate < 20;
+        return { ...t, qualRate, isLowFit };
+      })
+      .filter((t) => {
+        if (taSearch && !t.seed.toLowerCase().includes(taSearch.trim().toLowerCase())) return false;
+        if (taLowFitFilter === "hide_low" && t.isLowFit) return false;
+        if (taLowFitFilter === "only_low" && !t.isLowFit) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const dir = taSortAsc ? 1 : -1;
+        const valA = getSortVal(a, taSortCol);
+        const valB = getSortVal(b, taSortCol);
+        if (valA === valB) return 0;
+        if (valA === null) return 1;
+        if (valB === null) return -1;
+        return valA < valB ? -dir : dir;
+      });
+  }, [targets, taSearch, taSortCol, taSortAsc, taLowFitFilter]);
+
   // Precomputed qual rate lookup for edit dialog chips
   const targetQualMap = React.useMemo(() => {
     const map: Record<string, { qualRate: number | null; qualified: number; rejected: number }> = {};
@@ -942,103 +1080,237 @@ export default function DeepScraper() {
       <div className="flex-1 p-6 space-y-6">
         {/* Target Analytics */}
         {targets.length > 0 && (
-          <div className="rounded-lg border bg-card">
-            <button
-              onClick={() => setShowTargetStats(!showTargetStats)}
-              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-indigo-400" />
-                <span className="text-sm font-semibold">Target Analytics</span>
-                <span className="text-xs text-muted-foreground">({targets.length} targets)</span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <BarChart3 className="h-5 w-5 text-indigo-400" />
+                <h3 className="text-lg font-semibold">Target Analytics</h3>
+                <Badge variant="secondary" className="text-xs font-normal">{targets.length} targets</Badge>
               </div>
-              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showTargetStats ? "rotate-180" : ""}`} />
-            </button>
+              <Button variant="ghost" size="sm" onClick={() => setShowTargetStats(!showTargetStats)}>
+                <ChevronDown className={`h-4 w-4 transition-transform ${showTargetStats ? "rotate-180" : ""}`} />
+              </Button>
+            </div>
             {showTargetStats && (
-              <div className="border-t">
+              <div className="rounded-lg border bg-card">
+                {/* Toolbar */}
+                <div className="flex items-center gap-3 px-4 py-3 border-b">
+                  <div className="relative flex-1 max-w-xs">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search targets..."
+                      value={taSearch}
+                      onChange={(e) => setTaSearch(e.target.value)}
+                      className="pl-8 h-9"
+                    />
+                  </div>
+                  <Select value={taLowFitFilter} onValueChange={(v: string) => setTaLowFitFilter(v as "all" | "hide_low" | "only_low")}>
+                    <SelectTrigger className="w-40 h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Targets</SelectItem>
+                      <SelectItem value="hide_low">Hide Low Fit</SelectItem>
+                      <SelectItem value="only_low">Only Low Fit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-9">
+                        <SlidersHorizontal className="h-4 w-4 mr-2" />
+                        Columns
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {[
+                        { key: "scraped", label: "Scraped" },
+                        { key: "avg_followers", label: "Avg Followers" },
+                        { key: "qualified", label: "Qualified" },
+                        { key: "qual_pct", label: "Qual %" },
+                        { key: "messaged", label: "Messaged" },
+                        { key: "replied", label: "Replied" },
+                        { key: "reply_pct", label: "Reply %" },
+                        { key: "booked", label: "Booked" },
+                        { key: "book_pct", label: "Book %" },
+                        { key: "revenue", label: "Revenue" },
+                      ].map((col) => (
+                        <DropdownMenuCheckboxItem
+                          key={col.key}
+                          checked={taVisibleCols.has(col.key)}
+                          onCheckedChange={() => toggleTaCol(col.key)}
+                        >
+                          {col.label}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs">Target</TableHead>
-                      <TableHead className="text-xs text-right">Scraped</TableHead>
-                      <TableHead className="text-xs text-right">Avg Followers</TableHead>
-                      <TableHead className="text-xs text-right">Qualified</TableHead>
-                      <TableHead className="text-xs text-right">Qual %</TableHead>
-                      <TableHead className="text-xs text-right">Messaged</TableHead>
-                      <TableHead className="text-xs text-right">Replied</TableHead>
-                      <TableHead className="text-xs text-right">Reply %</TableHead>
-                      <TableHead className="text-xs text-right">Booked</TableHead>
-                      <TableHead className="text-xs text-right">Book %</TableHead>
-                      <TableHead className="text-xs text-right">Revenue</TableHead>
+                      <TableHead className="text-xs">
+                        <SortHeader col="seed" label="Target" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} />
+                      </TableHead>
+                      {taVisibleCols.has("scraped") && (
+                        <TableHead className="text-xs text-right">
+                          <SortHeader col="scraped" label="Scraped" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
+                        </TableHead>
+                      )}
+                      {taVisibleCols.has("avg_followers") && (
+                        <TableHead className="text-xs text-right">
+                          <SortHeader col="avg_followers" label="Avg Followers" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
+                        </TableHead>
+                      )}
+                      {taVisibleCols.has("qualified") && (
+                        <TableHead className="text-xs text-right">
+                          <SortHeader col="qualified" label="Qualified" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
+                        </TableHead>
+                      )}
+                      {taVisibleCols.has("qual_pct") && (
+                        <TableHead className="text-xs text-right">
+                          <SortHeader col="qual_pct" label="Qual %" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
+                        </TableHead>
+                      )}
+                      {taVisibleCols.has("messaged") && (
+                        <TableHead className="text-xs text-right">
+                          <SortHeader col="messaged" label="Messaged" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
+                        </TableHead>
+                      )}
+                      {taVisibleCols.has("replied") && (
+                        <TableHead className="text-xs text-right">
+                          <SortHeader col="replied" label="Replied" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
+                        </TableHead>
+                      )}
+                      {taVisibleCols.has("reply_pct") && (
+                        <TableHead className="text-xs text-right">
+                          <SortHeader col="reply_pct" label="Reply %" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
+                        </TableHead>
+                      )}
+                      {taVisibleCols.has("booked") && (
+                        <TableHead className="text-xs text-right">
+                          <SortHeader col="booked" label="Booked" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
+                        </TableHead>
+                      )}
+                      {taVisibleCols.has("book_pct") && (
+                        <TableHead className="text-xs text-right">
+                          <SortHeader col="book_pct" label="Book %" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
+                        </TableHead>
+                      )}
+                      {taVisibleCols.has("revenue") && (
+                        <TableHead className="text-xs text-right">
+                          <SortHeader col="revenue" label="Revenue" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
+                        </TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {targets.map((t) => {
-                      const qualRate = (t.qualified + t.rejected) > 0
-                        ? +((t.qualified / (t.qualified + t.rejected)) * 100).toFixed(1)
-                        : null;
-                      const isLowQuality = (t.qualified + t.rejected) >= 10 && qualRate !== null && qualRate < 20;
-                      return (
-                      <TableRow key={t.seed} className={isLowQuality ? "border-l-2 border-l-orange-500" : ""}>
-                        <TableCell className="text-xs font-medium">
-                          <div className="flex items-center gap-1.5">
-                            @{t.seed}
-                            {isLowQuality && (
-                              <Badge className="bg-orange-500/15 text-orange-400 border-orange-500/30 text-[9px] px-1 py-0">
-                                Low Fit
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-right">{t.total_scraped.toLocaleString()}</TableCell>
-                        <TableCell className="text-xs text-right text-muted-foreground">{t.avg_followers.toLocaleString()}</TableCell>
-                        <TableCell className="text-xs text-right text-green-500">{t.qualified}</TableCell>
-                        <TableCell className="text-xs text-right">
-                          {qualRate !== null ? (
-                            <span className={qualRate >= 50 ? "text-green-500" : qualRate >= 20 ? "text-yellow-500" : "text-red-500"}>
-                              {qualRate}%
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">{"\u2014"}</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs text-right">{t.messaged}</TableCell>
-                        <TableCell className="text-xs text-right">{t.replied}</TableCell>
-                        <TableCell className="text-xs text-right">
-                          {t.reply_rate > 0 ? (
-                            <span className={t.reply_rate >= 10 ? "text-green-500" : t.reply_rate >= 5 ? "text-yellow-500" : "text-muted-foreground"}>
-                              {t.reply_rate}%
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs text-right">{t.booked}</TableCell>
-                        <TableCell className="text-xs text-right">
-                          {t.book_rate > 0 ? (
-                            <span className={t.book_rate >= 5 ? "text-green-500" : "text-muted-foreground"}>
-                              {t.book_rate}%
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs text-right">
-                          {t.total_contract_value > 0 ? (
-                            <span className="text-green-500">${t.total_contract_value.toLocaleString()}</span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
+                    {filteredTargets.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={11} className="h-20 text-center text-muted-foreground">
+                          No targets match your filters.
                         </TableCell>
                       </TableRow>
-                      );
-                    })}
+                    ) : (
+                      filteredTargets.map((t) => (
+                        <TableRow key={t.seed} className={t.isLowFit ? "border-l-2 border-l-orange-500" : ""}>
+                          <TableCell className="text-xs font-medium">
+                            <div className="flex items-center gap-1.5">
+                              @{t.seed}
+                              {t.isLowFit && (
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge className="bg-orange-500/15 text-orange-400 border-orange-500/30 text-[9px] px-1 py-0 cursor-help">
+                                        Low Fit
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right" className="max-w-[220px]">
+                                      <p className="text-xs">This target has a low qualification rate relative to total scraped profiles.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
+                          </TableCell>
+                          {taVisibleCols.has("scraped") && (
+                            <TableCell className="text-xs text-right">{t.total_scraped.toLocaleString()}</TableCell>
+                          )}
+                          {taVisibleCols.has("avg_followers") && (
+                            <TableCell className="text-xs text-right text-muted-foreground">{t.avg_followers.toLocaleString()}</TableCell>
+                          )}
+                          {taVisibleCols.has("qualified") && (
+                            <TableCell className="text-xs text-right text-green-500">{t.qualified}</TableCell>
+                          )}
+                          {taVisibleCols.has("qual_pct") && (
+                            <TableCell className="text-xs text-right">
+                              {t.qualRate !== null ? (
+                                <span className={t.qualRate >= 50 ? "text-green-500" : t.qualRate >= 25 ? "text-yellow-500" : "text-red-500"}>
+                                  {t.qualRate}%
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">&mdash;</span>
+                              )}
+                            </TableCell>
+                          )}
+                          {taVisibleCols.has("messaged") && (
+                            <TableCell className="text-xs text-right">{t.messaged}</TableCell>
+                          )}
+                          {taVisibleCols.has("replied") && (
+                            <TableCell className="text-xs text-right">{t.replied}</TableCell>
+                          )}
+                          {taVisibleCols.has("reply_pct") && (
+                            <TableCell className="text-xs text-right">
+                              {t.reply_rate > 0 ? (
+                                <span className={t.reply_rate >= 10 ? "text-green-500" : t.reply_rate >= 5 ? "text-yellow-500" : "text-red-500"}>
+                                  {t.reply_rate}%
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">&mdash;</span>
+                              )}
+                            </TableCell>
+                          )}
+                          {taVisibleCols.has("booked") && (
+                            <TableCell className="text-xs text-right">{t.booked}</TableCell>
+                          )}
+                          {taVisibleCols.has("book_pct") && (
+                            <TableCell className="text-xs text-right">
+                              {t.book_rate > 0 ? (
+                                <span className={t.book_rate >= 5 ? "text-green-500" : t.book_rate >= 2 ? "text-yellow-500" : "text-red-500"}>
+                                  {t.book_rate}%
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">&mdash;</span>
+                              )}
+                            </TableCell>
+                          )}
+                          {taVisibleCols.has("revenue") && (
+                            <TableCell className="text-xs text-right">
+                              {t.total_contract_value > 0 ? (
+                                <span className="text-green-500">${t.total_contract_value.toLocaleString()}</span>
+                              ) : (
+                                <span className="text-muted-foreground">&mdash;</span>
+                              )}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
             )}
           </div>
         )}
+
+        <Separator />
+
+        {/* Scrape Jobs */}
+        <div className="flex items-center gap-2.5 -mb-2">
+          <h3 className="text-lg font-semibold">Scrape Jobs</h3>
+          {pagination && <Badge variant="secondary" className="text-xs font-normal">{pagination.total} jobs</Badge>}
+        </div>
 
         {isError ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -1096,8 +1368,17 @@ export default function DeepScraper() {
                 <TableBody>
                   {jobs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
-                        No deep scrape jobs found.
+                      <TableCell colSpan={6} className="h-40">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <Inbox className="h-8 w-8 text-muted-foreground/50" />
+                          <p className="text-sm text-muted-foreground">
+                            {statusFilter !== "all" ? `No ${statusFilter.replace("_", " ")} jobs found.` : "No deep scrape jobs yet."}
+                          </p>
+                          <Button size="sm" onClick={() => setShowNewDialog(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Deep Scrape
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -1110,30 +1391,27 @@ export default function DeepScraper() {
                         <React.Fragment key={job._id}>
                           <TableRow className={isExpanded ? "border-b-0" : ""}>
                             <TableCell className="max-w-[200px]">
-                              {job.name ? (
-                                <div>
-                                  <div className="font-medium truncate">{job.name}</div>
-                                  <div className="text-[10px] text-muted-foreground truncate">{formatSeeds(job.seed_usernames)}</div>
-                                </div>
-                              ) : (
-                                <div className="font-medium truncate">{formatSeeds(job.seed_usernames)}</div>
-                              )}
+                              <SeedsDisplay seeds={job.seed_usernames} name={job.name} />
                             </TableCell>
                             <TableCell>
-                              <div className="flex flex-col gap-0.5">
+                              <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-1.5">
                                   <Badge className={badge.className}>
                                     {active && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
                                     {getStatusLabel(job.status, job.scrape_type)}
                                   </Badge>
-                                  {job.is_recurring && (
-                                    <RefreshCw className="h-3 w-3 text-indigo-400" />
-                                  )}
                                 </div>
-                                {job.next_run_at && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    Next: {formatShortDate(job.next_run_at)}
-                                  </span>
+                                {job.is_recurring && job.next_run_at && (
+                                  <Badge variant="outline" className="w-fit gap-1 text-[10px] px-1.5 py-0 text-indigo-400 border-indigo-500/30">
+                                    <CalendarClock className="h-3 w-3" />
+                                    {formatShortDate(job.next_run_at)}
+                                  </Badge>
+                                )}
+                                {job.is_recurring && !job.next_run_at && (
+                                  <Badge variant="outline" className="w-fit gap-1 text-[10px] px-1.5 py-0 text-indigo-400 border-indigo-500/30">
+                                    <RefreshCw className="h-3 w-3" />
+                                    Every {job.repeat_interval_days}d
+                                  </Badge>
                                 )}
                               </div>
                             </TableCell>
@@ -1148,108 +1426,108 @@ export default function DeepScraper() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <Button
+                                <ActionBtn
+                                  tooltip={isExpanded ? "Collapse" : "View"}
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => setExpandedJobId(isExpanded ? null : job._id)}
-                                  title={isExpanded ? "Collapse" : "Expand"}
                                 >
                                   {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                </Button>
-                                <Button
+                                </ActionBtn>
+                                <ActionBtn
+                                  tooltip="Replicate"
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleReplicate(job)}
-                                  title="Replicate"
                                 >
                                   <Copy className="h-3.5 w-3.5" />
-                                </Button>
+                                </ActionBtn>
                                 {job.status === "completed" && (
-                                  <Button
+                                  <ActionBtn
+                                    tooltip="Rerun"
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleRerun(job)}
                                     disabled={startMutation.isPending}
-                                    title="Rerun"
                                   >
                                     <RefreshCw className="h-3.5 w-3.5 text-blue-400" />
-                                  </Button>
+                                  </ActionBtn>
                                 )}
                                 {!active && (
-                                  <Button
+                                  <ActionBtn
+                                    tooltip="Edit"
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleOpenEdit(job)}
-                                    title="Edit"
                                   >
                                     <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
+                                  </ActionBtn>
                                 )}
                                 {active && (
                                   <>
                                     {job.status === "scraping_comments" && (
-                                      <Button
+                                      <ActionBtn
+                                        tooltip="Skip to Qualifying"
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => handleSkipComments(job._id)}
                                         disabled={skipCommentsMutation.isPending}
-                                        title="Skip to Qualifying"
                                       >
                                         <FastForward className="h-3.5 w-3.5 text-cyan-400" />
-                                      </Button>
+                                      </ActionBtn>
                                     )}
-                                    <Button
+                                    <ActionBtn
+                                      tooltip="Pause"
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => handlePause(job._id)}
                                       disabled={pauseMutation.isPending}
-                                      title="Pause"
                                     >
                                       <Pause className="h-3.5 w-3.5 text-orange-400" />
-                                    </Button>
-                                    <Button
+                                    </ActionBtn>
+                                    <ActionBtn
+                                      tooltip="Stop"
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => setCancellingId(job._id)}
                                       disabled={cancelMutation.isPending}
-                                      title="Stop"
                                     >
                                       <Square className="h-3.5 w-3.5 text-destructive" />
-                                    </Button>
+                                    </ActionBtn>
                                   </>
                                 )}
                                 {(job.status === "paused" || job.status === "cancelled" || job.status === "failed") && (
-                                  <Button
+                                  <ActionBtn
+                                    tooltip="Resume"
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleResume(job._id)}
                                     disabled={resumeMutation.isPending}
-                                    title="Resume"
                                   >
                                     <Play className="h-3.5 w-3.5 text-green-500" />
-                                  </Button>
+                                  </ActionBtn>
                                 )}
                                 {!active && job.comments_skipped && (
-                                  <Button
+                                  <ActionBtn
+                                    tooltip="Resume Comments"
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleResumeComments(job._id)}
                                     disabled={resumeCommentsMutation.isPending}
-                                    title="Resume Comments"
                                   >
                                     <MessageSquare className="h-3.5 w-3.5 text-purple-400" />
-                                  </Button>
+                                  </ActionBtn>
                                 )}
                                 {!active && (
-                                  <Button
+                                  <ActionBtn
+                                    tooltip="Delete"
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setDeletingId(job._id)}
                                     disabled={deleteMutation.isPending}
-                                    title="Delete"
                                   >
                                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                  </Button>
+                                  </ActionBtn>
                                 )}
                               </div>
                             </TableCell>
