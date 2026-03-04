@@ -330,7 +330,7 @@ export default function CampaignDetail() {
   };
 
   const toggleLeadField = useCallback(
-    async (outboundLeadId: string, field: "replied" | "booked", currentValue: boolean) => {
+    async (outboundLeadId: string, field: "link_sent" | "replied" | "booked", currentValue: boolean) => {
       try {
         await fetchWithAuth(`${API_URL}/outbound-leads/${outboundLeadId}`, {
           method: "PATCH",
@@ -929,6 +929,7 @@ export default function CampaignDetail() {
                 <TableHead>Lead</TableHead>
                 <TableHead>Sender</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-center">Link Sent</TableHead>
                 <TableHead className="text-center">Replied</TableHead>
                 <TableHead className="text-center">Booked</TableHead>
                 <TableHead>Template</TableHead>
@@ -941,13 +942,13 @@ export default function CampaignDetail() {
             <TableBody>
               {leadsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="h-24 text-center">
+                  <TableCell colSpan={12} className="h-24 text-center">
                     No qualified leads in this campaign.
                   </TableCell>
                 </TableRow>
@@ -992,6 +993,12 @@ export default function CampaignDetail() {
                       </TableCell>
                       <TableCell>
                         <Badge className={lb.className}>{lb.label}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={lead?.link_sent ?? false}
+                          onCheckedChange={() => lead && toggleLeadField(lead._id, "link_sent", lead.link_sent ?? false)}
+                        />
                       </TableCell>
                       <TableCell className="text-center">
                         <Checkbox

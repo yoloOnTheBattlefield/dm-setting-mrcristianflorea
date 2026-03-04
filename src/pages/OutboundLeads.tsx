@@ -73,6 +73,7 @@ interface OutboundLead {
   isMessaged?: boolean | null;
   dmDate?: string | null;
   message?: string | null;
+  link_sent?: boolean;
   replied?: boolean;
   booked?: boolean;
   qualified?: boolean | null;
@@ -465,7 +466,7 @@ export default function OutboundLeads() {
   );
 
   const toggleField = useCallback(
-    async (lead: OutboundLead, field: "replied" | "booked") => {
+    async (lead: OutboundLead, field: "link_sent" | "replied" | "booked") => {
       const newVal = !lead[field];
       try {
         await patchOutboundLead(lead._id, { [field]: newVal });
@@ -902,6 +903,13 @@ export default function OutboundLeads() {
                           </label>
                           <label className="flex flex-col items-center gap-0.5 cursor-pointer">
                             <Checkbox
+                              checked={!!lead.link_sent}
+                              onCheckedChange={() => toggleField(lead, "link_sent")}
+                            />
+                            <span className="text-[10px] text-muted-foreground leading-none">Link</span>
+                          </label>
+                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                            <Checkbox
                               checked={!!lead.replied}
                               onCheckedChange={() => toggleField(lead, "replied")}
                             />
@@ -999,6 +1007,7 @@ export default function OutboundLeads() {
                     <TableHead>Source</TableHead>
                     <TableHead>Prompt</TableHead>
                     <TableHead>Messaged</TableHead>
+                    <TableHead>Link Sent</TableHead>
                     <TableHead>Replied</TableHead>
                     <TableHead>Converted</TableHead>
                     <TableHead>Contract</TableHead>
@@ -1018,13 +1027,14 @@ export default function OutboundLeads() {
                         <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                         <TableCell><Skeleton className="h-7 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                       </TableRow>
                     ))
                   ) : leads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="h-24 text-center">
+                      <TableCell colSpan={12} className="h-24 text-center">
                         No outbound leads found.
                       </TableCell>
                     </TableRow>
@@ -1093,6 +1103,12 @@ export default function OutboundLeads() {
                           <Checkbox
                             checked={!!lead.isMessaged}
                             onCheckedChange={() => toggleMessaged(lead)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Checkbox
+                            checked={!!lead.link_sent}
+                            onCheckedChange={() => toggleField(lead, "link_sent")}
                           />
                         </TableCell>
                         <TableCell>

@@ -81,6 +81,7 @@ export interface CampaignLead {
     bio?: string;
     followersCount?: number;
     profileLink?: string;
+    link_sent?: boolean;
     replied?: boolean;
     booked?: boolean;
   } | null;
