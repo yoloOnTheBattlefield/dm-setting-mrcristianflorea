@@ -6,6 +6,7 @@ import { API_URL, fetchWithAuth } from "@/lib/api";
 export interface OutboundFunnelData {
   messaged: number;
   replied: number;
+  link_sent: number;
   booked: number;
   contracts: number;
   contract_value: number;

@@ -18,14 +18,24 @@ const METRIC_OPTIONS: { value: HeatmapMetric; label: string }[] = [
 ];
 
 const DAY_LABELS = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
+const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function getIntensityClass(value: number, max: number): string {
-  if (max === 0 || value === 0) return "bg-muted/40";
+// Color scale: white → light teal → dark teal (§9)
+function getIntensityStyle(value: number, max: number): React.CSSProperties {
+  if (max === 0 || value === 0) return { backgroundColor: "#F7FAFC" };
   const ratio = value / max;
-  if (ratio <= 0.25) return "bg-teal-800/50";
-  if (ratio <= 0.5) return "bg-teal-600/70";
-  if (ratio <= 0.75) return "bg-teal-500";
-  return "bg-teal-400";
+  if (ratio <= 0.25) return { backgroundColor: "#B2DFDB" };
+  if (ratio <= 0.5) return { backgroundColor: "#81E6D9" };
+  if (ratio <= 0.75) return { backgroundColor: "#4DB6AC" };
+  return { backgroundColor: "#234E52" };
+}
+
+function formatDateLabel(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00");
+  const month = d.toLocaleDateString("en-US", { month: "short" });
+  const day = d.getDate();
+  const weekday = DAY_NAMES[d.getDay() === 0 ? 6 : d.getDay() - 1];
+  return `${month} ${day} · ${weekday}`;
 }
 
 export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
@@ -38,7 +48,6 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
     const dayMap = new Map<string, DailyActivityData>();
     sorted.forEach((d) => dayMap.set(d.date, d));
 
-    // Build grid from first to last date
     const start = new Date(sorted[0].date);
     const end = new Date(sorted[sorted.length - 1].date);
 
@@ -56,30 +65,19 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
       const dayData = dayMap.get(dateStr);
       const value = dayData ? dayData[metric] : 0;
       if (value > maxVal) maxVal = value;
-      allDays.push({
-        date: dateStr,
-        value,
-        dayOfWeek: cursor.getDay() === 0 ? 6 : cursor.getDay() - 1,
-      });
+      allDays.push({ date: dateStr, value, dayOfWeek: cursor.getDay() === 0 ? 6 : cursor.getDay() - 1 });
       cursor.setDate(cursor.getDate() + 1);
     }
 
-    // Group into weeks
     const weekGroups: typeof allDays[] = [];
-    for (let i = 0; i < allDays.length; i += 7) {
-      weekGroups.push(allDays.slice(i, i + 7));
-    }
+    for (let i = 0; i < allDays.length; i += 7) weekGroups.push(allDays.slice(i, i + 7));
 
-    // Month labels
     const labels: { label: string; weekIndex: number }[] = [];
     let lastMonth = "";
     weekGroups.forEach((week, wi) => {
       const firstDay = new Date(week[0].date);
       const monthStr = firstDay.toLocaleDateString("en-US", { month: "short" });
-      if (monthStr !== lastMonth) {
-        labels.push({ label: monthStr, weekIndex: wi });
-        lastMonth = monthStr;
-      }
+      if (monthStr !== lastMonth) { labels.push({ label: monthStr, weekIndex: wi }); lastMonth = monthStr; }
     });
 
     return { weeks: weekGroups, max: maxVal, monthLabels: labels };
@@ -115,15 +113,8 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
             {/* Month labels */}
             <div className="flex ml-8 mb-1">
               {monthLabels.map((m, i) => (
-                <span
-                  key={i}
-                  className="text-[10px] text-muted-foreground"
-                  style={{
-                    position: "relative",
-                    left: `${m.weekIndex * 19}px`,
-                    marginRight: i < monthLabels.length - 1 ? 0 : undefined,
-                  }}
-                >
+                <span key={i} className="text-[10px] text-muted-foreground"
+                  style={{ position: "relative", left: `${m.weekIndex * 16}px` }}>
                   {m.label}
                 </span>
               ))}
@@ -131,37 +122,32 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
 
             <div className="flex gap-0.5">
               {/* Day labels */}
-              <div className="flex flex-col gap-[3px] mr-1 shrink-0">
+              <div className="flex flex-col gap-[2px] mr-1 shrink-0">
                 {DAY_LABELS.map((label, i) => (
-                  <div key={i} className="h-[16px] flex items-center">
+                  <div key={i} className="h-[14px] flex items-center">
                     <span className="text-[9px] text-muted-foreground w-6 text-right">{label}</span>
                   </div>
                 ))}
               </div>
 
-              {/* Heatmap grid — larger cells */}
+              {/* Heatmap grid — min 14×14px cells with 2px gap (§9) */}
               <TooltipProvider delayDuration={0}>
-                <div className="flex gap-[3px]">
+                <div className="flex gap-[2px]">
                   {weeks.map((week, wi) => (
-                    <div key={wi} className="flex flex-col gap-[3px]">
+                    <div key={wi} className="flex flex-col gap-[2px]">
                       {Array.from({ length: 7 }).map((_, di) => {
                         const day = week.find((d) => d.dayOfWeek === di);
-                        if (!day) {
-                          return <div key={di} className="w-[16px] h-[16px]" />;
-                        }
+                        if (!day) return <div key={di} className="w-[14px] h-[14px]" />;
                         return (
                           <Tooltip key={di}>
                             <TooltipTrigger asChild>
                               <div
-                                className={cn(
-                                  "w-[16px] h-[16px] rounded-[3px] transition-colors cursor-default",
-                                  getIntensityClass(day.value, max)
-                                )}
+                                className="w-[14px] h-[14px] rounded-[2px] transition-colors cursor-default"
+                                style={getIntensityStyle(day.value, max)}
                               />
                             </TooltipTrigger>
                             <TooltipContent side="top" className="text-xs">
-                              <p className="font-medium">{day.value} {metric.replace("_", " ")}</p>
-                              <p className="text-muted-foreground">{day.date}</p>
+                              <p className="font-medium">{formatDateLabel(day.date)}: {day.value} {metric.replace("_", " ")}</p>
                             </TooltipContent>
                           </Tooltip>
                         );
@@ -172,14 +158,14 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
               </TooltipProvider>
             </div>
 
-            {/* Legend — larger cells */}
+            {/* Legend with matching scale colors */}
             <div className="flex items-center gap-1.5 mt-2 ml-8">
               <span className="text-[9px] text-muted-foreground">Less</span>
-              <div className="w-[12px] h-[12px] rounded-[3px] bg-muted/40" />
-              <div className="w-[12px] h-[12px] rounded-[3px] bg-teal-800/50" />
-              <div className="w-[12px] h-[12px] rounded-[3px] bg-teal-600/70" />
-              <div className="w-[12px] h-[12px] rounded-[3px] bg-teal-500" />
-              <div className="w-[12px] h-[12px] rounded-[3px] bg-teal-400" />
+              <div className="w-[12px] h-[12px] rounded-[2px]" style={{ backgroundColor: "#F7FAFC" }} />
+              <div className="w-[12px] h-[12px] rounded-[2px]" style={{ backgroundColor: "#B2DFDB" }} />
+              <div className="w-[12px] h-[12px] rounded-[2px]" style={{ backgroundColor: "#81E6D9" }} />
+              <div className="w-[12px] h-[12px] rounded-[2px]" style={{ backgroundColor: "#4DB6AC" }} />
+              <div className="w-[12px] h-[12px] rounded-[2px]" style={{ backgroundColor: "#234E52" }} />
               <span className="text-[9px] text-muted-foreground">More</span>
             </div>
           </div>
