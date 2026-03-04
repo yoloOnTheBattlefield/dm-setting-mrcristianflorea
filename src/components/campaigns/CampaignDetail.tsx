@@ -109,7 +109,18 @@ import {
   Eye,
   X,
   ChevronDown,
+  AlertTriangle,
+  Check,
+  Minus,
+  SlidersHorizontal,
+  ExternalLink,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
@@ -188,6 +199,10 @@ export default function CampaignDetail() {
   const [showSendersModal, setShowSendersModal] = useState(false);
   const [showDuplicate, setShowDuplicate] = useState(false);
   const [dupLeadFilter, setDupLeadFilter] = useState("all");
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+    message: false,
+    error: false,
+  });
 
   const { data: sendersData } = useCampaignSenders(campaignId ?? null, true);
 
@@ -408,6 +423,7 @@ export default function CampaignDetail() {
   const s = stats || { total: 0, pending: 0, queued: 0, sent: 0, delivered: 0, replied: 0, link_sent: 0, booked: 0, failed: 0, skipped: 0, without_message: 0 };
   const processed = (s.sent || 0) + (s.failed || 0) + (s.skipped || 0);
   const progressPct = s.total > 0 ? Math.round((processed / s.total) * 100) : 0;
+  const progressColor = progressPct >= 80 ? "bg-green-500" : progressPct >= 30 ? "bg-yellow-500" : "bg-red-500";
   const unsentCount = s.total - (s.sent || 0) - (s.delivered || 0) - (s.replied || 0);
   const withoutMessageCount = s.without_message ?? 0;
   const scopeCount = genScope === "unsent" ? unsentCount : withoutMessageCount;
@@ -527,16 +543,25 @@ export default function CampaignDetail() {
       <div className="space-y-3">
         <div className="hidden md:flex items-center justify-between">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Performance</p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 text-xs text-muted-foreground"
-            onClick={() => recalcMutation.mutate(campaign._id)}
-            disabled={recalcMutation.isPending}
-          >
-            <RefreshCw className={`h-3 w-3 mr-1 ${recalcMutation.isPending ? "animate-spin" : ""}`} />
-            Recalc
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs text-muted-foreground"
+                  onClick={() => recalcMutation.mutate(campaign._id)}
+                  disabled={recalcMutation.isPending}
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${recalcMutation.isPending ? "animate-spin" : ""}`} />
+                  Recalc
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Recalculate performance stats from raw send data</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         {/* Primary metrics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -554,6 +579,8 @@ export default function CampaignDetail() {
             subtitle={s.sent > 0 ? `${((s.booked || 0) / s.sent * 100).toFixed(1)}% of sent${(s.replied || 0) > 0 ? ` · ${((s.booked || 0) / (s.replied || 1) * 100).toFixed(1)}% of replies` : ""}` : undefined}
           />
         </div>
+        {/* Divider between tiers */}
+        <div className="hidden md:block border-t border-border/40" />
         {/* Secondary metrics – desktop only */}
         <div className="hidden md:grid grid-cols-4 gap-3">
           <SecondaryStatCard label="Total" value={s.total} icon={<ListTodo className="h-3.5 w-3.5" />} />
@@ -565,11 +592,12 @@ export default function CampaignDetail() {
         </div>
       </div>
 
-      {/* Senders – desktop only */}
+      {/* Unified Status Bar – desktop only */}
       {sendersData && (
         <Card className="hidden md:block">
           <CardContent className="py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
+              {/* Senders info */}
               <div className="flex items-center gap-2">
                 {sendersData.summary.online > 0 ? (
                   <Wifi className="h-4 w-4 text-green-400" />
@@ -581,11 +609,24 @@ export default function CampaignDetail() {
                   <span className="text-muted-foreground"> / {sendersData.summary.total} senders online</span>
                 </span>
                 {sendersData.summary.issues > 0 && (
-                  <span className="text-sm text-red-400 font-medium">
-                    · {sendersData.summary.issues} issue{sendersData.summary.issues !== 1 ? "s" : ""}
-                  </span>
+                  <Badge
+                    variant="destructive"
+                    className="cursor-pointer gap-1"
+                    onClick={() => setShowSendersModal(true)}
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    {sendersData.summary.issues} issue{sendersData.summary.issues !== 1 ? "s" : ""}
+                  </Badge>
                 )}
               </div>
+
+              {/* Separator + Next send info (if active) */}
+              {campaign.status === "active" && effectiveNextSend && (
+                <>
+                  <div className="h-4 w-px bg-border" />
+                  <NextSendInfo nextSend={effectiveNextSend} />
+                </>
+              )}
             </div>
             <Button variant="ghost" size="sm" onClick={() => setShowSendersModal(true)} className="text-xs">
               View Senders
@@ -594,20 +635,13 @@ export default function CampaignDetail() {
         </Card>
       )}
 
-      {/* Next Send – desktop only, active campaigns */}
-      <div className="hidden md:block">
-        {campaign.status === "active" && effectiveNextSend && (
-          <NextSendBar nextSend={effectiveNextSend} />
-        )}
-      </div>
-
       {/* Progress */}
       <div className="space-y-1">
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>Progress</span>
           <span>{processed} / {s.total} processed ({progressPct}%)</span>
         </div>
-        <Progress value={progressPct} className="h-2 md:h-3" />
+        <Progress value={progressPct} className="h-2 md:h-3" indicatorClassName={progressColor} />
       </div>
 
       {/* Leads */}
@@ -735,6 +769,32 @@ export default function CampaignDetail() {
                 Remove Pending
               </Button>
             )}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <SlidersHorizontal className="h-3.5 w-3.5 mr-1" />
+                  Columns
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2" align="end">
+                <div className="space-y-1">
+                  {[
+                    { key: "message", label: "Message" },
+                    { key: "error", label: "Error" },
+                  ].map((col) => (
+                    <label key={col.key} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+                      <Checkbox
+                        checked={visibleColumns[col.key] ?? false}
+                        onCheckedChange={(checked) =>
+                          setVisibleColumns((prev) => ({ ...prev, [col.key]: !!checked }))
+                        }
+                      />
+                      {col.label}
+                    </label>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button size="sm" onClick={() => navigate(`/campaigns/${campaignId}/add-leads`)}>
               <Plus className="h-3.5 w-3.5 mr-1" />
               Add Leads
@@ -821,7 +881,7 @@ export default function CampaignDetail() {
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                         <div>
                           <span className="text-muted-foreground">Sender</span>
-                          <p className="font-medium">{sender ? `@${sender.ig_username}` : "-"}</p>
+                          <p className="font-medium">{sender ? `@${sender.ig_username}` : cl.status === "pending" ? <span className="text-muted-foreground/60 italic font-normal">Unassigned</span> : "-"}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Sent At</span>
@@ -934,21 +994,21 @@ export default function CampaignDetail() {
                 <TableHead className="text-center">Booked</TableHead>
                 <TableHead>Template</TableHead>
                 <TableHead>Sent At</TableHead>
-                <TableHead>Message</TableHead>
-                <TableHead>Error</TableHead>
+                {visibleColumns.message && <TableHead>Message</TableHead>}
+                {visibleColumns.error && <TableHead>Error</TableHead>}
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {leadsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={9 + (visibleColumns.message ? 1 : 0) + (visibleColumns.error ? 1 : 0) + 1} className="h-24 text-center text-muted-foreground">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="h-24 text-center">
+                  <TableCell colSpan={9 + (visibleColumns.message ? 1 : 0) + (visibleColumns.error ? 1 : 0) + 1} className="h-24 text-center">
                     No qualified leads in this campaign.
                   </TableCell>
                 </TableRow>
@@ -957,8 +1017,9 @@ export default function CampaignDetail() {
                   const lb = LEAD_STATUS_BADGE[cl.status] || LEAD_STATUS_BADGE.pending;
                   const lead = cl.outbound_lead_id;
                   const sender = cl.sender_id;
+                  const profileUrl = lead ? (lead.profileLink || `https://instagram.com/${lead.username}`) : null;
                   return (
-                    <TableRow key={cl._id}>
+                    <TableRow key={cl._id} className="group">
                       <TableCell>
                         <Checkbox
                           checked={selectedLeadIds.has(cl._id)}
@@ -969,17 +1030,25 @@ export default function CampaignDetail() {
                         {lead ? (
                           <div className="flex items-center gap-1">
                             <a
-                              href={lead.profileLink || `https://instagram.com/${lead.username}`}
+                              href={profileUrl!}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-foreground hover:underline"
                             >
                               @{lead.username}
                             </a>
+                            <a
+                              href={profileUrl!}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
                             <button
                               type="button"
                               onClick={() => { navigator.clipboard.writeText(lead.username); toast({ title: "Copied", description: `@${lead.username}` }); }}
-                              className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                              className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <Copy className="h-3 w-3" />
                             </button>
@@ -989,28 +1058,33 @@ export default function CampaignDetail() {
                         )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {sender ? `@${sender.ig_username}` : "-"}
+                        {sender ? `@${sender.ig_username}` : cl.status === "pending" ? (
+                          <span className="text-muted-foreground/60 italic">Unassigned</span>
+                        ) : "-"}
                       </TableCell>
                       <TableCell>
                         <Badge className={lb.className}>{lb.label}</Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Checkbox
-                          checked={lead?.link_sent ?? false}
-                          onCheckedChange={() => lead && toggleLeadField(lead._id, "link_sent", lead.link_sent ?? false)}
-                        />
+                        {lead?.link_sent ? (
+                          <Check className="h-4 w-4 text-green-400 mx-auto" />
+                        ) : (
+                          <Minus className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Checkbox
-                          checked={lead?.replied ?? false}
-                          onCheckedChange={() => lead && toggleLeadField(lead._id, "replied", lead.replied ?? false)}
-                        />
+                        {lead?.replied ? (
+                          <Check className="h-4 w-4 text-green-400 mx-auto" />
+                        ) : (
+                          <Minus className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Checkbox
-                          checked={lead?.booked ?? false}
-                          onCheckedChange={() => lead && toggleLeadField(lead._id, "booked", lead.booked ?? false)}
-                        />
+                        {lead?.booked ? (
+                          <Check className="h-4 w-4 text-green-400 mx-auto" />
+                        ) : (
+                          <Minus className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                        )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {cl.template_index != null ? `#${cl.template_index + 1}` : "-"}
@@ -1018,42 +1092,58 @@ export default function CampaignDetail() {
                       <TableCell className="text-muted-foreground whitespace-nowrap">
                         {cl.sent_at ? formatDate(cl.sent_at) : "-"}
                       </TableCell>
-                      <TableCell className="max-w-[150px] text-muted-foreground">
-                        {(cl.custom_message || cl.message_used) ? (
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <button className="flex items-center gap-1 text-left max-w-full hover:text-foreground transition-colors">
-                                {cl.custom_message && (
-                                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0 bg-purple-500/15 text-purple-400 border-purple-500/30">
-                                    {cl.ai_provider === "claude" ? "Claude" : cl.ai_provider === "openai" ? "OpenAI" : cl.ai_provider === "gemini" ? "Gemini" : "AI"}
-                                  </Badge>
-                                )}
-                                <span className="truncate">{cl.custom_message || cl.message_used}</span>
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-80 max-h-60 overflow-y-auto text-sm whitespace-pre-wrap">
-                              {cl.custom_message || cl.message_used}
-                            </PopoverContent>
-                          </Popover>
-                        ) : (
-                          "-"
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-[150px] truncate">
-                        {cl.error ? (
-                          <span className="text-red-400 text-xs">{cl.error}</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
+                      {visibleColumns.message && (
+                        <TableCell className="max-w-[150px] text-muted-foreground">
+                          {(cl.custom_message || cl.message_used) ? (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="flex items-center gap-1 text-left max-w-full hover:text-foreground transition-colors">
+                                  {cl.custom_message && (
+                                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0 bg-purple-500/15 text-purple-400 border-purple-500/30">
+                                      {cl.ai_provider === "claude" ? "Claude" : cl.ai_provider === "openai" ? "OpenAI" : cl.ai_provider === "gemini" ? "Gemini" : "AI"}
+                                    </Badge>
+                                  )}
+                                  <span className="truncate">{cl.custom_message || cl.message_used}</span>
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 max-h-60 overflow-y-auto text-sm whitespace-pre-wrap">
+                                {cl.custom_message || cl.message_used}
+                              </PopoverContent>
+                            </Popover>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                      )}
+                      {visibleColumns.error && (
+                        <TableCell className="max-w-[150px] truncate">
+                          {cl.error ? (
+                            <span className="text-red-400 text-xs">{cl.error}</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {lead && (
+                              <DropdownMenuItem asChild>
+                                <a
+                                  href={profileUrl!}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                                  View Profile
+                                </a>
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                               onClick={() => {
                                 setEditingLeadId(cl._id);
@@ -1657,7 +1747,7 @@ export default function CampaignDetail() {
   );
 }
 
-function NextSendBar({ nextSend }: { nextSend: import("@/hooks/useCampaigns").CampaignNextSend }) {
+function NextSendInfo({ nextSend }: { nextSend: import("@/hooks/useCampaigns").CampaignNextSend }) {
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
@@ -1685,33 +1775,31 @@ function NextSendBar({ nextSend }: { nextSend: import("@/hooks/useCampaigns").Ca
   const hasReason = !!nextSend.reason;
 
   return (
-    <Card>
-      <CardContent className="py-3 flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Timer className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Next send:</span>
-          {nextSend.next_send_at && countdown ? (
-            <span className="text-sm font-bold text-green-400">{countdown}</span>
-          ) : hasReason ? (
-            <span className="text-sm text-yellow-400">{nextSend.reason}</span>
-          ) : (
-            <span className="text-sm text-muted-foreground">--</span>
-          )}
-        </div>
-
-        {nextSend.delay_seconds && (
-          <span className="text-xs text-muted-foreground">
-            ~{Math.round(nextSend.delay_seconds / 60)}m between sends
-          </span>
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        <Timer className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium">Next send:</span>
+        {nextSend.next_send_at && countdown ? (
+          <span className="text-sm font-bold text-green-400">{countdown}</span>
+        ) : hasReason ? (
+          <span className="text-sm text-yellow-400">{nextSend.reason}</span>
+        ) : (
+          <span className="text-sm text-muted-foreground">--</span>
         )}
+      </div>
 
-        {nextSend.last_sent_at && (
-          <span className="text-xs text-muted-foreground">
-            Last sent {formatRelative(nextSend.last_sent_at)}
-          </span>
-        )}
-      </CardContent>
-    </Card>
+      {nextSend.delay_seconds && (
+        <span className="text-xs text-muted-foreground">
+          ~{Math.round(nextSend.delay_seconds / 60)}m between sends
+        </span>
+      )}
+
+      {nextSend.last_sent_at && (
+        <span className="text-xs text-muted-foreground">
+          Last sent {formatRelative(nextSend.last_sent_at)}
+        </span>
+      )}
+    </div>
   );
 }
 
