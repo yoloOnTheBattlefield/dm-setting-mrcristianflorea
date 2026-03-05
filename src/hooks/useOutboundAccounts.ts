@@ -17,6 +17,12 @@ export interface OutboundAccount {
   twoFA: string | null;
   hidemyacc_profile_id: string | null;
   browser_token: string | null;
+  ig_oauth?: {
+    access_token: string;
+    ig_user_id: string;
+    ig_username: string;
+    connected_at: string;
+  } | null;
   linked_sender_status: "online" | "offline" | "restricted" | null;
   warmup?: {
     enabled: boolean;

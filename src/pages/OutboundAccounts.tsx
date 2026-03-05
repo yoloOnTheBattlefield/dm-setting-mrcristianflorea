@@ -39,6 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 import {
   useOutboundAccounts,
   useCreateOutboundAccount,
@@ -76,6 +77,7 @@ import {
   Link2,
   Unlink,
   Globe,
+  CheckCircle2,
 } from "lucide-react";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
@@ -854,6 +856,62 @@ export default function OutboundAccounts() {
                 <span className="text-sm">Blacklisted</span>
               </label>
             </div>
+
+            {/* Instagram OAuth Connect */}
+            {isEdit && (
+              <div className="space-y-1.5 border rounded-md p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Instagram API</Label>
+                    <p className="text-xs text-muted-foreground">Connect via OAuth to track DMs</p>
+                  </div>
+                  {editingAccount?.ig_oauth?.access_token ? (
+                    <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      @{editingAccount.ig_oauth.ig_username}
+                    </Badge>
+                  ) : null}
+                </div>
+                {editingAccount?.ig_oauth?.access_token ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={async () => {
+                      try {
+                        const r = await fetchWithAuth(`${API_URL}/api/instagram/outbound/${editingAccount._id}/disconnect`, { method: "DELETE" });
+                        if (r.ok) {
+                          toast({ title: "Disconnected", description: "Instagram disconnected from this account" });
+                          setEditingAccount({ ...editingAccount, ig_oauth: undefined } as OutboundAccount);
+                        }
+                      } catch {
+                        toast({ title: "Error", description: "Failed to disconnect", variant: "destructive" });
+                      }
+                    }}
+                  >
+                    Disconnect Instagram
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={async () => {
+                      try {
+                        const r = await fetchWithAuth(`${API_URL}/api/instagram/auth-url?outbound_account_id=${editingAccount._id}`);
+                        const data = await r.json();
+                        if (r.ok && data.url) {
+                          window.location.href = data.url;
+                        }
+                      } catch {
+                        toast({ title: "Error", description: "Failed to get auth URL", variant: "destructive" });
+                      }
+                    }}
+                  >
+                    Connect Instagram
+                  </Button>
+                )}
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label>Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
