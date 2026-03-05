@@ -19,6 +19,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -76,9 +86,16 @@ export default function Integrations() {
   const resetApifyToken = useResetApifyToken();
   const [newApifyLabel, setNewApifyLabel] = useState("");
   const [newApifyToken, setNewApifyToken] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Calendly connection status
   const [calendlyConnected, setCalendlyConnected] = useState(false);
+
+  // Instagram OAuth state
+  const [igConnected, setIgConnected] = useState(false);
+  const [igUsername, setIgUsername] = useState("");
+  const [isConnectingIg, setIsConnectingIg] = useState(false);
+  const [isDisconnectingIg, setIsDisconnectingIg] = useState(false);
 
   // Tracking state
   const { data: trackingSettings } = useTrackingSettings();
@@ -120,9 +137,56 @@ export default function Integrations() {
         if (data?.calendly_token) {
           setCalendlyConnected(true);
         }
+        if (data?.ig_oauth) {
+          setIgConnected(true);
+          setIgUsername(data.ig_oauth.ig_username || "");
+        }
       })
       .catch(() => {});
   }, [user?.id]);
+
+  // Handle Instagram OAuth redirect (code in URL params)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    if (!code) return;
+
+    const state = params.get("state") || "";
+    // Clean URL immediately
+    window.history.replaceState({}, "", window.location.pathname);
+
+    // Determine endpoint based on state param
+    const isOutbound = state.startsWith("oa:");
+    const outboundId = isOutbound ? state.slice(3) : null;
+    const endpoint = isOutbound
+      ? `${API_URL}/api/instagram/outbound/${outboundId}/callback`
+      : `${API_URL}/api/instagram/callback`;
+
+    setIsConnectingIg(true);
+    fetchWithAuth(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    })
+      .then(async (r) => {
+        const data = await r.json();
+        if (r.ok && data.success) {
+          if (isOutbound) {
+            toast({ title: "Instagram Connected", description: `Outbound account connected as @${data.ig_username}` });
+          } else {
+            setIgConnected(true);
+            setIgUsername(data.ig_username || "");
+            toast({ title: "Instagram Connected", description: `Connected as @${data.ig_username}` });
+          }
+        } else {
+          toast({ title: "Error", description: data.error || "Failed to connect Instagram", variant: "destructive" });
+        }
+      })
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to connect to server", variant: "destructive" });
+      })
+      .finally(() => setIsConnectingIg(false));
+  }, []);
 
   const handleSaveOpenaiToken = async () => {
     if (!user?.id) return;
@@ -300,8 +364,43 @@ export default function Integrations() {
     setCalendlyToken("");
   };
 
+  const handleConnectInstagram = async () => {
+    setIsConnectingIg(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/api/instagram/auth-url`);
+      const data = await response.json();
+      if (response.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to get auth URL", variant: "destructive" });
+        setIsConnectingIg(false);
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect to server", variant: "destructive" });
+      setIsConnectingIg(false);
+    }
+  };
+
+  const handleDisconnectInstagram = async () => {
+    setIsDisconnectingIg(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/api/instagram/disconnect`, { method: "DELETE" });
+      if (response.ok) {
+        setIgConnected(false);
+        setIgUsername("");
+        toast({ title: "Disconnected", description: "Instagram account disconnected" });
+      } else {
+        toast({ title: "Error", description: "Failed to disconnect", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect to server", variant: "destructive" });
+    } finally {
+      setIsDisconnectingIg(false);
+    }
+  };
+
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
+    <div className="flex flex-1 flex-col gap-6 p-4">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Integrations</h2>
         <p className="text-muted-foreground">
@@ -309,139 +408,148 @@ export default function Integrations() {
         </p>
       </div>
 
-      {/* OpenAI API Key */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>OpenAI API Key</CardTitle>
+      {/* ── AI Models ── */}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">AI Models</h3>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* OpenAI API Key */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">OpenAI</CardTitle>
+                {savedOpenaiToken ? (
+                  <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Connected
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-muted-foreground gap-1">
+                    Server Default
+                  </Badge>
+                )}
+              </div>
               <CardDescription>
-                Provide your own OpenAI key for lead qualification. Leave empty to use the server default.
+                Custom key for lead qualification
               </CardDescription>
-            </div>
-            {savedOpenaiToken && (
-              <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
-                <CheckCircle2 className="h-3 w-3" />
-                Connected
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <Label htmlFor="openai-token">API Key</Label>
-            <Input
-              id="openai-token"
-              type="password"
-              placeholder="sk-..."
-              value={openaiToken}
-              onChange={(e) => setOpenaiToken(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {savedOpenaiToken ? "Custom key active" : "Using server default"}
-            </p>
-            <Button
-              size="sm"
-              onClick={handleSaveOpenaiToken}
-              disabled={isSavingOpenai || !openaiTokenChanged}
-            >
-              {isSavingOpenai ? "Saving..." : "Save"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="openai-token">API Key</Label>
+                <Input
+                  id="openai-token"
+                  type="password"
+                  placeholder="sk-..."
+                  value={openaiToken}
+                  onChange={(e) => setOpenaiToken(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={handleSaveOpenaiToken}
+                  disabled={isSavingOpenai || !openaiTokenChanged}
+                >
+                  {isSavingOpenai ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Claude API Key */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Claude API Key</CardTitle>
+          {/* Claude API Key */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Claude</CardTitle>
+                {savedClaudeToken ? (
+                  <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Connected
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-muted-foreground gap-1">
+                    Server Default
+                  </Badge>
+                )}
+              </div>
               <CardDescription>
-                Provide your own Claude API key for AI-powered features.
+                Custom key for AI-powered features
               </CardDescription>
-            </div>
-            {savedClaudeToken && (
-              <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
-                <CheckCircle2 className="h-3 w-3" />
-                Connected
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <Label htmlFor="claude-token">API Key</Label>
-            <Input
-              id="claude-token"
-              type="password"
-              placeholder="sk-ant-..."
-              value={claudeToken}
-              onChange={(e) => setClaudeToken(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {savedClaudeToken ? "Custom key active" : "No key configured"}
-            </p>
-            <Button
-              size="sm"
-              onClick={handleSaveClaudeToken}
-              disabled={isSavingClaude || !claudeTokenChanged}
-            >
-              {isSavingClaude ? "Saving..." : "Save"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="claude-token">API Key</Label>
+                <Input
+                  id="claude-token"
+                  type="password"
+                  placeholder="sk-ant-..."
+                  value={claudeToken}
+                  onChange={(e) => setClaudeToken(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={handleSaveClaudeToken}
+                  disabled={isSavingClaude || !claudeTokenChanged}
+                >
+                  {isSavingClaude ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Gemini API Key */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Gemini API Key</CardTitle>
+          {/* Gemini API Key */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Gemini</CardTitle>
+                {savedGeminiToken ? (
+                  <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Connected
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-muted-foreground gap-1">
+                    Server Default
+                  </Badge>
+                )}
+              </div>
               <CardDescription>
-                Provide your own Gemini API key for AI-powered features.
+                Custom key for AI-powered features
               </CardDescription>
-            </div>
-            {savedGeminiToken && (
-              <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
-                <CheckCircle2 className="h-3 w-3" />
-                Connected
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <Label htmlFor="gemini-token">API Key</Label>
-            <Input
-              id="gemini-token"
-              type="password"
-              placeholder="AIza..."
-              value={geminiToken}
-              onChange={(e) => setGeminiToken(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {savedGeminiToken ? "Custom key active" : "No key configured"}
-            </p>
-            <Button
-              size="sm"
-              onClick={handleSaveGeminiToken}
-              disabled={isSavingGemini || !geminiTokenChanged}
-            >
-              {isSavingGemini ? "Saving..." : "Save"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="gemini-token">API Key</Label>
+                <Input
+                  id="gemini-token"
+                  type="password"
+                  placeholder="AIza..."
+                  value={geminiToken}
+                  onChange={(e) => setGeminiToken(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={handleSaveGeminiToken}
+                  disabled={isSavingGemini || !geminiTokenChanged}
+                >
+                  {isSavingGemini ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
-      {/* Apify API Tokens (multi-token) */}
+      {/* ── Data Acquisition ── */}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Data Acquisition</h3>
+        </div>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -532,7 +640,7 @@ export default function Integrations() {
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDeleteApifyToken(t._id)}
+                          onClick={() => setDeleteConfirmId(t._id)}
                           disabled={deleteApifyToken.isPending}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -616,8 +724,13 @@ export default function Integrations() {
           </div>
         </CardContent>
       </Card>
+      </section>
 
-      {/* Website Tracking */}
+      {/* ── Tracking ── */}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Tracking</h3>
+        </div>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -627,28 +740,48 @@ export default function Integrations() {
                 Track when leads visit your website and detect conversions
               </CardDescription>
             </div>
-            <Switch
-              checked={trackingSettings?.tracking_enabled ?? false}
-              onCheckedChange={(checked) => {
-                updateTracking.mutate(
-                  { tracking_enabled: checked },
-                  {
-                    onSuccess: () =>
-                      toast({
-                        title: checked ? "Tracking enabled" : "Tracking disabled",
-                      }),
-                    onError: () =>
-                      toast({
-                        title: "Error",
-                        description: "Failed to update tracking",
-                        variant: "destructive",
-                      }),
-                  },
-                );
-              }}
-            />
+            <div className="flex items-center gap-3">
+              {trackingSettings?.tracking_enabled ? (
+                <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Enabled
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground gap-1">
+                  Disabled
+                </Badge>
+              )}
+              <Switch
+                checked={trackingSettings?.tracking_enabled ?? false}
+                onCheckedChange={(checked) => {
+                  updateTracking.mutate(
+                    { tracking_enabled: checked },
+                    {
+                      onSuccess: () =>
+                        toast({
+                          title: checked ? "Tracking enabled" : "Tracking disabled",
+                        }),
+                      onError: () =>
+                        toast({
+                          title: "Error",
+                          description: "Failed to update tracking",
+                          variant: "destructive",
+                        }),
+                    },
+                  );
+                }}
+              />
+            </div>
           </div>
         </CardHeader>
+
+        {!trackingSettings?.tracking_enabled && (
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Enable to get a tracking snippet you can add to your website.
+            </p>
+          </CardContent>
+        )}
 
         {trackingSettings?.tracking_enabled && (
           <CardContent className="space-y-6">
@@ -894,54 +1027,104 @@ export default function Integrations() {
           </CardContent>
         )}
       </Card>
+      </section>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Calendly Integration Card */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
+      {/* ── Connections ── */}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Connections</h3>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Calendly Integration Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
                 <CardTitle>Calendly</CardTitle>
-                <CardDescription>
-                  Connect your Calendly account to sync scheduling data
-                </CardDescription>
+                {calendlyConnected ? (
+                  <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Connected
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-muted-foreground gap-1">
+                    Not Connected
+                  </Badge>
+                )}
               </div>
-              {calendlyConnected && (
-                <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Connected
-                </Badge>
+              <CardDescription>
+                Connect your Calendly account to sync scheduling data
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => setIsCalendlyModalOpen(true)}
+                className="w-full"
+                variant={calendlyConnected ? "outline" : "default"}
+              >
+                {calendlyConnected ? "Reconnect Calendly" : "Connect Calendly"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Instagram DMs Integration Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Instagram DMs</CardTitle>
+                {igConnected ? (
+                  <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    @{igUsername}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-muted-foreground gap-1">
+                    Not Connected
+                  </Badge>
+                )}
+              </div>
+              <CardDescription>
+                Connect your Instagram to track DM conversations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {igConnected ? (
+                <Button
+                  onClick={handleDisconnectInstagram}
+                  className="w-full"
+                  variant="outline"
+                  disabled={isDisconnectingIg}
+                >
+                  {isDisconnectingIg ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      Disconnecting...
+                    </>
+                  ) : (
+                    "Disconnect Instagram"
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleConnectInstagram}
+                  className="w-full"
+                  disabled={isConnectingIg}
+                >
+                  {isConnectingIg ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    "Connect Instagram"
+                  )}
+                </Button>
               )}
-            </div>
-          </CardHeader>
+            </CardContent>
+          </Card>
+        </div>
 
-          <CardContent>
-            <Button
-              onClick={() => setIsCalendlyModalOpen(true)}
-              className="w-full"
-              variant={calendlyConnected ? "outline" : "default"}
-            >
-              {calendlyConnected ? "Reconnect Calendly" : "Connect Calendly"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Placeholder for future integrations */}
-        <Card className="opacity-50">
-          <CardHeader>
-            <CardTitle>Google Calendar</CardTitle>
-            <CardDescription>
-              Sync events with your Google Calendar
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button disabled className="w-full">
-              Coming Soon
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* ManyChat Integration Card */}
+        {/* ManyChat Integration Card (full-width) */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -951,59 +1134,72 @@ export default function Integrations() {
                   Capture inbound leads from Instagram DMs and comments
                 </CardDescription>
               </div>
+              {user?.api_key ? (
+                <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Ready
+                </Badge>
+              ) : (
+                <Badge className="bg-orange-500/15 text-orange-500 border-orange-500/30 gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Setup Required
+                </Badge>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div>
-              <Label className="text-xs text-muted-foreground">Webhook URL</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input
-                  readOnly
-                  value={`${API_URL}/api/manychat/webhook`}
-                  className="text-xs font-mono"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${API_URL}/api/manychat/webhook`);
-                    toast({ title: "Copied", description: "Webhook URL copied to clipboard" });
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Webhook URL</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    readOnly
+                    value={`${API_URL}/api/manychat/webhook`}
+                    className="text-xs font-mono"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${API_URL}/api/manychat/webhook`);
+                      toast({ title: "Copied", description: "Webhook URL copied to clipboard" });
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">API Key Header</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input
-                  readOnly
-                  value={user?.api_key || "No API key found"}
-                  className="text-xs font-mono"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={() => {
-                    if (user?.api_key) {
-                      navigator.clipboard.writeText(user.api_key);
-                      toast({ title: "Copied", description: "API key copied to clipboard" });
-                    }
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
+              <div>
+                <Label className="text-xs text-muted-foreground">API Key Header</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    readOnly
+                    value={user?.api_key || "No API key generated"}
+                    className="text-xs font-mono"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => {
+                      if (user?.api_key) {
+                        navigator.clipboard.writeText(user.api_key);
+                        toast({ title: "Copied", description: "API key copied to clipboard" });
+                      }
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  Add as <span className="font-mono">x-api-key</span> header in ManyChat's External Request
+                </p>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1.5">
-                Add as <span className="font-mono">x-api-key</span> header in ManyChat's External Request
-              </p>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </section>
 
       {/* Calendly Token Modal */}
       <Dialog open={isCalendlyModalOpen} onOpenChange={setIsCalendlyModalOpen}>
@@ -1053,6 +1249,32 @@ export default function Integrations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Apify Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Apify Token</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this token. Any scraping jobs using it will switch to another available token.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteConfirmId) {
+                  handleDeleteApifyToken(deleteConfirmId);
+                  setDeleteConfirmId(null);
+                }
+              }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

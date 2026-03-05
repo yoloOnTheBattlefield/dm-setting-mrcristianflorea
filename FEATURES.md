@@ -37,3 +37,25 @@ Scrape comments from a specific Instagram reel or post by providing its URL dire
 ### Tests
 
 - `src/pages/DeepScraper.test.tsx` — 6 tests covering source toggle, conditional UI, and validation
+
+## Integrations Page UX Overhaul
+
+Restructured the Integrations page with visual grouping, consistent status indicators, and improved layout.
+
+### Changes
+
+- **Section grouping:** Integrations organized into labeled sections — AI Models, Data Acquisition, Tracking, Connections
+- **AI Models grid:** OpenAI, Claude, Gemini displayed in a responsive 3-column grid
+- **Consistent status badges:** Every integration card shows a status badge (Connected, Server Default, Enabled/Disabled, Ready/Setup Required, Not Connected)
+- **ManyChat full-width:** Moved out of cramped 3-column grid into full-width card with 2-column inner layout for Webhook URL and API Key
+- **Apify delete confirmation:** AlertDialog confirmation before removing a token
+- **Website Tracking context:** Shows helper text when tracking is disabled
+- **Friendlier empty states:** "No API key found" → "No API key generated"
+
+### Location
+
+- **Frontend:** `src/pages/Integrations.tsx`
+
+### Tests
+
+- `src/pages/Integrations.test.tsx` — tests for section headings, status badges, delete confirmation, and layout
