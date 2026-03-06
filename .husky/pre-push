@@ -1,1 +1,17 @@
+npm run dev &
+DEV_PID=$!
+
+# Wait for dev server to be ready
+echo "Waiting for dev server..."
+for i in $(seq 1 30); do
+  if curl -s http://localhost:5173 > /dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
 npm run cy:run
+EXIT_CODE=$?
+
+kill $DEV_PID 2>/dev/null
+exit $EXIT_CODE
