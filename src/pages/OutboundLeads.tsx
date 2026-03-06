@@ -895,30 +895,34 @@ export default function OutboundLeads() {
 
                         {/* Status ticks */}
                         <div className="flex items-center gap-3 shrink-0">
-                          <button type="button" onClick={() => toggleMessaged(lead)} className="flex flex-col items-center gap-0.5">
-                            {lead.isMessaged
-                              ? <Check className="h-4 w-4 text-green-400" />
-                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
+                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                            <Checkbox
+                              checked={!!lead.isMessaged}
+                              onCheckedChange={() => toggleMessaged(lead)}
+                            />
                             <span className="text-[10px] text-muted-foreground leading-none">Sent</span>
-                          </button>
-                          <button type="button" onClick={() => toggleField(lead, "replied")} className="flex flex-col items-center gap-0.5">
-                            {lead.replied
-                              ? <Check className="h-4 w-4 text-green-400" />
-                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
+                          </label>
+                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                            <Checkbox
+                              checked={!!lead.replied}
+                              onCheckedChange={() => toggleField(lead, "replied")}
+                            />
                             <span className="text-[10px] text-muted-foreground leading-none">Reply</span>
-                          </button>
-                          <button type="button" onClick={() => toggleField(lead, "link_sent")} className="flex flex-col items-center gap-0.5">
-                            {lead.link_sent
-                              ? <Check className="h-4 w-4 text-green-400" />
-                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
+                          </label>
+                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                            <Checkbox
+                              checked={!!lead.link_sent}
+                              onCheckedChange={() => toggleField(lead, "link_sent")}
+                            />
                             <span className="text-[10px] text-muted-foreground leading-none">Link</span>
-                          </button>
-                          <button type="button" onClick={() => toggleField(lead, "booked")} className="flex flex-col items-center gap-0.5">
-                            {lead.booked
-                              ? <Check className="h-4 w-4 text-green-400" />
-                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
+                          </label>
+                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                            <Checkbox
+                              checked={!!lead.booked}
+                              onCheckedChange={() => toggleField(lead, "booked")}
+                            />
                             <span className="text-[10px] text-muted-foreground leading-none">Conv</span>
-                          </button>
+                          </label>
                         </div>
 
                         {/* Expand toggle */}
@@ -1101,48 +1105,28 @@ export default function OutboundLeads() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <button
-                            type="button"
-                            onClick={() => toggleMessaged(lead)}
-                            className="flex items-center justify-center h-5 w-5 rounded"
-                          >
-                            {lead.isMessaged
-                              ? <Check className="h-4 w-4 text-green-400" />
-                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
-                          </button>
+                          <Checkbox
+                            checked={!!lead.isMessaged}
+                            onCheckedChange={() => toggleMessaged(lead)}
+                          />
                         </TableCell>
                         <TableCell>
-                          <button
-                            type="button"
-                            onClick={() => toggleField(lead, "replied")}
-                            className="flex items-center justify-center h-5 w-5 rounded"
-                          >
-                            {lead.replied
-                              ? <Check className="h-4 w-4 text-green-400" />
-                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
-                          </button>
+                          <Checkbox
+                            checked={!!lead.replied}
+                            onCheckedChange={() => toggleField(lead, "replied")}
+                          />
                         </TableCell>
                         <TableCell>
-                          <button
-                            type="button"
-                            onClick={() => toggleField(lead, "link_sent")}
-                            className="flex items-center justify-center h-5 w-5 rounded"
-                          >
-                            {lead.link_sent
-                              ? <Check className="h-4 w-4 text-green-400" />
-                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
-                          </button>
+                          <Checkbox
+                            checked={!!lead.link_sent}
+                            onCheckedChange={() => toggleField(lead, "link_sent")}
+                          />
                         </TableCell>
                         <TableCell>
-                          <button
-                            type="button"
-                            onClick={() => toggleField(lead, "booked")}
-                            className="flex items-center justify-center h-5 w-5 rounded"
-                          >
-                            {lead.booked
-                              ? <Check className="h-4 w-4 text-green-400" />
-                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
-                          </button>
+                          <Checkbox
+                            checked={!!lead.booked}
+                            onCheckedChange={() => toggleField(lead, "booked")}
+                          />
                         </TableCell>
                         <TableCell>
                           <Input
