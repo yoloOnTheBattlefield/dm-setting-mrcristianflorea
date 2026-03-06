@@ -144,6 +144,10 @@ Foundational unit tests across backend utilities, middleware, services, and fron
 - **`routes/outbound-leads.test.js`** — List with filters (messaged, replied, qualified, followers), search, pagination, sources, stats, CRUD, auto-timestamps, CampaignLead sync, bulk-delete
 - **`routes/sender-accounts.test.js`** — Full CRUD, heartbeat, search, filter, pagination, outbound account enrichment, upcoming task enrichment, tenant isolation
 - **`routes/deep-scrape.test.js`** — Start (seeds + direct URLs), list/filter/paginate, get, leads, pause/cancel/resume lifecycle, edit config, delete, Apify token validation
+- **`routes/prompts.test.js`** — CRUD, search, pagination, default prompt management, filter persistence
+- **`routes/warmup.test.js`** — Warmup status/start/stop lifecycle, checklist toggle, automation blocking, audit logs, pagination
+- **`routes/tracking.test.js`** — Settings get/update, event listing, limit parameter
+- **`routes/tracking-public.test.js`** — Script serving, config endpoint, event ingestion, first_visit/conversion lead updates, deduplication, validation
 
 ### Frontend Tests (src/)
 
