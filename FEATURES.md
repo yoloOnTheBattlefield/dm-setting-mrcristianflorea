@@ -121,3 +121,58 @@ new (amber), contacted (blue), interested (green), not_interested (red), booked 
 
 - `src/pages/FollowUps.test.tsx` — Frontend component tests
 - `quddify-crm/routes/follow-ups.test.js` — Backend route tests
+
+## Unit Test Coverage
+
+Foundational unit tests across backend utilities, middleware, services, and frontend logic.
+
+### Backend Tests (quddify-crm)
+
+**Utilities & Services:**
+- **`utils/normalize.test.js`** — toNumber, toDate, toBoolean conversion functions (edge cases, type coercion, whitespace)
+- **`utils/computeDailyLimit.test.js`** — Daily DM cap calculation per account status and warmup schedule
+- **`utils/columnMapping.test.js`** — XLSX column mapping: field normalization, type conversion, username sanitization
+- **`services/campaignScheduler.test.js`** — Pure functions: resolveTemplate, isWithinActiveHours, getEffectiveDailyLimit, isAccountResting
+- **`middleware/auth.test.js`** — JWT auth, API key auth (qd_), browser token auth (oat_), disabled/deleted accounts, membership checks, token generation
+
+**Route Integration Tests:**
+- **`routes/accounts.test.js`** — Registration, login (single/multi-account), password change, duplicate email, wrong credentials
+- **`routes/outbound-accounts.test.js`** — Full CRUD, filtering, search, pagination, sender enrichment, token generation/revocation, tenant isolation
+- **`routes/leads.test.js`** — CRUD, search, pagination, date range filtering, sort order
+- **`routes/manychat.test.js`** — Webhook lead creation, @ stripping, upsert dedup, name parsing, post_url, cross-channel linking
+- **`routes/campaigns.test.js`** — Full CRUD, list/filter/paginate, start/pause lifecycle, schedule validation, stats, add leads, recalc-stats
+- **`routes/outbound-leads.test.js`** — List with filters (messaged, replied, qualified, followers), search, pagination, sources, stats, CRUD, auto-timestamps, CampaignLead sync, bulk-delete
+- **`routes/sender-accounts.test.js`** — Full CRUD, heartbeat, search, filter, pagination, outbound account enrichment, upcoming task enrichment, tenant isolation
+- **`routes/deep-scrape.test.js`** — Start (seeds + direct URLs), list/filter/paginate, get, leads, pause/cancel/resume lifecycle, edit config, delete, Apify token validation
+
+### Frontend Tests (src/)
+
+**Libraries:**
+- **`src/lib/column-mapping.test.ts`** — autoSuggestMapping (synonyms, deduplication), validateMapping (identifier requirement), MAPPABLE_FIELDS
+- **`src/lib/analytics.test.ts`** — calculateFunnelMetrics, calculateVelocityMetrics, calculateGhostingBuckets, calculateFupEffectiveness, calculateCumulativeBookings
+
+**Hooks:**
+- **`src/hooks/usePersistedState.test.ts`** — readPersisted/writePersisted: missing keys, stored values, invalid JSON fallback, overwrites
+- **`src/hooks/useLeadSelection.test.ts`** — Manual toggle, select-all mode, exclude toggle, getCount, clearSelection
+
+**Pages:**
+- **`src/pages/Campaigns.test.tsx`** — Page header, stat line, campaign name rendering
+- **`src/pages/OutboundLeads.test.tsx`** — Page header, search inputs, import button
+
+## Cypress E2E Tests
+
+End-to-end integration tests using Cypress with stubbed API calls (`cy.intercept()`). Tests run against the Vite dev server without requiring a backend.
+
+### Location
+
+- **Config:** `cypress.config.ts`
+- **Support:** `cypress/support/commands.ts` (custom `cy.login()` command), `cypress/support/e2e.ts`
+- **Tests:**
+  - `cypress/e2e/outbound-leads.cy.ts` — Table rendering, search, pagination, bulk delete, lead status updates
+  - `cypress/e2e/campaigns.cy.ts` — Campaign list, create dialog, detail navigation, start/pause/delete lifecycle
+  - `cypress/e2e/deep-scraper.cy.ts` — Job list, create with seeds/URLs, pause/cancel/delete jobs
+
+### Scripts
+
+- `npm run cy:open` — Open Cypress GUI
+- `npm run cy:run` — Run all E2E tests headlessly
