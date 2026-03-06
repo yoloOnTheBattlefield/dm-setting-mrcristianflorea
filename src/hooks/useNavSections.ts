@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import { useAuth } from "@/contexts/AuthContext"
+import { useFollowUpStats } from "@/hooks/useFollowUps"
 import {
   type LucideIcon,
   BarChart3,
@@ -15,6 +16,7 @@ import {
   TrendingUp,
   Upload,
   Users,
+  UserCheck,
   UserPlus,
   UsersRound,
 } from "lucide-react"
@@ -25,6 +27,7 @@ export interface NavItem {
   icon?: LucideIcon
   isActive?: boolean
   disabled?: boolean
+  badge?: number
   items?: { title: string; url: string }[]
 }
 
@@ -35,6 +38,8 @@ export interface NavSection {
 
 export function useNavSections(): NavSection[] {
   const { user } = useAuth()
+  const { data: followUpStats } = useFollowUpStats()
+  const followUpBadge = (followUpStats?.new ?? 0) + (followUpStats?.contacted ?? 0) + (followUpStats?.hot_lead ?? 0)
 
   return useMemo(() => {
     const sections: NavSection[] = []
@@ -66,6 +71,7 @@ export function useNavSections(): NavSection[] {
         label: "Outbound",
         items: [
           { title: "Leads", url: "/outbound-leads", icon: Users },
+          { title: "Follow-Ups", url: "/follow-ups", icon: UserCheck, badge: followUpBadge || undefined },
           { title: "Campaigns", url: "/campaigns", icon: Send },
           { title: "Accounts", url: "/outbound-accounts", icon: Building2 },
           { title: "Analytics", url: "/analytics/outbound", icon: TrendingUp },
@@ -123,7 +129,7 @@ export function useNavSections(): NavSection[] {
     }
 
     return sections
-  }, [user?.role, user?.has_outbound, user?.has_research])
+  }, [user?.role, user?.has_outbound, user?.has_research, followUpBadge])
 }
 
 export function usePageTitle(pathname: string): string {

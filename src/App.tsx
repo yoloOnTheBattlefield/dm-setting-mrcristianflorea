@@ -21,6 +21,7 @@ import Campaigns from "./pages/Campaigns";
 import CampaignDetail from "./components/campaigns/CampaignDetail";
 import CampaignAddLeads from "./pages/CampaignAddLeads";
 import CampaignEdit from "./pages/CampaignEdit";
+import FollowUps from "./pages/FollowUps";
 import OutboundAccounts from "./pages/OutboundAccounts";
 import OutboundAnalytics from "./pages/OutboundAnalytics";
 import InboundAnalytics from "./pages/InboundAnalytics";
@@ -159,6 +160,15 @@ const App = () => (
                   <RequireOutbound>
                     <DashboardLayout>
                       <ImportOutboundLeads />
+                    </DashboardLayout>
+                  </RequireOutbound>
+                </ProtectedRoute>
+              } />
+              <Route path="/follow-ups" element={
+                <ProtectedRoute>
+                  <RequireOutbound>
+                    <DashboardLayout>
+                      <FollowUps />
                     </DashboardLayout>
                   </RequireOutbound>
                 </ProtectedRoute>

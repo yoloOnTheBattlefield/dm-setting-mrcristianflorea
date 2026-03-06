@@ -30,6 +30,7 @@ export function NavMain({
     icon?: LucideIcon
     isActive?: boolean
     disabled?: boolean
+    badge?: number
     items?: {
       title: string
       url: string
@@ -91,6 +92,11 @@ export function NavMain({
                   <Link to={item.url}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
+                    {item.badge != null && item.badge > 0 && (
+                      <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-white">
+                        {item.badge}
+                      </span>
+                    )}
                   </Link>
                 )}
               </SidebarMenuButton>
