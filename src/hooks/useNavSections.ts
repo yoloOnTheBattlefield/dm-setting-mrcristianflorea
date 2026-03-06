@@ -75,6 +75,7 @@ export function useNavSections(): NavSection[] {
 
     if (user?.has_research) {
       sections.push({
+        label: "Research",
         items: [{
           title: "Research",
           url: "#",

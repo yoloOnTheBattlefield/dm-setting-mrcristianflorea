@@ -15,11 +15,12 @@ import {
   MessageCircle,
   CalendarCheck,
   DollarSign,
-  ArrowRight,
   Upload,
   Trash2,
   ChevronDown,
   Copy,
+  Check,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -604,7 +605,7 @@ export default function OutboundLeads() {
           </div>
 
           {/* Row 2: Filters */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1fr_1fr_1fr_auto_auto_auto_minmax(200px,1.5fr)] gap-3">
             {/* Lead Quality filter */}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Lead Quality</Label>
@@ -722,35 +723,35 @@ export default function OutboundLeads() {
       {/* Funnel – hidden on mobile */}
       {funnelStats && (
         <div className="hidden md:block px-6 pt-4">
-          <div className="flex items-center gap-2 w-full">
+          <div className="flex items-center gap-1.5 w-full">
             <FunnelCard
               label="Total"
               value={funnelStats.total}
-              icon={<Users className="h-4 w-4 text-blue-400" />}
+              icon={<Users className="h-4 w-4 text-muted-foreground" />}
             />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
             <FunnelCard
               label="Messaged"
               value={funnelStats.messaged}
-              icon={<Send className="h-4 w-4 text-violet-400" />}
+              icon={<Send className="h-4 w-4 text-muted-foreground" />}
             />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
             <FunnelCard
               label="Replied"
               value={funnelStats.replied}
-              icon={<MessageCircle className="h-4 w-4 text-yellow-400" />}
+              icon={<MessageCircle className="h-4 w-4 text-muted-foreground" />}
             />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
             <FunnelCard
               label="Converted"
               value={funnelStats.booked}
               icon={<CalendarCheck className="h-4 w-4 text-green-400" />}
             />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
             <FunnelCard
               label={`Revenue (${funnelStats.contracts} deal${funnelStats.contracts !== 1 ? "s" : ""})`}
               value={`$${funnelStats.contract_value.toLocaleString()}`}
-              icon={<DollarSign className="h-4 w-4 text-emerald-400" />}
+              icon={<DollarSign className="h-4 w-4 text-green-400" />}
             />
           </div>
         </div>
@@ -894,34 +895,30 @@ export default function OutboundLeads() {
 
                         {/* Status ticks */}
                         <div className="flex items-center gap-3 shrink-0">
-                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
-                            <Checkbox
-                              checked={!!lead.isMessaged}
-                              onCheckedChange={() => toggleMessaged(lead)}
-                            />
+                          <button type="button" onClick={() => toggleMessaged(lead)} className="flex flex-col items-center gap-0.5">
+                            {lead.isMessaged
+                              ? <Check className="h-4 w-4 text-green-400" />
+                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
                             <span className="text-[10px] text-muted-foreground leading-none">Sent</span>
-                          </label>
-                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
-                            <Checkbox
-                              checked={!!lead.link_sent}
-                              onCheckedChange={() => toggleField(lead, "link_sent")}
-                            />
-                            <span className="text-[10px] text-muted-foreground leading-none">Link</span>
-                          </label>
-                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
-                            <Checkbox
-                              checked={!!lead.replied}
-                              onCheckedChange={() => toggleField(lead, "replied")}
-                            />
+                          </button>
+                          <button type="button" onClick={() => toggleField(lead, "replied")} className="flex flex-col items-center gap-0.5">
+                            {lead.replied
+                              ? <Check className="h-4 w-4 text-green-400" />
+                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
                             <span className="text-[10px] text-muted-foreground leading-none">Reply</span>
-                          </label>
-                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
-                            <Checkbox
-                              checked={!!lead.booked}
-                              onCheckedChange={() => toggleField(lead, "booked")}
-                            />
+                          </button>
+                          <button type="button" onClick={() => toggleField(lead, "link_sent")} className="flex flex-col items-center gap-0.5">
+                            {lead.link_sent
+                              ? <Check className="h-4 w-4 text-green-400" />
+                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
+                            <span className="text-[10px] text-muted-foreground leading-none">Link</span>
+                          </button>
+                          <button type="button" onClick={() => toggleField(lead, "booked")} className="flex flex-col items-center gap-0.5">
+                            {lead.booked
+                              ? <Check className="h-4 w-4 text-green-400" />
+                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
                             <span className="text-[10px] text-muted-foreground leading-none">Conv</span>
-                          </label>
+                          </button>
                         </div>
 
                         {/* Expand toggle */}
@@ -957,7 +954,7 @@ export default function OutboundLeads() {
                               <Input
                                 type="number"
                                 className="w-24 h-7 text-xs mt-0.5"
-                                placeholder="-"
+                                placeholder="None"
                                 defaultValue={lead.contract_value ?? ""}
                                 onBlur={(e) => saveContractValue(lead, e.target.value)}
                                 onKeyDown={(e) => {
@@ -1002,13 +999,13 @@ export default function OutboundLeads() {
                       />
                     </TableHead>
                     <TableHead>Username</TableHead>
-                    <TableHead>Name</TableHead>
+                    <TableHead className="max-w-[200px]">Name</TableHead>
                     <TableHead className="text-right">Followers</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Prompt</TableHead>
                     <TableHead>Messaged</TableHead>
-                    <TableHead>Link Sent</TableHead>
                     <TableHead>Replied</TableHead>
+                    <TableHead className="whitespace-nowrap">Link Sent</TableHead>
                     <TableHead>Converted</TableHead>
                     <TableHead>Contract</TableHead>
                     <TableHead>DM</TableHead>
@@ -1085,7 +1082,11 @@ export default function OutboundLeads() {
                             </button>
                           </div>
                         </TableCell>
-                        <TableCell>{lead.fullName || "-"}</TableCell>
+                        <TableCell className="max-w-[200px]">
+                          <span className="block truncate" title={lead.fullName || undefined}>
+                            {lead.fullName || <span className="text-muted-foreground">—</span>}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-right">
                           {formatNumber(lead.followersCount)}
                         </TableCell>
@@ -1100,34 +1101,54 @@ export default function OutboundLeads() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Checkbox
-                            checked={!!lead.isMessaged}
-                            onCheckedChange={() => toggleMessaged(lead)}
-                          />
+                          <button
+                            type="button"
+                            onClick={() => toggleMessaged(lead)}
+                            className="flex items-center justify-center h-5 w-5 rounded"
+                          >
+                            {lead.isMessaged
+                              ? <Check className="h-4 w-4 text-green-400" />
+                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
+                          </button>
                         </TableCell>
                         <TableCell>
-                          <Checkbox
-                            checked={!!lead.link_sent}
-                            onCheckedChange={() => toggleField(lead, "link_sent")}
-                          />
+                          <button
+                            type="button"
+                            onClick={() => toggleField(lead, "replied")}
+                            className="flex items-center justify-center h-5 w-5 rounded"
+                          >
+                            {lead.replied
+                              ? <Check className="h-4 w-4 text-green-400" />
+                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
+                          </button>
                         </TableCell>
                         <TableCell>
-                          <Checkbox
-                            checked={!!lead.replied}
-                            onCheckedChange={() => toggleField(lead, "replied")}
-                          />
+                          <button
+                            type="button"
+                            onClick={() => toggleField(lead, "link_sent")}
+                            className="flex items-center justify-center h-5 w-5 rounded"
+                          >
+                            {lead.link_sent
+                              ? <Check className="h-4 w-4 text-green-400" />
+                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
+                          </button>
                         </TableCell>
                         <TableCell>
-                          <Checkbox
-                            checked={!!lead.booked}
-                            onCheckedChange={() => toggleField(lead, "booked")}
-                          />
+                          <button
+                            type="button"
+                            onClick={() => toggleField(lead, "booked")}
+                            className="flex items-center justify-center h-5 w-5 rounded"
+                          >
+                            {lead.booked
+                              ? <Check className="h-4 w-4 text-green-400" />
+                              : <Minus className="h-4 w-4 text-muted-foreground/30" />}
+                          </button>
                         </TableCell>
                         <TableCell>
                           <Input
                             type="number"
                             className="w-24 h-7 text-xs"
-                            placeholder="-"
+                            placeholder="None"
                             defaultValue={lead.contract_value ?? ""}
                             onBlur={(e) =>
                               saveContractValue(lead, e.target.value)

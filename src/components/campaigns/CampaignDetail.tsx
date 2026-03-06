@@ -507,9 +507,18 @@ export default function CampaignDetail() {
           </Button>
           <h3 className="text-xl font-bold">{campaign.name}</h3>
           <Badge className={badge.className}>{badge.label}</Badge>
-          <Badge variant="outline" className="text-[10px] font-normal">
-            {campaign.mode === "manual" ? "Manual" : "Auto"}
-          </Badge>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="text-[10px] font-normal">
+                  {campaign.mode === "manual" ? "Manual" : "Auto"}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{campaign.mode === "manual" ? "Messages are sent manually" : "Messages are sent automatically on schedule"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setShowAiModal(true)}>
@@ -547,9 +556,9 @@ export default function CampaignDetail() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="h-6 text-xs text-muted-foreground"
+                  className="h-7 text-xs"
                   onClick={() => recalcMutation.mutate(campaign._id)}
                   disabled={recalcMutation.isPending}
                 >
@@ -570,7 +579,7 @@ export default function CampaignDetail() {
           <PrimaryStatCard label="Replied" value={s.replied || 0} icon={<MessageSquare className="h-4 w-4 text-purple-400" />} className="text-purple-400"
             subtitle={s.sent > 0 ? `${((s.replied || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined} />
           <PrimaryStatCard label="Link Sent" value={s.link_sent || 0} icon={<Link className="h-4 w-4 text-orange-400" />} className="text-orange-400"
-            subtitle={s.sent > 0 ? `${((s.link_sent || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined} />
+            subtitle={s.replied > 0 ? `${((s.link_sent || 0) / (s.replied || 1) * 100).toFixed(1)}% of replies` : undefined} />
           <PrimaryStatCard
             label="Booked"
             value={s.booked || 0}
@@ -609,14 +618,29 @@ export default function CampaignDetail() {
                   <span className="text-muted-foreground"> / {sendersData.summary.total} senders online</span>
                 </span>
                 {sendersData.summary.issues > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="cursor-pointer gap-1"
-                    onClick={() => setShowSendersModal(true)}
-                  >
-                    <AlertTriangle className="h-3 w-3" />
-                    {sendersData.summary.issues} issue{sendersData.summary.issues !== 1 ? "s" : ""}
-                  </Badge>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge
+                          variant="destructive"
+                          className="cursor-pointer gap-1"
+                          onClick={() => setShowSendersModal(true)}
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          {sendersData.summary.issues} issue{sendersData.summary.issues !== 1 ? "s" : ""}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="space-y-1">
+                          {sendersData.senders
+                            .filter((s) => s.issue)
+                            .map((s) => (
+                              <p key={s.ig_username}>@{s.ig_username}: {s.issue}</p>
+                            ))}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </div>
 
@@ -764,7 +788,7 @@ export default function CampaignDetail() {
               </>
             )}
             {s.pending > 0 && (
-              <Button variant="outline" size="sm" onClick={() => setConfirmRemove(true)}>
+              <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setConfirmRemove(true)}>
                 <Trash2 className="h-3.5 w-3.5 mr-1" />
                 Remove Pending
               </Button>
@@ -1778,9 +1802,9 @@ function NextSendInfo({ nextSend }: { nextSend: import("@/hooks/useCampaigns").C
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-2">
         <Timer className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium">Next send:</span>
+        <span className="text-xs text-muted-foreground">Next send</span>
         {nextSend.next_send_at && countdown ? (
-          <span className="text-sm font-bold text-green-400">{countdown}</span>
+          <span className="text-sm font-semibold text-green-400">{countdown}</span>
         ) : hasReason ? (
           <span className="text-sm text-yellow-400">{nextSend.reason}</span>
         ) : (
@@ -1789,15 +1813,23 @@ function NextSendInfo({ nextSend }: { nextSend: import("@/hooks/useCampaigns").C
       </div>
 
       {nextSend.delay_seconds && (
-        <span className="text-xs text-muted-foreground">
-          ~{Math.round(nextSend.delay_seconds / 60)}m between sends
-        </span>
+        <>
+          <div className="h-4 w-px bg-border" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Interval</span>
+            <span className="text-sm font-medium">~{Math.round(nextSend.delay_seconds / 60)}m</span>
+          </div>
+        </>
       )}
 
       {nextSend.last_sent_at && (
-        <span className="text-xs text-muted-foreground">
-          Last sent {formatRelative(nextSend.last_sent_at)}
-        </span>
+        <>
+          <div className="h-4 w-px bg-border" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Last sent</span>
+            <span className="text-sm font-medium">{formatRelative(nextSend.last_sent_at)}</span>
+          </div>
+        </>
       )}
     </div>
   );
@@ -1851,13 +1883,13 @@ function SecondaryStatCard({
 }) {
   return (
     <Card className="bg-card/50">
-      <CardContent className="py-2 px-3 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] text-muted-foreground">{label}</p>
-          <p className="text-sm font-semibold text-muted-foreground">{value}</p>
-          {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
+      <CardContent className="py-3 px-4">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs font-medium text-muted-foreground">{label}</p>
+          <div className="text-muted-foreground/50">{icon}</div>
         </div>
-        <div className="text-muted-foreground/50">{icon}</div>
+        <p className="text-lg font-bold text-muted-foreground">{value}</p>
+        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
       </CardContent>
     </Card>
   );
@@ -1899,12 +1931,11 @@ function SenderRow({ sender }: { sender: CampaignSender }) {
         </span>
       </TableCell>
       <TableCell>
-        <div className="flex items-center gap-2">
-          <Badge className={health.className}>{health.label}</Badge>
-          {sender.issue && (
-            <span className="text-xs text-muted-foreground">{sender.issue}</span>
-          )}
-        </div>
+        {sender.issue ? (
+          <Badge className={health.className}>{sender.issue}</Badge>
+        ) : (
+          <span className={`inline-flex h-2 w-2 rounded-full ${dot}`} />
+        )}
       </TableCell>
     </TableRow>
   );

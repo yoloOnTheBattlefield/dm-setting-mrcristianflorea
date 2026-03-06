@@ -59,3 +59,35 @@ Restructured the Integrations page with visual grouping, consistent status indic
 ### Tests
 
 - `src/pages/Integrations.test.tsx` — tests for section headings, status badges, delete confirmation, and layout
+
+## Outbound Leads & Campaign Detail UI Polish
+
+Comprehensive UI improvements across the Outbound Leads table and Campaign Detail (DM Pipeline) pages.
+
+### Changes
+
+**Outbound Leads Page:**
+- Wider search field with responsive grid layout to prevent truncation
+- Status columns (Messaged, Replied, Link Sent, Converted) use check/dash icons instead of checkbox inputs
+- Column order: Link Sent moved after Replied for logical funnel flow
+- Name column truncated with tooltip to prevent row height overflow
+- Contract placeholder changed from "-" to "None" for clarity
+- Funnel stat cards use unified muted icon colors with subtle chevron separators
+
+**Campaign Detail Page:**
+- Auto/Manual badge shows tooltip explaining the mode
+- Secondary stat cards match primary card layout (consistent sizing/spacing)
+- Recalc button styled as outline button instead of ghost text
+- Status bar info broken into labeled groups with vertical separators
+- Issues badge shows tooltip listing each sender's issue on hover
+- Remove Pending button styled with destructive color to indicate risk
+- Senders modal health column: issue text shown inside badge directly (no redundant badge + text)
+
+**Sidebar:**
+- Research section now has a proper "Research" label like other sections
+
+### Location
+
+- **Outbound Leads:** `src/pages/OutboundLeads.tsx`
+- **Campaign Detail:** `src/components/campaigns/CampaignDetail.tsx`
+- **Sidebar nav:** `src/hooks/useNavSections.ts`
