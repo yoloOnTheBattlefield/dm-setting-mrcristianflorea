@@ -59,6 +59,26 @@ Allows manual (VA mode) campaigns to skip the cooldown delay between messages. W
 - **Field:** `schedule.skip_wait_time` (boolean, default `false`)
 - **Affected endpoint:** `GET /api/manual-campaigns/next` — when `skip_wait_time` is `true`, the cooldown check is bypassed and the next lead is returned immediately.
 
+## Skip Active Hours (Send 24/7)
+
+Allows campaigns to bypass the active hours window and send messages at any time. When enabled, the scheduler ignores the active_hours_start/end check and the "Outside active hours" status is no longer shown.
+
+### Location
+
+- **Frontend toggle (edit page):** `src/pages/CampaignEdit.tsx`
+- **Frontend toggle (create/edit dialog):** `src/components/campaigns/CampaignCreateEditDialog.tsx`
+- **Frontend type:** `src/hooks/useCampaigns.ts` (`CampaignSchedule.skip_active_hours`)
+- **Backend model:** `quddify-crm/models/Campaign.js` (`schedule.skip_active_hours`)
+- **Backend scheduler:** `quddify-crm/services/campaignScheduler.js` (active hours check skipped)
+- **Backend route:** `quddify-crm/routes/campaigns.js` (next-send endpoint respects flag)
+
+### API
+
+- **Field:** `schedule.skip_active_hours` (boolean, default `false`)
+- **Affected endpoints:**
+  - `GET /api/campaigns/:id/next-send` — no longer returns "Outside active hours" reason when enabled
+  - Scheduler `processTick` — skips `isWithinActiveHours` check when enabled
+
 ## Direct URL Deep Scrape
 
 Scrape comments from a specific Instagram reel or post by providing its URL directly, bypassing the seed account + reel discovery phase.

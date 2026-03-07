@@ -23,6 +23,7 @@ const baseCampaign = {
     min_group_break_seconds: 600,
     max_group_break_seconds: 1200,
     skip_wait_time: false,
+    skip_active_hours: false,
   },
   daily_limit_per_sender: 50,
   warmup_days: 0,
@@ -70,5 +71,14 @@ describe("CampaignEdit – Skip Wait Time toggle", () => {
   it("shows the skip wait time toggle when mode is manual", () => {
     renderWithProviders({ ...baseCampaign, mode: "manual" });
     expect(screen.getByText("Skip Wait Time")).toBeInTheDocument();
+  });
+});
+
+describe("CampaignEdit – Send 24/7 toggle", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("shows the Send 24/7 toggle", () => {
+    renderWithProviders(baseCampaign);
+    expect(screen.getByText("Send 24/7")).toBeInTheDocument();
   });
 });

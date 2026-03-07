@@ -14,7 +14,7 @@ const mockCampaigns = [
     messages: ["Hey {{firstName}}!"],
     outbound_account_ids: ["oa1"],
     stats: { total: 100, pending: 50, queued: 0, sent: 45, delivered: 0, replied: 5, link_sent: 0, booked: 0, failed: 0, skipped: 0, without_message: 0 },
-    schedule: { active_hours_start: 9, active_hours_end: 21, timezone: "UTC", burst_enabled: false, min_delay_seconds: 60, max_delay_seconds: 180, messages_per_group: 10, min_group_break_seconds: 600, max_group_break_seconds: 1200, skip_wait_time: false },
+    schedule: { active_hours_start: 9, active_hours_end: 21, timezone: "UTC", burst_enabled: false, min_delay_seconds: 60, max_delay_seconds: 180, messages_per_group: 10, min_group_break_seconds: 600, max_group_break_seconds: 1200, skip_wait_time: false, skip_active_hours: false },
     createdAt: "2026-01-01T00:00:00Z",
   },
   {
@@ -25,7 +25,7 @@ const mockCampaigns = [
     messages: ["Hi there"],
     outbound_account_ids: [],
     stats: { total: 20, pending: 20, queued: 0, sent: 0, delivered: 0, replied: 0, link_sent: 0, booked: 0, failed: 0, skipped: 0, without_message: 0 },
-    schedule: { active_hours_start: 9, active_hours_end: 21, timezone: "UTC", burst_enabled: false, min_delay_seconds: 60, max_delay_seconds: 180, messages_per_group: 10, min_group_break_seconds: 600, max_group_break_seconds: 1200, skip_wait_time: false },
+    schedule: { active_hours_start: 9, active_hours_end: 21, timezone: "UTC", burst_enabled: false, min_delay_seconds: 60, max_delay_seconds: 180, messages_per_group: 10, min_group_break_seconds: 600, max_group_break_seconds: 1200, skip_wait_time: false, skip_active_hours: false },
     createdAt: "2026-01-02T00:00:00Z",
   },
 ];

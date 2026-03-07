@@ -61,6 +61,7 @@ interface FormData {
   min_group_break_seconds: number;
   max_group_break_seconds: number;
   skip_wait_time: boolean;
+  skip_active_hours: boolean;
 }
 
 export default function CampaignEdit() {
@@ -93,6 +94,7 @@ export default function CampaignEdit() {
         min_group_break_seconds: campaign.schedule.min_group_break_seconds ?? 600,
         max_group_break_seconds: campaign.schedule.max_group_break_seconds ?? 1200,
         skip_wait_time: campaign.schedule.skip_wait_time ?? false,
+        skip_active_hours: campaign.schedule.skip_active_hours ?? false,
       });
     }
   }, [campaign, form]);
@@ -164,6 +166,7 @@ export default function CampaignEdit() {
         min_group_break_seconds: form.min_group_break_seconds,
         max_group_break_seconds: form.max_group_break_seconds,
         skip_wait_time: form.skip_wait_time,
+        skip_active_hours: form.skip_active_hours,
       },
       daily_limit_per_sender: form.daily_limit_per_sender,
       warmup_days: form.warmup_days,
@@ -371,6 +374,7 @@ export default function CampaignEdit() {
                   max={23}
                   value={form.active_hours_start}
                   onChange={(e) => setForm((p) => p ? { ...p, active_hours_start: Number(e.target.value) } : p)}
+                  disabled={form.skip_active_hours}
                 />
               </div>
               <div className="space-y-1.5">
@@ -381,6 +385,19 @@ export default function CampaignEdit() {
                   max={23}
                   value={form.active_hours_end}
                   onChange={(e) => setForm((p) => p ? { ...p, active_hours_end: Number(e.target.value) } : p)}
+                  disabled={form.skip_active_hours}
+                />
+              </div>
+              <div className="col-span-2 flex items-center justify-between">
+                <div>
+                  <Label className="text-sm">Send 24/7</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ignore active hours and send at any time.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.skip_active_hours}
+                  onCheckedChange={(checked) => setForm((p) => p ? { ...p, skip_active_hours: checked } : p)}
                 />
               </div>
               <div className="space-y-1.5">

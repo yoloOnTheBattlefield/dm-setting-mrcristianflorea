@@ -60,6 +60,7 @@ interface FormData {
   timezone: string;
   daily_limit_per_sender: number;
   skip_wait_time: boolean;
+  skip_active_hours: boolean;
 }
 
 const DEFAULT_FORM: FormData = {
@@ -74,6 +75,7 @@ const DEFAULT_FORM: FormData = {
   timezone: "America/New_York",
   daily_limit_per_sender: 50,
   skip_wait_time: false,
+  skip_active_hours: false,
 };
 
 export default function CampaignCreateEditDialog({
@@ -104,6 +106,7 @@ export default function CampaignCreateEditDialog({
           timezone: campaign.schedule.timezone,
           daily_limit_per_sender: campaign.daily_limit_per_sender,
           skip_wait_time: campaign.schedule.skip_wait_time ?? false,
+          skip_active_hours: campaign.schedule.skip_active_hours ?? false,
         });
       } else {
         setForm(DEFAULT_FORM);
@@ -157,6 +160,7 @@ export default function CampaignCreateEditDialog({
         max_delay_seconds: form.max_delay_seconds,
         timezone: form.timezone,
         skip_wait_time: form.skip_wait_time,
+        skip_active_hours: form.skip_active_hours,
       },
       daily_limit_per_sender: form.daily_limit_per_sender,
     };
@@ -294,6 +298,7 @@ export default function CampaignCreateEditDialog({
                     max={23}
                     value={form.active_hours_start}
                     onChange={(e) => setForm((p) => ({ ...p, active_hours_start: Number(e.target.value) }))}
+                    disabled={form.skip_active_hours}
                   />
                 </div>
                 <div className="space-y-1">
@@ -304,6 +309,19 @@ export default function CampaignCreateEditDialog({
                     max={23}
                     value={form.active_hours_end}
                     onChange={(e) => setForm((p) => ({ ...p, active_hours_end: Number(e.target.value) }))}
+                    disabled={form.skip_active_hours}
+                  />
+                </div>
+                <div className="col-span-2 flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">Send 24/7</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Ignore active hours and send at any time.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.skip_active_hours}
+                    onCheckedChange={(checked) => setForm((p) => ({ ...p, skip_active_hours: checked }))}
                   />
                 </div>
                 <div className="space-y-1">
