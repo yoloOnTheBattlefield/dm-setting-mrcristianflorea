@@ -96,10 +96,9 @@ function renderPage() {
 }
 
 describe("FollowUps page", () => {
-  it("renders header and sync button", () => {
+  it("renders header", () => {
     renderPage();
     expect(screen.getByText("Follow-Ups")).toBeInTheDocument();
-    expect(screen.getByText("Sync Replies")).toBeInTheDocument();
   });
 
   it("renders kanban column headers", () => {

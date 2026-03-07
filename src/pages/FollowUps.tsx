@@ -34,7 +34,6 @@ import {
 } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import {
-  RefreshCw,
   Search,
   Copy,
   Check,
@@ -42,7 +41,6 @@ import {
   StickyNote,
   AlertTriangle,
   Flame,
-  ExternalLink,
   Snowflake,
 } from "lucide-react";
 
@@ -177,21 +175,19 @@ export default function FollowUps() {
   const { data: accountsData } = useOutboundAccounts({ page: 1, limit: 100 });
   const syncMutation = useSyncFollowUps();
   const updateMutation = useUpdateFollowUp();
-  const [syncResult, setSyncResult] = useState<number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
-  const handleSync = useCallback(async () => {
-    try {
-      const result = await syncMutation.mutateAsync();
-      setSyncResult(result.synced);
-      setTimeout(() => setSyncResult(null), 3000);
-    } catch {
-      // handled by mutation
+  // Auto-sync replied leads on mount
+  const hasSynced = useRef(false);
+  useEffect(() => {
+    if (!hasSynced.current) {
+      hasSynced.current = true;
+      syncMutation.mutateAsync().catch(() => {});
     }
-  }, [syncMutation]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const followUps = data?.followUps ?? [];
   const accounts = accountsData?.accounts ?? [];
@@ -272,26 +268,6 @@ export default function FollowUps() {
               ))}
             </SelectContent>
           </Select>
-
-          <button
-            onClick={handleSync}
-            disabled={syncMutation.isPending}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-              syncResult !== null
-                ? "bg-green-500/10 text-green-600 border border-green-500/20"
-                : "bg-amber-500 text-white hover:bg-amber-600",
-              syncMutation.isPending && "opacity-60 cursor-not-allowed",
-            )}
-          >
-            {syncMutation.isPending ? (
-              <><RefreshCw className="h-3.5 w-3.5 animate-spin" />Syncing...</>
-            ) : syncResult !== null ? (
-              <><Check className="h-3.5 w-3.5" />+{syncResult} new</>
-            ) : (
-              <><RefreshCw className="h-3.5 w-3.5" />Sync Replies</>
-            )}
-          </button>
         </div>
       </div>
 
