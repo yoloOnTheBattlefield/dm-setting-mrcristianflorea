@@ -44,7 +44,7 @@ vi.mock("@/hooks/useFollowUps", () => ({
   useFollowUps: () => ({
     data: {
       followUps: mockFollowUps,
-      pagination: { page: 1, limit: 30, total: 1, totalPages: 1 },
+      pagination: { page: 1, limit: 200, total: 1, totalPages: 1 },
     },
     isLoading: false,
   }),
@@ -102,21 +102,16 @@ describe("FollowUps page", () => {
     expect(screen.getByText("Sync Replies")).toBeInTheDocument();
   });
 
-  it("renders operational summary in header", () => {
+  it("renders kanban column headers", () => {
     renderPage();
-    expect(screen.getByText("10 conversations replied")).toBeInTheDocument();
-    expect(screen.getByText("4 need follow up")).toBeInTheDocument();
-    expect(screen.getByText("1 interested")).toBeInTheDocument();
-    expect(screen.getByText("1 booked")).toBeInTheDocument();
-  });
-
-  it("renders pipeline tabs", () => {
-    renderPage();
-    expect(screen.getByText("All")).toBeInTheDocument();
+    expect(screen.getByText("Need Follow-Up")).toBeInTheDocument();
     const hotLead = screen.getAllByText("Hot Lead");
     expect(hotLead.length).toBeGreaterThanOrEqual(1);
     const followedUp = screen.getAllByText("Followed Up");
     expect(followedUp.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Interested")).toBeInTheDocument();
+    const booked = screen.getAllByText("Booked");
+    expect(booked.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders lead card with username and account", () => {
@@ -125,14 +120,7 @@ describe("FollowUps page", () => {
     expect(screen.getByText("via @mybiz")).toBeInTheDocument();
   });
 
-  it("renders quick filter chips", () => {
-    renderPage();
-    expect(screen.getByText("Overdue")).toBeInTheDocument();
-    expect(screen.getByText("Due Today")).toBeInTheDocument();
-    expect(screen.getByText("Replied <24h")).toBeInTheDocument();
-  });
-
-  it("renders reply urgency indicator", () => {
+  it("renders reply time indicator", () => {
     renderPage();
     const replyIndicators = screen.getAllByText(/replied/i);
     expect(replyIndicators.length).toBeGreaterThan(0);
@@ -150,8 +138,19 @@ describe("FollowUps page", () => {
     expect(screen.getByText("+7d")).toBeInTheDocument();
   });
 
-  it("shows 'No follow-up set' when no date scheduled", () => {
+  it("renders column counts from stats", () => {
     renderPage();
-    expect(screen.getByText("No follow-up set")).toBeInTheDocument();
+    // The "3" count for "new" column
+    expect(screen.getByText("3")).toBeInTheDocument();
+  });
+
+  it("renders search input", () => {
+    renderPage();
+    expect(screen.getByPlaceholderText("Search...")).toBeInTheDocument();
+  });
+
+  it("renders header summary with replied count", () => {
+    renderPage();
+    expect(screen.getByText("10 replied")).toBeInTheDocument();
   });
 });
