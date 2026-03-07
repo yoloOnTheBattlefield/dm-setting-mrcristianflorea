@@ -43,22 +43,23 @@ import {
   Check,
   CalendarIcon,
   StickyNote,
-  ExternalLink,
   AlertTriangle,
-  CheckCircle2,
+  Snowflake,
+  ExternalLink,
 } from "lucide-react";
 
 // ─── Status config ───
 
 const STATUS_CONFIG: Record<
   FollowUpStatus,
-  { label: string; color: string; bg: string; border: string; dotColor: string }
+  { label: string; color: string; bg: string; border: string; borderAccent: string; dotColor: string }
 > = {
   new: {
     label: "Need Follow-Up",
     color: "text-amber-700 dark:text-amber-400",
     bg: "bg-amber-500/10",
     border: "border-amber-500/20",
+    borderAccent: "border-l-amber-500",
     dotColor: "bg-amber-500",
   },
   hot_lead: {
@@ -66,6 +67,7 @@ const STATUS_CONFIG: Record<
     color: "text-orange-700 dark:text-orange-400",
     bg: "bg-orange-500/10",
     border: "border-orange-500/20",
+    borderAccent: "border-l-orange-500",
     dotColor: "bg-orange-500",
   },
   contacted: {
@@ -73,6 +75,7 @@ const STATUS_CONFIG: Record<
     color: "text-blue-700 dark:text-blue-400",
     bg: "bg-blue-500/10",
     border: "border-blue-500/20",
+    borderAccent: "border-l-blue-500",
     dotColor: "bg-blue-500",
   },
   interested: {
@@ -80,6 +83,7 @@ const STATUS_CONFIG: Record<
     color: "text-green-700 dark:text-green-400",
     bg: "bg-green-500/10",
     border: "border-green-500/20",
+    borderAccent: "border-l-green-500",
     dotColor: "bg-green-500",
   },
   booked: {
@@ -87,6 +91,7 @@ const STATUS_CONFIG: Record<
     color: "text-purple-700 dark:text-purple-400",
     bg: "bg-purple-500/10",
     border: "border-purple-500/20",
+    borderAccent: "border-l-purple-500",
     dotColor: "bg-purple-500",
   },
   not_interested: {
@@ -94,6 +99,7 @@ const STATUS_CONFIG: Record<
     color: "text-red-700 dark:text-red-400",
     bg: "bg-red-500/10",
     border: "border-red-500/20",
+    borderAccent: "border-l-red-500",
     dotColor: "bg-red-500",
   },
   no_response: {
@@ -101,6 +107,7 @@ const STATUS_CONFIG: Record<
     color: "text-gray-600 dark:text-gray-400",
     bg: "bg-gray-500/10",
     border: "border-gray-500/20",
+    borderAccent: "border-l-gray-400",
     dotColor: "bg-gray-400",
   },
   ghosted: {
@@ -108,11 +115,12 @@ const STATUS_CONFIG: Record<
     color: "text-gray-500 dark:text-gray-500",
     bg: "bg-gray-500/10",
     border: "border-gray-500/20",
+    borderAccent: "border-l-gray-500",
     dotColor: "bg-gray-500",
   },
 };
 
-// Pipeline tabs — the statuses shown as segmented tabs
+// Pipeline tabs
 const PIPELINE_TABS: { key: FollowUpStatus | "all"; label: string; icon: React.ReactNode }[] = [
   { key: "all", label: "All", icon: null },
   { key: "new", label: "Need Follow-Up", icon: <Clock className="h-3.5 w-3.5" /> },
@@ -124,7 +132,7 @@ const PIPELINE_TABS: { key: FollowUpStatus | "all"; label: string; icon: React.R
   { key: "ghosted", label: "Ghosted", icon: <Ghost className="h-3.5 w-3.5" /> },
 ];
 
-// Quick action buttons for each card — show status options excluding current
+// Quick status actions for cards
 const QUICK_ACTIONS: { key: FollowUpStatus; label: string; shortLabel: string }[] = [
   { key: "contacted", label: "Followed Up", shortLabel: "Followed Up" },
   { key: "interested", label: "Interested", shortLabel: "Interested" },
@@ -161,11 +169,6 @@ function formatFollowers(count: number | null | undefined): string {
   return String(count);
 }
 
-function isToday(date: Date): boolean {
-  const now = new Date();
-  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
-}
-
 function isOverdue(dateStr: string | null, status: FollowUpStatus): boolean {
   if (!dateStr) return false;
   if (status === "booked" || status === "not_interested" || status === "ghosted") return false;
@@ -177,7 +180,17 @@ function isOverdue(dateStr: string | null, status: FollowUpStatus): boolean {
 
 function isDueToday(dateStr: string | null): boolean {
   if (!dateStr) return false;
-  return isToday(new Date(dateStr));
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+}
+
+function getHeatIcon(repliedAt: string | null | undefined): React.ReactNode {
+  if (!repliedAt) return <Snowflake className="h-3 w-3 text-blue-400" />;
+  const hours = (Date.now() - new Date(repliedAt).getTime()) / (1000 * 60 * 60);
+  if (hours < 24) return <Flame className="h-3 w-3 text-orange-500" />;
+  if (hours < 72) return <span className="h-1.5 w-1.5 rounded-full bg-amber-500 inline-block" />;
+  return <Snowflake className="h-3 w-3 text-blue-400" />;
 }
 
 // ─── Component ───
@@ -220,7 +233,7 @@ export default function FollowUps() {
   const pagination = data?.pagination;
   const accounts = accountsData?.accounts ?? [];
 
-  // Apply client-side quick filters
+  // Client-side quick filters
   const filteredFollowUps = useMemo(() => {
     if (!quickFilter) return followUps;
     const now = new Date();
@@ -280,22 +293,26 @@ export default function FollowUps() {
     setSelectedIds(new Set());
   }, [activeTab, quickFilter, search, page]);
 
-  // Stat card config — only 4 key metrics
-  const statCards = [
-    { label: "Need Follow-Up", value: (stats?.new ?? 0) + (stats?.hot_lead ?? 0), color: "text-amber-500", icon: <Clock className="h-4 w-4 text-amber-500" /> },
-    { label: "Interested", value: stats?.interested ?? 0, color: "text-green-500", icon: <ThumbsUp className="h-4 w-4 text-green-500" /> },
-    { label: "Booked", value: stats?.booked ?? 0, color: "text-purple-500", icon: <CalendarCheck className="h-4 w-4 text-purple-500" /> },
-    { label: "Ghosted", value: (stats?.ghosted ?? 0) + (stats?.no_response ?? 0), color: "text-gray-400", icon: <Ghost className="h-4 w-4 text-gray-400" /> },
-  ];
+  // Operational summary numbers
+  const totalReplied = stats?.total ?? 0;
+  const needFollowUp = (stats?.new ?? 0) + (stats?.hot_lead ?? 0);
+  const interestedCount = stats?.interested ?? 0;
+  const bookedCount = stats?.booked ?? 0;
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header with operational summary */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Follow-Ups</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage your DM pipeline — {stats?.total ?? 0} replied leads
+          <p className="text-sm text-muted-foreground flex items-center gap-1.5 flex-wrap">
+            <span>{totalReplied} conversations replied</span>
+            <span className="text-border">|</span>
+            <span className="text-amber-600 dark:text-amber-400 font-medium">{needFollowUp} need follow up</span>
+            <span className="text-border">|</span>
+            <span className="text-green-600 dark:text-green-400 font-medium">{interestedCount} interested</span>
+            <span className="text-border">|</span>
+            <span className="text-purple-600 dark:text-purple-400 font-medium">{bookedCount} booked</span>
           </p>
         </div>
         <button
@@ -317,23 +334,6 @@ export default function FollowUps() {
             <><RefreshCw className="h-4 w-4" />Sync Replies</>
           )}
         </button>
-      </div>
-
-      {/* Stats — 4 compact cards */}
-      <div className="grid grid-cols-4 gap-2">
-        {statCards.map((card) => (
-          <Card key={card.label} className="border-border/50">
-            <CardContent className="py-3 px-4 flex items-center gap-3">
-              {card.icon}
-              <div>
-                <p className="text-[10px] text-muted-foreground leading-none mb-0.5">{card.label}</p>
-                <p className={cn("text-xl font-bold leading-none", card.value === 0 ? "text-muted-foreground/40" : card.color)}>
-                  {card.value}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
       </div>
 
       {/* Pipeline tabs */}
@@ -365,7 +365,7 @@ export default function FollowUps() {
         })}
       </div>
 
-      {/* Filter bar */}
+      {/* Filter bar: search + activity filters | account + sort */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -377,7 +377,7 @@ export default function FollowUps() {
           />
         </div>
 
-        {/* Quick filters */}
+        {/* Activity filters */}
         <div className="flex items-center gap-1">
           {[
             { key: "overdue", label: "Overdue", icon: <AlertTriangle className="h-3 w-3" /> },
@@ -432,47 +432,11 @@ export default function FollowUps() {
         </div>
       </div>
 
-      {/* Bulk actions bar */}
-      {selectedIds.size > 0 && (
-        <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2">
-          <span className="text-xs font-medium mr-1">{selectedIds.size} selected</span>
-          <div className="h-4 w-px bg-border" />
-          {QUICK_ACTIONS.filter((a) => a.key !== activeTab).slice(0, 4).map((a) => (
-            <button
-              key={a.key}
-              onClick={() => handleBulkStatus(a.key)}
-              className={cn(
-                "px-2 py-1 rounded text-[11px] font-medium border transition-colors",
-                STATUS_CONFIG[a.key].bg,
-                STATUS_CONFIG[a.key].color,
-                STATUS_CONFIG[a.key].border,
-              )}
-            >
-              {a.shortLabel}
-            </button>
-          ))}
-          <div className="h-4 w-px bg-border" />
-          <span className="text-[11px] text-muted-foreground">Follow up:</span>
-          {[1, 3, 7].map((d) => (
-            <button
-              key={d}
-              onClick={() => handleBulkFollowUp(d)}
-              className="px-2 py-1 rounded text-[11px] font-medium border border-border bg-background hover:bg-muted transition-colors"
-            >
-              +{d}d
-            </button>
-          ))}
-          <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-[11px] text-muted-foreground hover:text-foreground">
-            Clear
-          </button>
-        </div>
-      )}
-
       {/* Cards grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-[140px] rounded-lg" />
+            <Skeleton key={i} className="h-[160px] rounded-lg" />
           ))}
         </div>
       ) : filteredFollowUps.length === 0 ? (
@@ -506,6 +470,42 @@ export default function FollowUps() {
             ))}
           </div>
         </>
+      )}
+
+      {/* Floating bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-xl border bg-background/95 backdrop-blur shadow-lg px-4 py-2.5">
+          <span className="text-xs font-semibold">{selectedIds.size} selected</span>
+          <div className="h-4 w-px bg-border" />
+          {QUICK_ACTIONS.filter((a) => a.key !== activeTab).slice(0, 4).map((a) => (
+            <button
+              key={a.key}
+              onClick={() => handleBulkStatus(a.key)}
+              className={cn(
+                "px-2 py-1 rounded text-[11px] font-medium border transition-colors",
+                STATUS_CONFIG[a.key].bg,
+                STATUS_CONFIG[a.key].color,
+                STATUS_CONFIG[a.key].border,
+              )}
+            >
+              {a.shortLabel}
+            </button>
+          ))}
+          <div className="h-4 w-px bg-border" />
+          <span className="text-[11px] text-muted-foreground">Follow up:</span>
+          {[1, 3, 7].map((d) => (
+            <button
+              key={d}
+              onClick={() => handleBulkFollowUp(d)}
+              className="px-2 py-1 rounded text-[11px] font-medium border border-border bg-background hover:bg-muted transition-colors"
+            >
+              +{d}d
+            </button>
+          ))}
+          <button onClick={() => setSelectedIds(new Set())} className="ml-2 text-[11px] text-muted-foreground hover:text-foreground">
+            Clear
+          </button>
+        </div>
       )}
 
       {/* Pagination */}
@@ -587,47 +587,47 @@ function FollowUpCard({
 
   return (
     <Card className={cn(
-      "relative transition-all group",
+      "relative transition-all border-l-[3px]",
+      statusCfg.borderAccent,
       overdue && "ring-1 ring-red-500/40",
       dueToday && !overdue && "ring-1 ring-amber-500/30",
-      selected && "ring-2 ring-foreground/50",
+      selected && "bg-muted/50 ring-2 ring-foreground/50",
     )}>
-      <CardContent className="p-3 space-y-2.5">
-        {/* Top row: checkbox + lead info + DM button */}
+      <CardContent className="p-3 space-y-2">
+        {/* Zone 1: Identity + DM action */}
         <div className="flex items-start gap-2.5">
           <Checkbox
             checked={selected}
             onCheckedChange={onToggleSelect}
-            className="h-3.5 w-3.5 mt-1 shrink-0"
+            className="h-3.5 w-3.5 mt-1.5 shrink-0"
           />
 
           {/* Avatar */}
           <div className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
             statusCfg.bg, statusCfg.color,
           )}>
             {initial}
           </div>
 
-          {/* Lead details */}
+          {/* Lead info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
               <a
                 href={`https://instagram.com/${lead?.username}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-medium hover:underline truncate"
+                className="text-sm font-semibold hover:underline truncate"
               >
                 @{lead?.username}
               </a>
               {lead?.isVerified && (
-                <span className="text-blue-500 text-[10px]" title="Verified">✓</span>
+                <span className="text-blue-500 text-[10px]" title="Verified">&#10003;</span>
               )}
+              <ExternalLink className="h-3 w-3 text-muted-foreground/40 shrink-0" />
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              {lead?.fullName && <span className="truncate max-w-[100px]">{lead.fullName}</span>}
-              {lead?.fullName && lead?.followersCount != null && <span>·</span>}
-              {lead?.followersCount != null && <span>{formatFollowers(lead.followersCount)}</span>}
+              {lead?.followersCount != null && <span>{formatFollowers(lead.followersCount)} followers</span>}
               {followUp.outbound_account?.username && (
                 <>
                   <span>·</span>
@@ -637,77 +637,69 @@ function FollowUpCard({
             </div>
           </div>
 
-          {/* DM button */}
+          {/* DM button - dominant */}
           <button
             onClick={handleCopy}
             title={copied ? "Copied!" : "Copy username to DM"}
             className={cn(
-              "shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+              "shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
               copied
-                ? "bg-green-500/10 text-green-600"
-                : "bg-amber-500 text-white hover:bg-amber-600",
+                ? "bg-green-500/10 text-green-600 border border-green-500/20"
+                : "bg-amber-500 text-white hover:bg-amber-600 shadow-sm",
             )}
           >
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? "Copied" : "DM"}
           </button>
         </div>
 
-        {/* Reply urgency + follow-up date + status pill */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {/* Reply time */}
+        {/* Zone 2: Reply heat + follow-up scheduling */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Conversation heat */}
           <span className={cn(
             "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded",
             reply.urgency === "green" && "bg-green-500/10 text-green-600",
             reply.urgency === "yellow" && "bg-amber-500/10 text-amber-600",
             reply.urgency === "red" && "bg-red-500/10 text-red-600",
           )}>
-            <span className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              reply.urgency === "green" && "bg-green-500",
-              reply.urgency === "yellow" && "bg-amber-500",
-              reply.urgency === "red" && "bg-red-500",
-            )} />
+            {getHeatIcon(lead?.replied_at)}
             replied {reply.text}
           </span>
 
-          {/* Follow-up date indicator */}
-          {overdue && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-600 bg-red-500/10 px-1.5 py-0.5 rounded">
-              <AlertTriangle className="h-2.5 w-2.5" />
-              Overdue
-            </span>
-          )}
-          {dueToday && !overdue && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded">
-              <CalendarIcon className="h-2.5 w-2.5" />
-              Due today
-            </span>
-          )}
-          {followUp.follow_up_date && !overdue && !dueToday && (
-            <span className="text-[10px] text-muted-foreground">
-              FU: {new Date(followUp.follow_up_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-            </span>
-          )}
-
-          {/* Status pill */}
-          <span className={cn(
-            "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ml-auto",
-            statusCfg.bg, statusCfg.color, statusCfg.border,
-          )}>
-            {statusCfg.label}
-          </span>
+          {/* Next follow-up group */}
+          <div className="flex items-center gap-1 ml-auto">
+            {overdue && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600 bg-red-500/10 px-1.5 py-0.5 rounded">
+                <AlertTriangle className="h-2.5 w-2.5" />
+                Overdue
+              </span>
+            )}
+            {dueToday && !overdue && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                <CalendarIcon className="h-2.5 w-2.5" />
+                Due today
+              </span>
+            )}
+            {followUp.follow_up_date && !overdue && !dueToday && (
+              <span className="text-[10px] text-muted-foreground">
+                Next: {new Date(followUp.follow_up_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              </span>
+            )}
+            {!followUp.follow_up_date && (
+              <span className="text-[10px] text-muted-foreground/50">No follow-up set</span>
+            )}
+          </div>
         </div>
 
-        {/* Quick actions row */}
-        <div className="flex items-center gap-1 pt-0.5 border-t border-border/50">
-          {/* Quick status actions */}
+        {/* Zone 3: Quick actions */}
+        <div className="flex items-center gap-1 pt-1 border-t border-border/40">
+          {/* Status actions */}
           {QUICK_ACTIONS.filter((a) => a.key !== followUp.status).slice(0, 4).map((action) => (
             <button
               key={action.key}
               onClick={() => handleStatusChange(action.key)}
               className={cn(
-                "px-1.5 py-0.5 rounded text-[10px] font-medium border transition-all opacity-60 hover:opacity-100",
+                "px-1.5 py-0.5 rounded text-[10px] font-medium border transition-all opacity-50 hover:opacity-100",
                 STATUS_CONFIG[action.key].bg,
                 STATUS_CONFIG[action.key].color,
                 STATUS_CONFIG[action.key].border,
@@ -718,7 +710,7 @@ function FollowUpCard({
           ))}
 
           <div className="ml-auto flex items-center gap-1">
-            {/* Quick follow-up chips */}
+            {/* Follow-up date chips */}
             {[1, 3, 7].map((d) => (
               <button
                 key={d}
@@ -748,7 +740,7 @@ function FollowUpCard({
               </PopoverContent>
             </Popover>
 
-            {/* Notes popup */}
+            {/* Notes */}
             <NotePopover followUp={followUp} />
           </div>
         </div>

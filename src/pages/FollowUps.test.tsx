@@ -102,20 +102,17 @@ describe("FollowUps page", () => {
     expect(screen.getByText("Sync Replies")).toBeInTheDocument();
   });
 
-  it("renders pipeline stat cards", () => {
+  it("renders operational summary in header", () => {
     renderPage();
-    // "Need Follow-Up" appears in stat cards and tabs
-    const needFollowUp = screen.getAllByText("Need Follow-Up");
-    expect(needFollowUp.length).toBeGreaterThanOrEqual(1);
-    // "Booked" appears in tabs and quick actions
-    const booked = screen.getAllByText("Booked");
-    expect(booked.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("10 conversations replied")).toBeInTheDocument();
+    expect(screen.getByText("4 need follow up")).toBeInTheDocument();
+    expect(screen.getByText("1 interested")).toBeInTheDocument();
+    expect(screen.getByText("1 booked")).toBeInTheDocument();
   });
 
   it("renders pipeline tabs", () => {
     renderPage();
     expect(screen.getByText("All")).toBeInTheDocument();
-    // These appear in multiple places (tabs + quick actions)
     const hotLead = screen.getAllByText("Hot Lead");
     expect(hotLead.length).toBeGreaterThanOrEqual(1);
     const followedUp = screen.getAllByText("Followed Up");
@@ -137,7 +134,6 @@ describe("FollowUps page", () => {
 
   it("renders reply urgency indicator", () => {
     renderPage();
-    // "replied" text should appear with time ago
     const replyIndicators = screen.getAllByText(/replied/i);
     expect(replyIndicators.length).toBeGreaterThan(0);
   });
@@ -152,5 +148,10 @@ describe("FollowUps page", () => {
     expect(screen.getByText("+1d")).toBeInTheDocument();
     expect(screen.getByText("+3d")).toBeInTheDocument();
     expect(screen.getByText("+7d")).toBeInTheDocument();
+  });
+
+  it("shows 'No follow-up set' when no date scheduled", () => {
+    renderPage();
+    expect(screen.getByText("No follow-up set")).toBeInTheDocument();
   });
 });
