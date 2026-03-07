@@ -347,3 +347,19 @@ Both repos include `.env.example` documenting all required environment variables
 ### Configurable API URL (Frontend)
 
 `src/lib/api.ts` reads `VITE_API_URL` env var, falling back to localhost (dev) or production URL.
+
+## Manual Inbound-to-Outbound Lead Linking
+
+Allows manually linking an inbound lead to an outbound lead from the lead detail page. Useful when the AI creates a new inbound lead from a reply but doesn't automatically match it to the original outbound lead.
+
+### Location
+
+- **Frontend UI:** `src/pages/LeadDetail.tsx` (OutboundLeadLinker component)
+- **Frontend types:** `src/lib/types.ts` (`ApiLead.outbound_lead_id`, `ig_username`, `source`)
+- **Frontend test:** `src/pages/LeadDetail.test.tsx`
+
+### API
+
+- **Link:** `PATCH /leads/:id` with `{ outbound_lead_id: "<outbound_lead_id>" }`
+- **Unlink:** `PATCH /leads/:id` with `{ outbound_lead_id: null }`
+- **Search outbound leads:** `GET /outbound-leads?search=<query>&limit=10&page=1`

@@ -7,7 +7,8 @@
       "Bash(git status -u)",
       "Bash(grep -r \"\\\\.find\\(\\)\" /Users/cristianflorea/Desktop/quddify-crm/routes/*.js)",
       "Bash(npx jest routes/tracking-public.test.js --forceExit --detectOpenHandles)",
-      "Bash(npx jest routes/leads.test.js routes/prompts.test.js --forceExit)"
+      "Bash(npx jest routes/leads.test.js routes/prompts.test.js --forceExit)",
+      "Bash(npx vitest run src/pages/LeadDetail.test.tsx)"
     ]
   }
 }

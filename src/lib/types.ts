@@ -6,6 +6,9 @@ export interface ApiLead {
   first_name: string;
   last_name: string;
   email?: string | null;
+  ig_username?: string | null;
+  source?: string | null;
+  outbound_lead_id?: string | null;
   date_created: string;
   qualified_at: string | null;
   link_sent_at: string | null;

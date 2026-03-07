@@ -2,14 +2,14 @@ import { useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
-import { AlertCircle, RefreshCw, CalendarCheck, DollarSign, Star, CheckCircle } from "lucide-react";
+import { AlertCircle, RefreshCw, CalendarCheck, DollarSign, Star, CheckCircle, Link2, Unlink, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { API_URL, fetchWithAuth } from "@/lib/api";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 function parseBoldSectionsToObject(str) {
@@ -114,6 +114,187 @@ function getLeadStatus(lead: ApiLead): {
       color: "bg-stage-link-sent text-white",
     };
   return { label: "New", variant: "outline", color: "" };
+}
+
+interface OutboundLeadResult {
+  _id: string;
+  username: string;
+  fullName: string;
+  followersCount?: number;
+}
+
+function OutboundLeadLinker({
+  leadId,
+  outboundLeadId,
+  onLinked,
+}: {
+  leadId: string;
+  outboundLeadId?: string | null;
+  onLinked: () => void;
+}) {
+  const { toast } = useToast();
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState<OutboundLeadResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkedLead, setLinkedLead] = useState<OutboundLeadResult | null>(null);
+  const [showResults, setShowResults] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Fetch linked outbound lead details
+  useEffect(() => {
+    if (!outboundLeadId) {
+      setLinkedLead(null);
+      return;
+    }
+    fetchWithAuth(`${API_URL}/outbound-leads/${outboundLeadId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setLinkedLead(data);
+      });
+  }, [outboundLeadId]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowResults(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const searchOutbound = useCallback(async (q: string) => {
+    if (q.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const sp = new URLSearchParams({ search: q.trim(), limit: "10", page: "1" });
+      const res = await fetchWithAuth(`${API_URL}/outbound-leads?${sp}`);
+      if (res.ok) {
+        const data = await res.json();
+        setResults(data.leads || []);
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setShowResults(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => searchOutbound(val), 300);
+  };
+
+  const linkOutbound = async (outboundId: string) => {
+    setIsLinking(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/leads/${leadId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outbound_lead_id: outboundId }),
+      });
+      if (res.ok) {
+        toast({ title: "Linked", description: "Inbound lead linked to outbound lead." });
+        setSearch("");
+        setResults([]);
+        setShowResults(false);
+        onLinked();
+      } else {
+        toast({ title: "Error", description: "Failed to link leads", variant: "destructive" });
+      }
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  const unlinkOutbound = async () => {
+    setIsLinking(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/leads/${leadId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outbound_lead_id: null }),
+      });
+      if (res.ok) {
+        toast({ title: "Unlinked", description: "Outbound lead unlinked." });
+        setLinkedLead(null);
+        onLinked();
+      } else {
+        toast({ title: "Error", description: "Failed to unlink", variant: "destructive" });
+      }
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  if (outboundLeadId && linkedLead) {
+    return (
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link2 className="h-4 w-4 text-green-500" />
+          <div>
+            <p className="text-sm font-medium">@{linkedLead.username}</p>
+            <p className="text-xs text-muted-foreground">
+              {linkedLead.fullName}
+              {linkedLead.followersCount != null && ` · ${linkedLead.followersCount.toLocaleString()} followers`}
+            </p>
+          </div>
+        </div>
+        <Button variant="ghost" size="sm" onClick={unlinkOutbound} disabled={isLinking}>
+          <Unlink className="h-3.5 w-3.5 mr-1.5" />
+          Unlink
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search outbound leads by username or name..."
+          value={search}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          onFocus={() => search.trim().length >= 2 && setShowResults(true)}
+          className="pl-9"
+        />
+        {isSearching && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+      </div>
+      {showResults && results.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-60 overflow-y-auto">
+          {results.map((ob) => (
+            <button
+              key={ob._id}
+              className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-accent transition-colors"
+              onClick={() => linkOutbound(ob._id)}
+              disabled={isLinking}
+            >
+              <div>
+                <p className="text-sm font-medium">@{ob.username}</p>
+                <p className="text-xs text-muted-foreground">
+                  {ob.fullName}
+                  {ob.followersCount != null && ` · ${ob.followersCount.toLocaleString()} followers`}
+                </p>
+              </div>
+              <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          ))}
+        </div>
+      )}
+      {showResults && search.trim().length >= 2 && !isSearching && results.length === 0 && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg px-3 py-4 text-center text-sm text-muted-foreground">
+          No outbound leads found
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function LeadDetail() {
@@ -263,6 +444,20 @@ export default function LeadDetail() {
       {lead.email && (
         <p className="text-sm text-muted-foreground -mt-2">{lead.email}</p>
       )}
+
+      {/* Outbound Lead Link */}
+      <Card className="flex flex-col mt-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Outbound Lead</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <OutboundLeadLinker
+            leadId={lead._id}
+            outboundLeadId={lead.outbound_lead_id}
+            onLinked={() => queryClient.invalidateQueries({ queryKey: ["lead", contactId] })}
+          />
+        </CardContent>
+      </Card>
 
       {/* Sales Tracking */}
       <Card className="flex flex-col mt-2">
