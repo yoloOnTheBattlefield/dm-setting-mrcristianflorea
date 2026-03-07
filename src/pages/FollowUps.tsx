@@ -32,9 +32,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { useDroppable } from "@dnd-kit/core";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import {
   RefreshCw,
   Search,
@@ -223,8 +221,10 @@ export default function FollowUps() {
       if (!over) return;
 
       const followUpId = String(active.id);
-      // The droppable id is the column status
-      const newStatus = String(over.id) as FollowUpStatus;
+      const targetId = String(over.id);
+      // Only accept drops on column droppables (valid statuses)
+      if (!COLUMN_ORDER.includes(targetId as FollowUpStatus)) return;
+      const newStatus = targetId as FollowUpStatus;
       const fu = followUps.find((f) => f._id === followUpId);
       if (!fu || fu.status === newStatus) return;
 
@@ -386,14 +386,12 @@ function KanbanCard({ followUp }: { followUp: FollowUp }) {
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
-  } = useSortable({ id: followUp._id });
+  } = useDraggable({ id: followUp._id });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const style = transform
+    ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
+    : undefined;
 
   return (
     <div
@@ -401,7 +399,7 @@ function KanbanCard({ followUp }: { followUp: FollowUp }) {
       style={style}
       {...attributes}
       {...listeners}
-      className={cn(isDragging && "opacity-30")}
+      className={cn(isDragging && "opacity-30 z-50 relative")}
     >
       <KanbanCardContent followUp={followUp} />
     </div>
