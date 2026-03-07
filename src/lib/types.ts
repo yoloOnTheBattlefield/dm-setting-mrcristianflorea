@@ -184,6 +184,8 @@ export type DeepScrapeJobStatus =
   | "pending"
   | "scraping_reels"
   | "scraping_comments"
+  | "scraping_likers"
+  | "scraping_followers"
   | "scraping_profiles"
   | "qualifying"
   | "completed"
@@ -203,6 +205,9 @@ export interface DeepScrapeJobStats {
   skipped_existing: number;
   leads_created: number;
   leads_updated: number;
+  likers_scraped: number;
+  unique_likers: number;
+  followers_scraped: number;
 }
 
 export interface DeepScrapeJob {
@@ -214,6 +219,9 @@ export interface DeepScrapeJob {
   seed_usernames: string[];
   direct_urls?: string[];
   scrape_type: "reels" | "posts";
+  scrape_comments: boolean;
+  scrape_likers: boolean;
+  scrape_followers: boolean;
   reel_limit: number;
   comment_limit: number;
   min_followers: number;

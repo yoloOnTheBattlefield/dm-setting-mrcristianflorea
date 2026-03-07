@@ -51,6 +51,92 @@ function openNewDialog() {
   fireEvent.click(buttons[0]);
 }
 
+describe("DeepScraper — Lead Sources checkboxes", () => {
+  it("shows Commenters and Likers checkboxes in new job dialog", () => {
+    renderDeepScraper();
+    openNewDialog();
+
+    expect(screen.getByLabelText("Commenters")).toBeInTheDocument();
+    expect(screen.getByLabelText("Likers")).toBeInTheDocument();
+  });
+
+  it("has Commenters checked and Likers unchecked by default", () => {
+    renderDeepScraper();
+    openNewDialog();
+
+    const commentersCheckbox = screen.getByRole("checkbox", { name: "Commenters" });
+    const likersCheckbox = screen.getByRole("checkbox", { name: "Likers" });
+
+    expect(commentersCheckbox).toHaveAttribute("data-state", "checked");
+    expect(likersCheckbox).toHaveAttribute("data-state", "unchecked");
+  });
+
+  it("hides Comment Limit when Commenters is unchecked and Likers is checked", () => {
+    renderDeepScraper();
+    openNewDialog();
+
+    expect(screen.getByLabelText("Comment Limit")).toBeInTheDocument();
+
+    // First enable Likers so we can disable Commenters
+    fireEvent.click(screen.getByRole("checkbox", { name: "Likers" }));
+    // Then disable Commenters
+    fireEvent.click(screen.getByRole("checkbox", { name: "Commenters" }));
+
+    expect(screen.queryByLabelText("Comment Limit")).not.toBeInTheDocument();
+  });
+
+  it("shows Lead Sources label", () => {
+    renderDeepScraper();
+    openNewDialog();
+
+    expect(screen.getByText("Lead Sources")).toBeInTheDocument();
+  });
+});
+
+describe("DeepScraper — Followers checkbox", () => {
+  it("shows Followers checkbox in new job dialog", () => {
+    renderDeepScraper();
+    openNewDialog();
+
+    expect(screen.getByLabelText("Followers")).toBeInTheDocument();
+  });
+
+  it("has Followers unchecked by default", () => {
+    renderDeepScraper();
+    openNewDialog();
+
+    const followersCheckbox = screen.getByRole("checkbox", { name: "Followers" });
+    expect(followersCheckbox).toHaveAttribute("data-state", "unchecked");
+  });
+
+  it("allows enabling Followers alongside Commenters", () => {
+    renderDeepScraper();
+    openNewDialog();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Followers" }));
+
+    const followersCheckbox = screen.getByRole("checkbox", { name: "Followers" });
+    expect(followersCheckbox).toHaveAttribute("data-state", "checked");
+    // Commenters should still be checked
+    const commentersCheckbox = screen.getByRole("checkbox", { name: "Commenters" });
+    expect(commentersCheckbox).toHaveAttribute("data-state", "checked");
+  });
+
+  it("prevents unchecking Followers when it is the only source selected", () => {
+    renderDeepScraper();
+    openNewDialog();
+
+    // Enable Followers
+    fireEvent.click(screen.getByRole("checkbox", { name: "Followers" }));
+    // Disable Commenters (now Followers + Likers-unchecked, so Commenters can be unchecked since Followers is on)
+    fireEvent.click(screen.getByRole("checkbox", { name: "Commenters" }));
+
+    // Followers is now the only one checked — should be disabled
+    const followersCheckbox = screen.getByRole("checkbox", { name: "Followers" });
+    expect(followersCheckbox).toBeDisabled();
+  });
+});
+
 describe("DeepScraper — Direct URL source", () => {
   it("shows source toggle in new job dialog with Accounts and Direct URL options", () => {
     renderDeepScraper();

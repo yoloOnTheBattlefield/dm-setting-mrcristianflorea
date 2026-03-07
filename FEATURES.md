@@ -1,5 +1,47 @@
 # Features
 
+## Post/Reel Likers Scraping
+
+Scrape users who liked an Instagram post or reel via Apify (`datadoping/instagram-likes-scraper`). Users can select "Commenters", "Likers", or both via checkboxes when creating a deep scrape job. Likers are merged with commenters into the same profile enrichment and qualification pipeline.
+
+### Location
+
+- **Frontend dialog:** `src/components/deep-scraper/NewDeepScrapeDialog.tsx` (checkbox UI for lead sources)
+- **Frontend page:** `src/pages/DeepScraper.tsx` (state wiring, status badge, progress display)
+- **Frontend types:** `src/lib/types.ts` (`scrape_comments`, `scrape_likers`, `scraping_likers` status, likers stats)
+- **Frontend hooks:** `src/hooks/useDeepScrapeJobs.ts` (mutation body updated)
+- **Backend model:** `quddify-crm/models/DeepScrapeJob.js` (`scrape_comments`, `scrape_likers`, `scraping_likers` status, likers stats)
+- **Backend service:** `quddify-crm/services/deepScraper.js` (`LIKER_SCRAPER` actor, likers pipeline step)
+- **Backend route:** `quddify-crm/routes/deep-scrape.js` (accepts new fields)
+- **Backend schema:** `quddify-crm/schemas/deep-scrape.js` (Zod validation)
+
+### API
+
+- **New fields on POST `/api/deep-scrape/start`:** `scrape_comments` (boolean, default `true`), `scrape_likers` (boolean, default `false`)
+- **New stats:** `likers_scraped`, `unique_likers`
+- **New status:** `scraping_likers`
+
+## Seed Account Followers Scraping
+
+Scrape followers of seed Instagram accounts via Apify (`scraping_solutions/instagram-scraper-followers-following-no-cookies`). Users can select "Followers" alongside "Commenters" and "Likers" via checkboxes when creating a deep scrape job. Followers are scraped per-seed (not per-post) and go through the same profile enrichment and qualification pipeline.
+
+### Location
+
+- **Frontend dialog:** `src/components/deep-scraper/NewDeepScrapeDialog.tsx` (Followers checkbox in Lead Sources)
+- **Frontend page:** `src/pages/DeepScraper.tsx` (state wiring, status badge, progress display)
+- **Frontend types:** `src/lib/types.ts` (`scrape_followers`, `scraping_followers` status, `followers_scraped` stat)
+- **Frontend hooks:** `src/hooks/useDeepScrapeJobs.ts` (mutation body updated)
+- **Backend model:** `quddify-crm/models/DeepScrapeJob.js` (`scrape_followers`, `scraping_followers` status, `followers_scraped` stat, `followers_scraped_seeds` checkpoint)
+- **Backend service:** `quddify-crm/services/deepScraper.js` (`FOLLOWERS_SCRAPER` actor, followers pipeline step per-seed)
+- **Backend route:** `quddify-crm/routes/deep-scrape.js` (accepts `scrape_followers`)
+- **Backend schema:** `quddify-crm/schemas/deep-scrape.js` (Zod validation)
+
+### API
+
+- **New field on POST `/api/deep-scrape/start`:** `scrape_followers` (boolean, default `false`)
+- **New stat:** `followers_scraped`
+- **New status:** `scraping_followers`
+
 ## Skip Wait Time in VA Mode
 
 Allows manual (VA mode) campaigns to skip the cooldown delay between messages. When enabled, the VA can send messages back-to-back without waiting for the configured min/max delay to elapse.

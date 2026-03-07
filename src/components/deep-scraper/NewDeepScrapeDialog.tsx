@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Loader2,
   Search,
@@ -36,6 +37,12 @@ interface NewDeepScrapeDialogProps {
   setJobName: (name: string) => void;
   scrapeType: "reels" | "posts";
   setScrapeType: (type: "reels" | "posts") => void;
+  scrapeComments: boolean;
+  setScrapeComments: (v: boolean) => void;
+  scrapeLikers: boolean;
+  setScrapeLikers: (v: boolean) => void;
+  scrapeFollowers: boolean;
+  setScrapeFollowers: (v: boolean) => void;
   seedText: string;
   setSeedText: (text: string) => void;
   directUrlText: string;
@@ -77,6 +84,12 @@ export function NewDeepScrapeDialog({
   setJobName,
   scrapeType,
   setScrapeType,
+  scrapeComments,
+  setScrapeComments,
+  scrapeLikers,
+  setScrapeLikers,
+  scrapeFollowers,
+  setScrapeFollowers,
   seedText,
   setSeedText,
   directUrlText,
@@ -220,6 +233,47 @@ export function NewDeepScrapeDialog({
               </div>
             </div>
           )}
+          <div className="space-y-2">
+            <Label>Lead Sources</Label>
+            <div className="flex items-center gap-4 rounded-lg border p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="scrapeComments"
+                  checked={scrapeComments}
+                  onCheckedChange={(v) => setScrapeComments(v === true)}
+                  disabled={!scrapeLikers && !scrapeFollowers}
+                />
+                <Label htmlFor="scrapeComments" className="text-sm font-normal cursor-pointer">
+                  Commenters
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="scrapeLikers"
+                  checked={scrapeLikers}
+                  onCheckedChange={(v) => setScrapeLikers(v === true)}
+                  disabled={!scrapeComments && !scrapeFollowers}
+                />
+                <Label htmlFor="scrapeLikers" className="text-sm font-normal cursor-pointer">
+                  Likers
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="scrapeFollowers"
+                  checked={scrapeFollowers}
+                  onCheckedChange={(v) => setScrapeFollowers(v === true)}
+                  disabled={!scrapeComments && !scrapeLikers}
+                />
+                <Label htmlFor="scrapeFollowers" className="text-sm font-normal cursor-pointer">
+                  Followers
+                </Label>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select which users to scrape from each post/reel. At least one must be selected.
+            </p>
+          </div>
           {jobSource === "accounts" ? (
             <div className="space-y-2">
               <Label htmlFor="seeds">Seed Usernames</Label>
@@ -263,11 +317,10 @@ export function NewDeepScrapeDialog({
               </p>
             </div>
           )}
-          <div className={`grid gap-4 ${
-            jobSource === "direct_urls"
-              ? jobMode === "outbound" ? "grid-cols-2" : "grid-cols-1"
-              : jobMode === "research" ? "grid-cols-2" : "grid-cols-3"
-          }`}>
+          <div className={`grid gap-4 ${(() => {
+            const cols = (jobSource === "accounts" ? 1 : 0) + (scrapeComments ? 1 : 0) + (jobMode === "outbound" ? 1 : 0);
+            return cols >= 3 ? "grid-cols-3" : cols === 2 ? "grid-cols-2" : "grid-cols-1";
+          })()}`}>
             {jobSource === "accounts" && (
               <div className="space-y-2">
                 <Label htmlFor="reelLimit">{scrapeType === "posts" ? "Post Limit" : "Reel Limit"}</Label>
@@ -280,16 +333,18 @@ export function NewDeepScrapeDialog({
                 />
               </div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="commentLimit">Comment Limit</Label>
-              <Input
-                id="commentLimit"
-                type="number"
-                min={1}
-                value={commentLimit}
-                onChange={(e) => setCommentLimit(Number(e.target.value))}
-              />
-            </div>
+            {scrapeComments && (
+              <div className="space-y-2">
+                <Label htmlFor="commentLimit">Comment Limit</Label>
+                <Input
+                  id="commentLimit"
+                  type="number"
+                  min={1}
+                  value={commentLimit}
+                  onChange={(e) => setCommentLimit(Number(e.target.value))}
+                />
+              </div>
+            )}
             {jobMode === "outbound" && (
               <div className="space-y-2">
                 <Label htmlFor="minFollowers">Min Followers</Label>

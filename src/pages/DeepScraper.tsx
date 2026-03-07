@@ -97,6 +97,8 @@ const STATUS_BADGE: Record<DeepScrapeJobStatus, { label: string; className: stri
   pending: { label: "Pending", className: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
   scraping_reels: { label: "Scraping Reels", className: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
   scraping_comments: { label: "Scraping Comments", className: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
+  scraping_likers: { label: "Scraping Likers", className: "bg-pink-500/15 text-pink-400 border-pink-500/30" },
+  scraping_followers: { label: "Scraping Followers", className: "bg-teal-500/15 text-teal-400 border-teal-500/30" },
   scraping_profiles: { label: "Scraping Profiles", className: "bg-indigo-500/15 text-indigo-400 border-indigo-500/30" },
   qualifying: { label: "Qualifying", className: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" },
   completed: { label: "Completed", className: "bg-green-500/15 text-green-400 border-green-500/30" },
@@ -140,6 +142,8 @@ function isActiveJob(status: DeepScrapeJobStatus) {
     status === "pending" ||
     status === "scraping_reels" ||
     status === "scraping_comments" ||
+    status === "scraping_likers" ||
+    status === "scraping_followers" ||
     status === "scraping_profiles" ||
     status === "qualifying"
   );
@@ -203,6 +207,22 @@ function JobProgress({ job }: { job: DeepScrapeJob }) {
     );
   }
 
+  if (job.status === "scraping_likers") {
+    return (
+      <span className="text-xs text-muted-foreground">
+        Likers: {s.likers_scraped} &middot; {s.unique_likers} unique
+      </span>
+    );
+  }
+
+  if (job.status === "scraping_followers") {
+    return (
+      <span className="text-xs text-muted-foreground">
+        Followers: {s.followers_scraped}
+      </span>
+    );
+  }
+
   if (job.status === "scraping_profiles") {
     return (
       <span className="text-xs text-muted-foreground">
@@ -232,6 +252,13 @@ function JobProgress({ job }: { job: DeepScrapeJob }) {
       return (
         <span className="text-xs text-orange-400">
           {s.profiles_scraped} profiles (paused)
+        </span>
+      );
+    }
+    if (s.followers_scraped > 0) {
+      return (
+        <span className="text-xs text-orange-400">
+          {s.followers_scraped} followers (paused)
         </span>
       );
     }
@@ -431,6 +458,10 @@ function computeProgress(job: DeepScrapeJob): number {
       if (isResearch) return Math.min(50 + pct * 45, 95);
       return Math.min(25 + pct * 25, 50);
     }
+    case "scraping_likers":
+      return Math.min(35 + (s.likers_scraped > 0 ? 10 : 0), 48);
+    case "scraping_followers":
+      return Math.min(35 + (s.followers_scraped > 0 ? 10 : 0), 48);
     case "scraping_profiles":
     case "qualifying": {
       const total = s.unique_commenters || 1;
@@ -445,7 +476,7 @@ function computeProgress(job: DeepScrapeJob): number {
     case "paused": {
       if (s.profiles_scraped > 0 && s.unique_commenters > 0)
         return Math.min(50 + ((s.profiles_scraped + s.skipped_existing) / s.unique_commenters) * 45, 95);
-      if (s.comments_scraped > 0) return 35;
+      if (s.followers_scraped > 0 || s.likers_scraped > 0 || s.comments_scraped > 0) return 35;
       if (s.reels_scraped > 0) return 15;
       return 0;
     }
@@ -694,6 +725,9 @@ export default function DeepScraper() {
   const [commentLimit, setCommentLimit] = useState(100);
   const [minFollowers, setMinFollowers] = useState(1000);
   const [forceReprocess, setForceReprocess] = useState(false);
+  const [scrapeComments, setScrapeComments] = useState(true);
+  const [scrapeLikers, setScrapeLikers] = useState(false);
+  const [scrapeFollowers, setScrapeFollowers] = useState(false);
   const [scrapeEmails, setScrapeEmails] = useState(true);
   const [selectedPromptId, setSelectedPromptId] = useState("none");
   const [isRecurring, setIsRecurring] = useState(false);
@@ -824,8 +858,11 @@ export default function DeepScraper() {
           ? { direct_urls: parsedDirectUrls }
           : { seed_usernames: parsedSeeds }),
         scrape_type: scrapeType,
+        scrape_comments: scrapeComments,
+        scrape_likers: scrapeLikers,
+        scrape_followers: scrapeFollowers,
         ...(!isDirectMode && { reel_limit: reelLimit }),
-        comment_limit: commentLimit,
+        ...(scrapeComments && { comment_limit: commentLimit }),
         ...(jobMode === "outbound" && {
           min_followers: minFollowers,
           force_reprocess: forceReprocess,
@@ -854,6 +891,9 @@ export default function DeepScraper() {
       setCommentLimit(100);
       setMinFollowers(1000);
       setForceReprocess(false);
+      setScrapeComments(true);
+      setScrapeLikers(false);
+      setScrapeFollowers(false);
       setScrapeEmails(true);
       setSelectedPromptId("none");
       setIsRecurring(false);
@@ -1417,6 +1457,12 @@ export default function DeepScraper() {
         setJobName={setJobName}
         scrapeType={scrapeType}
         setScrapeType={setScrapeType}
+        scrapeComments={scrapeComments}
+        setScrapeComments={setScrapeComments}
+        scrapeLikers={scrapeLikers}
+        setScrapeLikers={setScrapeLikers}
+        scrapeFollowers={scrapeFollowers}
+        setScrapeFollowers={setScrapeFollowers}
         seedText={seedText}
         setSeedText={setSeedText}
         directUrlText={directUrlText}

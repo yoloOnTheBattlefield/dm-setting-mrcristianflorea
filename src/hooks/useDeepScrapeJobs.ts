@@ -80,6 +80,10 @@ export function useStartDeepScrape() {
       seed_usernames?: string[];
       direct_urls?: string[];
       scrape_type?: "reels" | "posts";
+      scrape_comments?: boolean;
+      scrape_likers?: boolean;
+      scrape_followers?: boolean;
+      scrape_emails?: boolean;
       reel_limit?: number;
       comment_limit?: number;
       min_followers?: number;
