@@ -195,7 +195,7 @@ Server-side request validation using Zod schemas on critical API routes.
 ### Location
 
 - **Middleware:** `quddify-crm/middleware/validate.js`
-- **Schemas:** `quddify-crm/schemas/` (accounts, outbound-leads, campaigns, deep-scrape, manychat)
+- **Schemas:** `quddify-crm/schemas/` (accounts, outbound-leads, campaigns, deep-scrape, manychat, leads, prompts, ai-prompts)
 
 ### Tests
 
@@ -295,3 +295,55 @@ End-to-end integration tests using Playwright with stubbed API calls (`page.rout
 
 - `npm run e2e` — Run all E2E tests headlessly
 - `npm run e2e:ui` — Open Playwright UI mode
+
+## MongoDB Indexes
+
+Compound indexes added to Lead and OutboundLead models for common query patterns.
+
+### Lead Indexes
+
+- `{ account_id: 1, date_created: -1 }` — default sort
+- `{ account_id: 1, link_sent_at: -1 }` — funnel filtering
+- `{ account_id: 1, booked_at: -1 }` — funnel filtering
+- `{ ig_username: 1, account_id: 1 }` — cross-channel linking
+
+### OutboundLead Indexes (added)
+
+- `{ account_id: 1, createdAt: -1 }` — default sort
+- `{ account_id: 1, isMessaged: 1 }` — messaged filter
+- `{ account_id: 1, replied: 1 }` — replied filter
+
+### Location
+
+- `quddify-crm/models/Lead.js`
+- `quddify-crm/models/OutboundLead.js`
+
+## Analytics Response Caching
+
+All `/analytics/*` endpoints return `Cache-Control: private, max-age=120` to reduce repeated expensive aggregation queries.
+
+### Location
+
+- `quddify-crm/routes/analytics.js` (router-level middleware)
+
+## Request Correlation IDs
+
+Every request gets a unique UUID (`x-request-id` header). If the client sends one, it's preserved; otherwise a new one is generated. Returned in response headers for end-to-end tracing.
+
+### Location
+
+- **Middleware:** `quddify-crm/middleware/requestId.js`
+- **Wired in:** `quddify-crm/index.js`
+
+## Environment Configuration
+
+### .env.example files
+
+Both repos include `.env.example` documenting all required environment variables.
+
+- `quddify-crm/.env.example` — MONGO_URI, JWT_SECRET, ENCRYPTION_KEY, IG/Meta secrets, Redis, etc.
+- `dm-setting-mrcristianflorea/.env.example` — VITE_API_URL
+
+### Configurable API URL (Frontend)
+
+`src/lib/api.ts` reads `VITE_API_URL` env var, falling back to localhost (dev) or production URL.
