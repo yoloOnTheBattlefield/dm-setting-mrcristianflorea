@@ -122,6 +122,16 @@ Restructured the Integrations page with visual grouping, consistent status indic
 
 - `src/pages/Integrations.test.tsx` — tests for section headings, status badges, delete confirmation, and layout
 
+## Disqualified Checkbox for Outbound Leads
+
+Adds a "DQ" (disqualified) checkbox to the outbound leads table, allowing users to mark leads as disqualified directly from the list view. Uses the existing `qualified` field on OutboundLead (setting it to `false` for disqualified, `null` to unmark).
+
+### Location
+
+- **Frontend:** `src/pages/OutboundLeads.tsx` (desktop table column + mobile card checkbox)
+- **Backend model field:** `OutboundLead.qualified` (already existed — `true` = qualified, `false` = disqualified, `null` = unset)
+- **Backend route:** `PATCH /api/outbound-leads/:id` (already supports patching `qualified`)
+
 ## Outbound Leads & Campaign Detail UI Polish
 
 Comprehensive UI improvements across the Outbound Leads table and Campaign Detail (DM Pipeline) pages.

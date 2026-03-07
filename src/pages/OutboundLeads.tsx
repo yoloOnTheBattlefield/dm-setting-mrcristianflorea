@@ -444,6 +444,25 @@ export default function OutboundLeads() {
     [queryClient, toast],
   );
 
+  const toggleDisqualified = useCallback(
+    async (lead: OutboundLead) => {
+      const isCurrentlyDQ = lead.qualified === false;
+      const newVal = isCurrentlyDQ ? null : false;
+      try {
+        await patchOutboundLead(lead._id, { qualified: newVal });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: err instanceof Error ? err.message : "Failed to update",
+          variant: "destructive",
+        });
+      }
+    },
+    [queryClient, toast],
+  );
+
   const toggleField = useCallback(
     async (lead: OutboundLead, field: "link_sent" | "replied" | "booked") => {
       const newVal = !lead[field];
@@ -670,6 +689,13 @@ export default function OutboundLeads() {
                             />
                             <span className="text-[10px] text-muted-foreground leading-none">Conv</span>
                           </label>
+                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                            <Checkbox
+                              checked={lead.qualified === false}
+                              onCheckedChange={() => toggleDisqualified(lead)}
+                            />
+                            <span className="text-[10px] text-muted-foreground leading-none">DQ</span>
+                          </label>
                         </div>
 
                         {/* Expand toggle */}
@@ -758,6 +784,7 @@ export default function OutboundLeads() {
                     <TableHead>Replied</TableHead>
                     <TableHead className="whitespace-nowrap">Link Sent</TableHead>
                     <TableHead>Converted</TableHead>
+                    <TableHead>DQ</TableHead>
                     <TableHead>Contract</TableHead>
                     <TableHead>DM</TableHead>
                   </TableRow>
@@ -776,13 +803,14 @@ export default function OutboundLeads() {
                         <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                         <TableCell><Skeleton className="h-7 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                       </TableRow>
                     ))
                   ) : leads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={12} className="h-24 text-center">
+                      <TableCell colSpan={13} className="h-24 text-center">
                         No outbound leads found.
                       </TableCell>
                     </TableRow>
@@ -873,6 +901,12 @@ export default function OutboundLeads() {
                           <Checkbox
                             checked={!!lead.booked}
                             onCheckedChange={() => toggleField(lead, "booked")}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Checkbox
+                            checked={lead.qualified === false}
+                            onCheckedChange={() => toggleDisqualified(lead)}
                           />
                         </TableCell>
                         <TableCell>
