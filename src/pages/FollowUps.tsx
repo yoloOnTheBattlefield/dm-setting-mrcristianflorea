@@ -106,6 +106,13 @@ const STATUS_CONFIG: Record<
     headerBg: "bg-gray-500",
     dotColor: "bg-gray-500",
   },
+  disqualified: {
+    label: "Disqualified",
+    color: "text-rose-700 dark:text-rose-400",
+    bg: "bg-rose-500/5",
+    headerBg: "bg-rose-500",
+    dotColor: "bg-rose-500",
+  },
 };
 
 // Column order for the kanban board
@@ -118,6 +125,7 @@ const COLUMN_ORDER: FollowUpStatus[] = [
   "not_interested",
   "no_response",
   "ghosted",
+  "disqualified",
 ];
 
 // ─── Helpers ───
@@ -142,7 +150,7 @@ function formatFollowers(count: number | null | undefined): string {
 
 function isOverdue(dateStr: string | null, status: FollowUpStatus): boolean {
   if (!dateStr) return false;
-  if (status === "booked" || status === "not_interested" || status === "ghosted") return false;
+  if (status === "booked" || status === "not_interested" || status === "ghosted" || status === "disqualified") return false;
   const d = new Date(dateStr);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -196,7 +204,7 @@ export default function FollowUps() {
   const columns = useMemo(() => {
     const grouped: Record<FollowUpStatus, FollowUp[]> = {
       new: [], hot_lead: [], contacted: [], interested: [],
-      booked: [], not_interested: [], no_response: [], ghosted: [],
+      booked: [], not_interested: [], no_response: [], ghosted: [], disqualified: [],
     };
     for (const fu of followUps) {
       grouped[fu.status]?.push(fu);

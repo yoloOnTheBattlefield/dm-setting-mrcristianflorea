@@ -11,7 +11,8 @@ export type FollowUpStatus =
   | "booked"
   | "no_response"
   | "ghosted"
-  | "hot_lead";
+  | "hot_lead"
+  | "disqualified";
 
 export interface FollowUpLead {
   username: string;
@@ -47,6 +48,7 @@ export interface FollowUpStats {
   no_response: number;
   ghosted: number;
   hot_lead: number;
+  disqualified: number;
 }
 
 interface FollowUpsResponse {
