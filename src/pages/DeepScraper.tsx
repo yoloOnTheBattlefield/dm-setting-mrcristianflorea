@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -21,14 +19,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -45,22 +35,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { usePrompts } from "@/hooks/usePrompts";
@@ -81,6 +61,10 @@ import {
   useResumeComments,
 } from "@/hooks/useDeepScrapeJobs";
 import type { DeepScrapeJob, DeepScrapeJobStatus, DeepScrapeLeadEntry } from "@/lib/types";
+import { NewDeepScrapeDialog } from "@/components/deep-scraper/NewDeepScrapeDialog";
+import { TargetPickerDialog } from "@/components/deep-scraper/TargetPickerDialog";
+import { EditJobDialog } from "@/components/deep-scraper/EditJobDialog";
+import { TargetAnalyticsPanel } from "@/components/deep-scraper/TargetAnalyticsPanel";
 import {
   Plus,
   AlertCircle,
@@ -93,7 +77,6 @@ import {
   Eye,
   Square,
   Trash2,
-  Search,
   UserCheck,
   UserX,
   Filter,
@@ -102,18 +85,11 @@ import {
   Copy,
   ClipboardCopy,
   Pencil,
-  X,
-  BarChart3,
-  ChevronDown,
   Clock,
   ChevronUp,
   FastForward,
   MessageSquare,
-  SlidersHorizontal,
   CalendarClock,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   Inbox,
 } from "lucide-react";
 
@@ -342,15 +318,6 @@ function ActionBtn({ tooltip, children, ...props }: { tooltip: string } & React.
         <TooltipContent side="bottom"><p className="text-xs">{tooltip}</p></TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  );
-}
-
-function SortHeader({ col, label, sortCol, sortAsc, onSort, className }: { col: string; label: string; sortCol: string; sortAsc: boolean; onSort: (col: string) => void; className?: string }) {
-  return (
-    <button onClick={() => onSort(col)} className={`flex items-center gap-1 hover:text-foreground transition-colors ${className || ""}`}>
-      {label}
-      {sortCol === col ? (sortAsc ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
-    </button>
   );
 }
 
@@ -1139,230 +1106,21 @@ export default function DeepScraper() {
 
       <div className="flex-1 p-6 space-y-6">
         {/* Target Analytics */}
-        {targets.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <BarChart3 className="h-5 w-5 text-indigo-400" />
-                <h3 className="text-lg font-semibold">Target Analytics</h3>
-                <Badge variant="secondary" className="text-xs font-normal">{targets.length} targets</Badge>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setShowTargetStats(!showTargetStats)}>
-                <ChevronDown className={`h-4 w-4 transition-transform ${showTargetStats ? "rotate-180" : ""}`} />
-              </Button>
-            </div>
-            {showTargetStats && (
-              <div className="rounded-lg border bg-card">
-                {/* Toolbar */}
-                <div className="flex items-center gap-3 px-4 py-3 border-b">
-                  <div className="relative flex-1 max-w-xs">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search targets..."
-                      value={taSearch}
-                      onChange={(e) => setTaSearch(e.target.value)}
-                      className="pl-8 h-9"
-                    />
-                  </div>
-                  <Select value={taLowFitFilter} onValueChange={(v: string) => setTaLowFitFilter(v as "all" | "hide_low" | "only_low")}>
-                    <SelectTrigger className="w-40 h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Targets</SelectItem>
-                      <SelectItem value="hide_low">Hide Low Fit</SelectItem>
-                      <SelectItem value="only_low">Only Low Fit</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-9">
-                        <SlidersHorizontal className="h-4 w-4 mr-2" />
-                        Columns
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {[
-                        { key: "scraped", label: "Scraped" },
-                        { key: "avg_followers", label: "Avg Followers" },
-                        { key: "qualified", label: "Qualified" },
-                        { key: "qual_pct", label: "Qual %" },
-                        { key: "messaged", label: "Messaged" },
-                        { key: "replied", label: "Replied" },
-                        { key: "reply_pct", label: "Reply %" },
-                        { key: "booked", label: "Booked" },
-                        { key: "book_pct", label: "Book %" },
-                        { key: "revenue", label: "Revenue" },
-                      ].map((col) => (
-                        <DropdownMenuCheckboxItem
-                          key={col.key}
-                          checked={taVisibleCols.has(col.key)}
-                          onCheckedChange={() => toggleTaCol(col.key)}
-                        >
-                          {col.label}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">
-                        <SortHeader col="seed" label="Target" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} />
-                      </TableHead>
-                      {taVisibleCols.has("scraped") && (
-                        <TableHead className="text-xs text-right">
-                          <SortHeader col="scraped" label="Scraped" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
-                        </TableHead>
-                      )}
-                      {taVisibleCols.has("avg_followers") && (
-                        <TableHead className="text-xs text-right">
-                          <SortHeader col="avg_followers" label="Avg Followers" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
-                        </TableHead>
-                      )}
-                      {taVisibleCols.has("qualified") && (
-                        <TableHead className="text-xs text-right">
-                          <SortHeader col="qualified" label="Qualified" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
-                        </TableHead>
-                      )}
-                      {taVisibleCols.has("qual_pct") && (
-                        <TableHead className="text-xs text-right">
-                          <SortHeader col="qual_pct" label="Qual %" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
-                        </TableHead>
-                      )}
-                      {taVisibleCols.has("messaged") && (
-                        <TableHead className="text-xs text-right">
-                          <SortHeader col="messaged" label="Messaged" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
-                        </TableHead>
-                      )}
-                      {taVisibleCols.has("replied") && (
-                        <TableHead className="text-xs text-right">
-                          <SortHeader col="replied" label="Replied" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
-                        </TableHead>
-                      )}
-                      {taVisibleCols.has("reply_pct") && (
-                        <TableHead className="text-xs text-right">
-                          <SortHeader col="reply_pct" label="Reply %" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
-                        </TableHead>
-                      )}
-                      {taVisibleCols.has("booked") && (
-                        <TableHead className="text-xs text-right">
-                          <SortHeader col="booked" label="Booked" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
-                        </TableHead>
-                      )}
-                      {taVisibleCols.has("book_pct") && (
-                        <TableHead className="text-xs text-right">
-                          <SortHeader col="book_pct" label="Book %" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
-                        </TableHead>
-                      )}
-                      {taVisibleCols.has("revenue") && (
-                        <TableHead className="text-xs text-right">
-                          <SortHeader col="revenue" label="Revenue" sortCol={taSortCol} sortAsc={taSortAsc} onSort={handleTaSort} className="ml-auto" />
-                        </TableHead>
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTargets.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={11} className="h-20 text-center text-muted-foreground">
-                          No targets match your filters.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredTargets.map((t) => (
-                        <TableRow key={t.seed} className={t.isLowFit ? "border-l-2 border-l-orange-500" : ""}>
-                          <TableCell className="text-xs font-medium">
-                            <div className="flex items-center gap-1.5">
-                              @{t.seed}
-                              {t.isLowFit && (
-                                <TooltipProvider delayDuration={200}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge className="bg-orange-500/15 text-orange-400 border-orange-500/30 text-[9px] px-1 py-0 cursor-help">
-                                        Low Fit
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="right" className="max-w-[220px]">
-                                      <p className="text-xs">This target has a low qualification rate relative to total scraped profiles.</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-                          </TableCell>
-                          {taVisibleCols.has("scraped") && (
-                            <TableCell className="text-xs text-right">{t.total_scraped.toLocaleString()}</TableCell>
-                          )}
-                          {taVisibleCols.has("avg_followers") && (
-                            <TableCell className="text-xs text-right text-muted-foreground">{t.avg_followers.toLocaleString()}</TableCell>
-                          )}
-                          {taVisibleCols.has("qualified") && (
-                            <TableCell className="text-xs text-right text-green-500">{t.qualified}</TableCell>
-                          )}
-                          {taVisibleCols.has("qual_pct") && (
-                            <TableCell className="text-xs text-right">
-                              {t.qualRate !== null ? (
-                                <span className={t.qualRate >= 50 ? "text-green-500" : t.qualRate >= 25 ? "text-yellow-500" : "text-red-500"}>
-                                  {t.qualRate}%
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">&mdash;</span>
-                              )}
-                            </TableCell>
-                          )}
-                          {taVisibleCols.has("messaged") && (
-                            <TableCell className="text-xs text-right">{t.messaged}</TableCell>
-                          )}
-                          {taVisibleCols.has("replied") && (
-                            <TableCell className="text-xs text-right">{t.replied}</TableCell>
-                          )}
-                          {taVisibleCols.has("reply_pct") && (
-                            <TableCell className="text-xs text-right">
-                              {t.reply_rate > 0 ? (
-                                <span className={t.reply_rate >= 10 ? "text-green-500" : t.reply_rate >= 5 ? "text-yellow-500" : "text-red-500"}>
-                                  {t.reply_rate}%
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">&mdash;</span>
-                              )}
-                            </TableCell>
-                          )}
-                          {taVisibleCols.has("booked") && (
-                            <TableCell className="text-xs text-right">{t.booked}</TableCell>
-                          )}
-                          {taVisibleCols.has("book_pct") && (
-                            <TableCell className="text-xs text-right">
-                              {t.book_rate > 0 ? (
-                                <span className={t.book_rate >= 5 ? "text-green-500" : t.book_rate >= 2 ? "text-yellow-500" : "text-red-500"}>
-                                  {t.book_rate}%
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">&mdash;</span>
-                              )}
-                            </TableCell>
-                          )}
-                          {taVisibleCols.has("revenue") && (
-                            <TableCell className="text-xs text-right">
-                              {t.total_contract_value > 0 ? (
-                                <span className="text-green-500">${t.total_contract_value.toLocaleString()}</span>
-                              ) : (
-                                <span className="text-muted-foreground">&mdash;</span>
-                              )}
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-        )}
+        <TargetAnalyticsPanel
+          targets={targets}
+          showTargetStats={showTargetStats}
+          setShowTargetStats={setShowTargetStats}
+          taSearch={taSearch}
+          setTaSearch={setTaSearch}
+          taSortCol={taSortCol}
+          taSortAsc={taSortAsc}
+          handleTaSort={handleTaSort}
+          taLowFitFilter={taLowFitFilter}
+          setTaLowFitFilter={setTaLowFitFilter}
+          taVisibleCols={taVisibleCols}
+          toggleTaCol={toggleTaCol}
+          filteredTargets={filteredTargets}
+        />
 
         <Separator />
 
@@ -1648,469 +1406,67 @@ export default function DeepScraper() {
       </div>
 
       {/* New Deep Scrape Dialog */}
-      <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>New Deep Scrape Job</DialogTitle>
-            <DialogDescription>
-              {jobMode === "research"
-                ? "Scrape reels or posts and comments for competitive intelligence."
-                : "Scrape reels or posts, comments, and commenter profiles from seed accounts."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label htmlFor="jobName">Job Name</Label>
-              <Input
-                id="jobName"
-                placeholder="e.g. Fitness niche round 1"
-                value={jobName}
-                onChange={(e) => setJobName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Mode</Label>
-              <div className="flex rounded-lg border p-1 gap-1">
-                <button
-                  type="button"
-                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                    jobMode === "outbound"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setJobMode("outbound")}
-                >
-                  Outbound
-                </button>
-                <button
-                  type="button"
-                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                    jobMode === "research"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setJobMode("research")}
-                >
-                  Research
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {jobMode === "outbound"
-                  ? "Scrape posts, comments, enrich profiles, qualify leads."
-                  : "Scrape posts and comments only \u2014 no profile enrichment or leads."}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label>Source</Label>
-              <div className="flex rounded-lg border p-1 gap-1">
-                <button
-                  type="button"
-                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                    jobSource === "accounts"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setJobSource("accounts")}
-                >
-                  Accounts
-                </button>
-                <button
-                  type="button"
-                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                    jobSource === "direct_urls"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setJobSource("direct_urls")}
-                >
-                  Direct URL
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {jobSource === "accounts"
-                  ? "Scrape reels/posts from seed accounts, then scrape comments."
-                  : "Paste a direct reel or post link to scrape its comments."}
-              </p>
-            </div>
-            {jobSource === "accounts" && (
-              <div className="space-y-2">
-                <Label>Content Type</Label>
-                <div className="flex rounded-lg border p-1 gap-1">
-                  <button
-                    type="button"
-                    className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      scrapeType === "reels"
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    onClick={() => setScrapeType("reels")}
-                  >
-                    Reels
-                  </button>
-                  <button
-                    type="button"
-                    className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      scrapeType === "posts"
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    onClick={() => setScrapeType("posts")}
-                  >
-                    Posts
-                  </button>
-                </div>
-              </div>
-            )}
-            {jobSource === "accounts" ? (
-              <div className="space-y-2">
-                <Label htmlFor="seeds">Seed Usernames</Label>
-                <Textarea
-                  id="seeds"
-                  placeholder={"username1\nusername2\nusername3"}
-                  value={seedText}
-                  onChange={(e) => setSeedText(e.target.value)}
-                  rows={4}
-                />
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    One username per line (without @). {parsedSeeds.length > 0 && `${parsedSeeds.length} account${parsedSeeds.length > 1 ? "s" : ""} detected.`}
-                  </p>
-                  {targets.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => {
-                        setShowTargetPicker(true);
-                        setTargetSearch("");
-                        setTargetSort("best_qual");
-                        setSelectedTargets(new Set());
-                      }}
-                    >
-                      <Clock className="h-3 w-3 mr-1" />
-                      Add from history
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="directUrls">Post / Reel URL</Label>
-                <Textarea
-                  id="directUrls"
-                  placeholder={"https://www.instagram.com/reel/ABC123/\nhttps://www.instagram.com/p/XYZ789/"}
-                  value={directUrlText}
-                  onChange={(e) => setDirectUrlText(e.target.value)}
-                  rows={3}
-                />
-                <p className="text-xs text-muted-foreground">
-                  One Instagram reel or post URL per line.{" "}
-                  {parsedDirectUrls.length > 0 && `${parsedDirectUrls.length} valid URL${parsedDirectUrls.length > 1 ? "s" : ""} detected.`}
-                </p>
-              </div>
-            )}
-            <div className={`grid gap-4 ${
-              jobSource === "direct_urls"
-                ? jobMode === "outbound" ? "grid-cols-2" : "grid-cols-1"
-                : jobMode === "research" ? "grid-cols-2" : "grid-cols-3"
-            }`}>
-              {jobSource === "accounts" && (
-                <div className="space-y-2">
-                  <Label htmlFor="reelLimit">{scrapeType === "posts" ? "Post Limit" : "Reel Limit"}</Label>
-                  <Input
-                    id="reelLimit"
-                    type="number"
-                    min={1}
-                    value={reelLimit}
-                    onChange={(e) => setReelLimit(Number(e.target.value))}
-                  />
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="commentLimit">Comment Limit</Label>
-                <Input
-                  id="commentLimit"
-                  type="number"
-                  min={1}
-                  value={commentLimit}
-                  onChange={(e) => setCommentLimit(Number(e.target.value))}
-                />
-              </div>
-              {jobMode === "outbound" && (
-                <div className="space-y-2">
-                  <Label htmlFor="minFollowers">Min Followers</Label>
-                  <Input
-                    id="minFollowers"
-                    type="number"
-                    min={0}
-                    value={minFollowers}
-                    onChange={(e) => setMinFollowers(Number(e.target.value))}
-                  />
-                </div>
-              )}
-            </div>
-            {jobMode === "outbound" && (
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="space-y-0.5">
-                  <Label htmlFor="forceReprocess">Force Reprocess</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Re-process profiles that have already been scraped.
-                  </p>
-                </div>
-                <Switch
-                  id="forceReprocess"
-                  checked={forceReprocess}
-                  onCheckedChange={setForceReprocess}
-                />
-              </div>
-            )}
-            {jobMode === "outbound" && (
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="space-y-0.5">
-                  <Label htmlFor="scrapeEmails">Scrape Emails</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Extract emails from profile data when available.
-                  </p>
-                </div>
-                <Switch
-                  id="scrapeEmails"
-                  checked={scrapeEmails}
-                  onCheckedChange={setScrapeEmails}
-                />
-              </div>
-            )}
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <Label htmlFor="recurring">Recurring</Label>
-                <p className="text-xs text-muted-foreground">
-                  Automatically re-run this job on a schedule.
-                </p>
-              </div>
-              <Switch
-                id="recurring"
-                checked={isRecurring}
-                onCheckedChange={setIsRecurring}
-              />
-            </div>
-            {isRecurring && (
-              <div className="flex items-center gap-3 pl-1">
-                <Label htmlFor="repeatInterval" className="whitespace-nowrap text-sm">Repeat Every</Label>
-                <Input
-                  id="repeatInterval"
-                  type="number"
-                  min={1}
-                  className="w-20"
-                  value={repeatIntervalDays}
-                  onChange={(e) => setRepeatIntervalDays(Number(e.target.value))}
-                />
-                <span className="text-sm text-muted-foreground">days</span>
-              </div>
-            )}
-            {jobMode === "outbound" && (
-              <div className="space-y-2">
-                <Label>Prompt</Label>
-                <Select value={selectedPromptId} onValueChange={setSelectedPromptId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a prompt..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {promptsList.map((p) => (
-                      <SelectItem key={p._id} value={p._id}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Optional AI prompt for qualifying leads.
-                </p>
-              </div>
-            )}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setShowNewDialog(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleStart}
-                disabled={!canStart || startMutation.isPending}
-              >
-                {startMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Starting...
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-2" />
-                    Start Deep Scrape
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <NewDeepScrapeDialog
+        open={showNewDialog}
+        onOpenChange={setShowNewDialog}
+        jobMode={jobMode}
+        setJobMode={setJobMode}
+        jobSource={jobSource}
+        setJobSource={setJobSource}
+        jobName={jobName}
+        setJobName={setJobName}
+        scrapeType={scrapeType}
+        setScrapeType={setScrapeType}
+        seedText={seedText}
+        setSeedText={setSeedText}
+        directUrlText={directUrlText}
+        setDirectUrlText={setDirectUrlText}
+        reelLimit={reelLimit}
+        setReelLimit={setReelLimit}
+        commentLimit={commentLimit}
+        setCommentLimit={setCommentLimit}
+        minFollowers={minFollowers}
+        setMinFollowers={setMinFollowers}
+        forceReprocess={forceReprocess}
+        setForceReprocess={setForceReprocess}
+        scrapeEmails={scrapeEmails}
+        setScrapeEmails={setScrapeEmails}
+        selectedPromptId={selectedPromptId}
+        setSelectedPromptId={setSelectedPromptId}
+        isRecurring={isRecurring}
+        setIsRecurring={setIsRecurring}
+        repeatIntervalDays={repeatIntervalDays}
+        setRepeatIntervalDays={setRepeatIntervalDays}
+        parsedSeeds={parsedSeeds}
+        parsedDirectUrls={parsedDirectUrls}
+        canStart={canStart}
+        isStarting={startMutation.isPending}
+        onStart={handleStart}
+        promptsList={promptsList}
+        targets={targets}
+        onOpenTargetPicker={() => {
+          setShowTargetPicker(true);
+          setTargetSearch("");
+          setTargetSort("best_qual");
+          setSelectedTargets(new Set());
+        }}
+      />
 
       {/* Target History Picker */}
-      <Dialog open={showTargetPicker} onOpenChange={setShowTargetPicker}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Pick from previous targets</DialogTitle>
-            <DialogDescription>
-              Performance based on previous Deep Scrape jobs.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-3 items-end">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search targets..."
-                value={targetSearch}
-                onChange={(e) => setTargetSearch(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <Select value={targetSort} onValueChange={(v) => setTargetSort(v as "best_qual" | "most_scraped" | "alpha")}>
-              <SelectTrigger className="w-44">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="best_qual">Best Qual %</SelectItem>
-                <SelectItem value="most_scraped">Most Scraped</SelectItem>
-                <SelectItem value="alpha">Alphabetical</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex-1 overflow-y-auto min-h-0 border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10" />
-                  <TableHead className="text-xs">Target</TableHead>
-                  <TableHead className="text-xs text-right">Scraped</TableHead>
-                  <TableHead className="text-xs text-right">Qualified</TableHead>
-                  <TableHead className="text-xs text-right">Qual %</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(() => {
-                  const filtered = targets
-                    .filter((t) => t.seed.toLowerCase().includes(targetSearch.toLowerCase()))
-                    .map((t) => {
-                      const total = t.qualified + t.rejected;
-                      const qualRate = total > 0 ? +((t.qualified / total) * 100).toFixed(1) : null;
-                      return { ...t, qualRate };
-                    })
-                    .sort((a, b) => {
-                      if (targetSort === "best_qual") return (b.qualRate ?? -1) - (a.qualRate ?? -1);
-                      if (targetSort === "most_scraped") return b.total_scraped - a.total_scraped;
-                      return a.seed.localeCompare(b.seed);
-                    });
-
-                  if (filtered.length === 0) {
-                    return (
-                      <TableRow>
-                        <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
-                          No targets found.
-                        </TableCell>
-                      </TableRow>
-                    );
-                  }
-
-                  return filtered.map((t) => {
-                    const isLowFit = (t.qualified + t.rejected) >= 10 && t.qualRate !== null && t.qualRate < 20;
-                    return (
-                      <TableRow
-                        key={t.seed}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => {
-                          setSelectedTargets((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(t.seed)) next.delete(t.seed);
-                            else next.add(t.seed);
-                            return next;
-                          });
-                        }}
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedTargets.has(t.seed)}
-                            onCheckedChange={() => {
-                              setSelectedTargets((prev) => {
-                                const next = new Set(prev);
-                                if (next.has(t.seed)) next.delete(t.seed);
-                                else next.add(t.seed);
-                                return next;
-                              });
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell className="text-sm font-medium">
-                          <div className="flex items-center gap-1.5">
-                            @{t.seed}
-                            {isLowFit && (
-                              <Badge className="bg-orange-500/15 text-orange-400 border-orange-500/30 text-[9px] px-1 py-0">
-                                Low Fit
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-right text-muted-foreground">
-                          {t.total_scraped.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-sm text-right text-green-500">
-                          {t.qualified}
-                        </TableCell>
-                        <TableCell className="text-sm text-right">
-                          {t.qualRate !== null ? (
-                            <span className={t.qualRate >= 50 ? "text-green-500" : t.qualRate >= 20 ? "text-yellow-500" : "text-red-500"}>
-                              {t.qualRate}%
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  });
-                })()}
-              </TableBody>
-            </Table>
-          </div>
-          {selectedTargets.size > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {selectedTargets.size} target{selectedTargets.size !== 1 ? "s" : ""} selected
-              {(() => {
-                const selected = targets.filter((t) => selectedTargets.has(t.seed));
-                const totalEvaluated = selected.reduce((s, t) => s + t.qualified + t.rejected, 0);
-                const totalQualified = selected.reduce((s, t) => s + t.qualified, 0);
-                const avgQual = totalEvaluated > 0 ? +((totalQualified / totalEvaluated) * 100).toFixed(0) : null;
-                return avgQual !== null ? ` · Avg Qual %: ${avgQual}%` : "";
-              })()}
-            </p>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTargetPicker(false)}>
-              Cancel
-            </Button>
-            <Button
-              disabled={selectedTargets.size === 0}
-              onClick={() => {
-                const existing = new Set(parsedSeeds);
-                const toAdd = Array.from(selectedTargets).filter((s) => !existing.has(s));
-                if (toAdd.length > 0) {
-                  const current = seedText.trim();
-                  setSeedText(current ? `${current}\n${toAdd.join("\n")}` : toAdd.join("\n"));
-                }
-                setShowTargetPicker(false);
-              }}
-            >
-              Add selected
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TargetPickerDialog
+        open={showTargetPicker}
+        onOpenChange={setShowTargetPicker}
+        targets={targets}
+        targetSearch={targetSearch}
+        setTargetSearch={setTargetSearch}
+        targetSort={targetSort}
+        setTargetSort={setTargetSort}
+        selectedTargets={selectedTargets}
+        setSelectedTargets={setSelectedTargets}
+        parsedSeeds={parsedSeeds}
+        seedText={seedText}
+        setSeedText={setSeedText}
+      />
 
       {/* Cancel Confirmation */}
       <AlertDialog open={!!cancellingId} onOpenChange={(open) => !open && setCancellingId(null)}>
@@ -2149,159 +1505,32 @@ export default function DeepScraper() {
       </AlertDialog>
 
       {/* Edit Job Dialog */}
-      <Dialog open={!!editingJob} onOpenChange={(open) => { if (!open) { setEditingJob(null); setShowEditConfirm(false); } }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Deep Scrape Job</DialogTitle>
-            <DialogDescription>
-              Update targets and settings. Changes apply to future runs only.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label>Job Name</Label>
-              <Input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="e.g. Fitness niche round 1"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Targets ({editSeeds.length})</Label>
-              <div className="flex flex-wrap gap-1.5 min-h-[36px] rounded-md border p-2">
-                {editSeeds.length === 0 ? (
-                  <span className="text-xs text-muted-foreground">No targets. Add at least one below.</span>
-                ) : (
-                  editSeeds.map((seed) => {
-                    const stats = targetQualMap[seed];
-                    const qualRate = stats?.qualRate;
-                    const qualColor = qualRate === null || qualRate === undefined
-                      ? "bg-zinc-500/15 text-zinc-400 border-zinc-500/30"
-                      : qualRate <= 20
-                        ? "bg-red-500/15 text-red-400 border-red-500/30"
-                        : qualRate <= 40
-                          ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30"
-                          : "bg-green-500/15 text-green-400 border-green-500/30";
-                    return (
-                      <Badge
-                        key={seed}
-                        variant="secondary"
-                        className="gap-1.5 pl-2 pr-1 py-0.5 text-xs"
-                      >
-                        @{seed}
-                        <span className={`inline-flex items-center rounded px-1 py-px text-[9px] font-medium leading-none border ${qualColor}`}>
-                          {qualRate !== null && qualRate !== undefined ? `${qualRate}%` : "N/A"}
-                        </span>
-                        <button
-                          onClick={() => handleRemoveEditSeed(seed)}
-                          className="rounded-full p-0.5 hover:bg-muted-foreground/20 transition-colors"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Add Targets</Label>
-              <div className="flex gap-2">
-                <Textarea
-                  placeholder={"newuser1\nnewuser2"}
-                  value={editNewSeedText}
-                  onChange={(e) => setEditNewSeedText(e.target.value)}
-                  rows={2}
-                  className="flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddEditSeeds}
-                  disabled={!editNewSeedText.trim()}
-                  className="self-end"
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  Add
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">One username per line, without @</p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>{editingJob?.scrape_type === "posts" ? "Post Limit" : "Reel Limit"}</Label>
-                <Input type="number" min={1} value={editReelLimit} onChange={(e) => setEditReelLimit(Number(e.target.value))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Comment Limit</Label>
-                <Input type="number" min={1} value={editCommentLimit} onChange={(e) => setEditCommentLimit(Number(e.target.value))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Min Followers</Label>
-                <Input type="number" min={0} value={editMinFollowers} onChange={(e) => setEditMinFollowers(Number(e.target.value))} />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <Label>Recurring</Label>
-                <p className="text-xs text-muted-foreground">Automatically re-run on a schedule.</p>
-              </div>
-              <Switch checked={editIsRecurring} onCheckedChange={setEditIsRecurring} />
-            </div>
-            {editIsRecurring && (
-              <div className="flex items-center gap-3 pl-1">
-                <Label className="whitespace-nowrap text-sm">Repeat Every</Label>
-                <Input type="number" min={1} className="w-20" value={editRepeatInterval} onChange={(e) => setEditRepeatInterval(Number(e.target.value))} />
-                <span className="text-sm text-muted-foreground">days</span>
-              </div>
-            )}
-          </div>
-          {showEditConfirm && (
-            <div className="rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-200">
-              This is a recurring job. Changes will apply to future runs only. Previously scraped data will not be affected.
-            </div>
-          )}
-          <DialogFooter className="pt-2">
-            {showEditConfirm ? (
-              <>
-                <Button variant="outline" onClick={() => setShowEditConfirm(false)}>
-                  Go Back
-                </Button>
-                <Button
-                  onClick={handleSaveEdit}
-                  disabled={updateMutation.isPending}
-                >
-                  {updateMutation.isPending ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
-                  ) : (
-                    "Confirm & Save"
-                  )}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => { setEditingJob(null); setShowEditConfirm(false); }}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveEdit}
-                  disabled={editSeeds.length === 0 || updateMutation.isPending}
-                >
-                  {updateMutation.isPending ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </Button>
-              </>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditJobDialog
+        editingJob={editingJob}
+        onClose={() => { setEditingJob(null); setShowEditConfirm(false); }}
+        editSeeds={editSeeds}
+        editNewSeedText={editNewSeedText}
+        setEditNewSeedText={setEditNewSeedText}
+        editName={editName}
+        setEditName={setEditName}
+        editReelLimit={editReelLimit}
+        setEditReelLimit={setEditReelLimit}
+        editCommentLimit={editCommentLimit}
+        setEditCommentLimit={setEditCommentLimit}
+        editMinFollowers={editMinFollowers}
+        setEditMinFollowers={setEditMinFollowers}
+        editIsRecurring={editIsRecurring}
+        setEditIsRecurring={setEditIsRecurring}
+        editRepeatInterval={editRepeatInterval}
+        setEditRepeatInterval={setEditRepeatInterval}
+        showEditConfirm={showEditConfirm}
+        setShowEditConfirm={setShowEditConfirm}
+        onRemoveEditSeed={handleRemoveEditSeed}
+        onAddEditSeeds={handleAddEditSeeds}
+        onSaveEdit={handleSaveEdit}
+        isSaving={updateMutation.isPending}
+        targetQualMap={targetQualMap}
+      />
     </div>
   );
 }

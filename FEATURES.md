@@ -122,6 +122,115 @@ new (amber), contacted (blue), interested (green), not_interested (red), booked 
 - `src/pages/FollowUps.test.tsx` — Frontend component tests
 - `quddify-crm/routes/follow-ups.test.js` — Backend route tests
 
+## Component Extraction Refactor
+
+Large page components split into smaller, focused subcomponents for maintainability.
+
+### Extracted Components
+
+- **DeepScraper** (2307 → 1536 lines): `NewDeepScrapeDialog`, `TargetPickerDialog`, `EditJobDialog`, `TargetAnalyticsPanel` → `src/components/deep-scraper/`
+- **OutboundLeads**: `OutboundLeadsFilters`, `FunnelStatsBar`, `SelectionActionBar`, `DmEditDialog`, `OutboundLeadsPagination` → `src/components/outbound-leads/`
+- **Integrations**: `AITokenCard`, `AIModelsSection`, `ApifyTokensCard`, `TrackingCard`, `ConnectionsSection`, `CalendlyTokenModal` → `src/components/integrations/`
+- **OutboundAccounts**: `AddEditAccountDialog`, `DeleteConfirmDialog`, `WarmupDialog` → `src/components/outbound-accounts/`
+
+## TypeScript Strict Mode
+
+Enabled full `"strict": true` in `tsconfig.app.json` (was previously disabled). Also enabled `noFallthroughCasesInSwitch`.
+
+### Location
+
+- **Config:** `tsconfig.app.json`
+
+## Structured Logging (Backend)
+
+Replaced all `console.log/error/warn` calls across the backend with structured pino logging. Each module creates a child logger with a `module` label for traceability.
+
+### Location
+
+- **Logger utility:** `quddify-crm/utils/logger.js`
+- **All route, service, and middleware files** now use `logger.info/error/warn` instead of `console.*`
+- **Dev:** Uses `pino-pretty` for colorized output
+- **Production:** Outputs structured JSON for log aggregation
+
+## API Rate Limiting
+
+Rate limiting middleware (`express-rate-limit`) applied across all endpoints to prevent abuse.
+
+### Tiers
+
+- **Auth routes** (`/login`, `/register`): 20 requests / 15 min per IP
+- **Authenticated API routes**: 200 requests / min per IP
+- **Webhooks** (Instagram, ManyChat, Calendly): 120 requests / min per IP
+
+### Location
+
+- **Middleware:** `quddify-crm/middleware/rateLimiter.js`
+- **Wired in:** `quddify-crm/index.js`
+
+## Regex DoS Protection
+
+All MongoDB `$regex` queries using user-supplied search input now escape special regex characters via `escapeRegex()` to prevent ReDoS attacks.
+
+### Location
+
+- **Utility:** `quddify-crm/utils/escapeRegex.js`
+- **Applied in:** 8 route files (outbound-leads, campaigns, accounts, leads, prompts, sender-accounts, outbound-accounts, research, tasks)
+
+### Tests
+
+- `quddify-crm/utils/escapeRegex.test.js`
+
+## Input Validation (Zod)
+
+Server-side request validation using Zod schemas on critical API routes.
+
+### Validated Routes
+
+- `POST /login`, `POST /register` — email + password required
+- `POST /outbound-leads/bulk-delete`, `PATCH /outbound-leads/:id`
+- `POST /api/campaigns`, `PATCH /api/campaigns/:id` — name, schedule constraints
+- `POST /api/deep-scrape/start` — requires seed_usernames or direct_urls
+- `POST /api/manychat/webhook` — ig_username required
+
+### Location
+
+- **Middleware:** `quddify-crm/middleware/validate.js`
+- **Schemas:** `quddify-crm/schemas/` (accounts, outbound-leads, campaigns, deep-scrape, manychat)
+
+### Tests
+
+- `quddify-crm/middleware/validate.test.js` — 28 tests
+
+## API Key Encryption at Rest
+
+Sensitive API tokens stored in the Account model are encrypted using AES-256-GCM before being saved to MongoDB.
+
+### Encrypted Fields
+
+`openai_token`, `claude_token`, `gemini_token`, `apify_token`, `calendly_token`, `ig_oauth.access_token`, `ig_oauth.page_access_token`
+
+### How It Works
+
+- Encryption key read from `ENCRYPTION_KEY` env var (64-char hex = 32 bytes)
+- Each value encrypted with random IV, stored as `iv:authTag:ciphertext`
+- Graceful fallback: if `ENCRYPTION_KEY` is not set, values stored/read as plaintext
+- Backwards compatible: decrypt detects plaintext and returns it unchanged
+
+### Location
+
+- **Utility:** `quddify-crm/utils/crypto.js`
+- **Model methods:** `Account.encryptField()`, `Account.decryptField()`
+- **Routes modified:** accounts.js, campaigns.js, instagram-oauth.js, instagram-webhook.js, calendly.js
+
+### Tests
+
+- `quddify-crm/utils/crypto.test.js` — 16 tests
+
+### Setup
+
+Generate key: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+Set `ENCRYPTION_KEY` in your environment (Railway, .env, etc.)
+
 ## Unit Test Coverage
 
 Foundational unit tests across backend utilities, middleware, services, and frontend logic.
@@ -132,6 +241,9 @@ Foundational unit tests across backend utilities, middleware, services, and fron
 - **`utils/normalize.test.js`** — toNumber, toDate, toBoolean conversion functions (edge cases, type coercion, whitespace)
 - **`utils/computeDailyLimit.test.js`** — Daily DM cap calculation per account status and warmup schedule
 - **`utils/columnMapping.test.js`** — XLSX column mapping: field normalization, type conversion, username sanitization
+- **`utils/escapeRegex.test.js`** — Regex special character escaping, ReDoS prevention
+- **`utils/crypto.test.js`** — AES-256-GCM encrypt/decrypt, round-trip, fallback without key, backwards compatibility
+- **`middleware/validate.test.js`** — Zod validation middleware, schema tests for all validated routes (28 tests)
 - **`services/campaignScheduler.test.js`** — Pure functions: resolveTemplate, isWithinActiveHours, getEffectiveDailyLimit, isAccountResting
 - **`middleware/auth.test.js`** — JWT auth, API key auth (qd_), browser token auth (oat_), disabled/deleted accounts, membership checks, token generation
 
@@ -148,6 +260,9 @@ Foundational unit tests across backend utilities, middleware, services, and fron
 - **`routes/warmup.test.js`** — Warmup status/start/stop lifecycle, checklist toggle, automation blocking, audit logs, pagination
 - **`routes/tracking.test.js`** — Settings get/update, event listing, limit parameter
 - **`routes/tracking-public.test.js`** — Script serving, config endpoint, event ingestion, first_visit/conversion lead updates, deduplication, validation
+- **`routes/analytics.test.js`** — Dashboard sections, funnel metrics, date range filtering, outbound/inbound analytics, campaign/message/sender analytics, daily activity, response speed, trends
+- **`routes/health.test.js`** — Health check, debug info, stats aggregation
+- **`routes/research.test.js`** — Overview KPIs, engagement trend, top posts, competitors, posts pagination/filtering, commenters aggregation
 
 ### Frontend Tests (src/)
 
@@ -163,20 +278,20 @@ Foundational unit tests across backend utilities, middleware, services, and fron
 - **`src/pages/Campaigns.test.tsx`** — Page header, stat line, campaign name rendering
 - **`src/pages/OutboundLeads.test.tsx`** — Page header, search inputs, import button
 
-## Cypress E2E Tests
+## Playwright E2E Tests
 
-End-to-end integration tests using Cypress with stubbed API calls (`cy.intercept()`). Tests run against the Vite dev server without requiring a backend.
+End-to-end integration tests using Playwright with stubbed API calls (`page.route()`). Tests run against the Vite dev server (auto-started via `webServer` config) without requiring a backend. Uses chromium only for speed.
 
 ### Location
 
-- **Config:** `cypress.config.ts`
-- **Support:** `cypress/support/commands.ts` (custom `cy.login()` command), `cypress/support/e2e.ts`
+- **Config:** `playwright.config.ts`
+- **Helpers:** `e2e/helpers.ts` (login helper that sets localStorage via `addInitScript`)
 - **Tests:**
-  - `cypress/e2e/outbound-leads.cy.ts` — Table rendering, search, pagination, bulk delete, lead status updates
-  - `cypress/e2e/campaigns.cy.ts` — Campaign list, create dialog, detail navigation, start/pause/delete lifecycle
-  - `cypress/e2e/deep-scraper.cy.ts` — Job list, create with seeds/URLs, pause/cancel/delete jobs
+  - `e2e/outbound-leads.spec.ts` — Table rendering, search, pagination, bulk delete, lead status updates
+  - `e2e/campaigns.spec.ts` — Campaign list, create dialog, detail navigation, start/pause/delete lifecycle
+  - `e2e/deep-scraper.spec.ts` — Job list, create with seeds/URLs, pause/cancel/delete jobs
 
 ### Scripts
 
-- `npm run cy:open` — Open Cypress GUI
-- `npm run cy:run` — Run all E2E tests headlessly
+- `npm run e2e` — Run all E2E tests headlessly
+- `npm run e2e:ui` — Open Playwright UI mode

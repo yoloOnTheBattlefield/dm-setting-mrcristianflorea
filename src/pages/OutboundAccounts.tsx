@@ -2,27 +2,6 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -39,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { API_URL, fetchWithAuth } from "@/lib/api";
 import {
   useOutboundAccounts,
   useCreateOutboundAccount,
@@ -66,9 +44,6 @@ import {
   Search,
   Flame,
   Play,
-  Square,
-  ShieldOff,
-  ShieldCheck,
   Copy,
   KeyRound,
   Mail,
@@ -77,8 +52,10 @@ import {
   Link2,
   Unlink,
   Globe,
-  CheckCircle2,
 } from "lucide-react";
+import AddEditAccountDialog from "@/components/outbound-accounts/AddEditAccountDialog";
+import DeleteConfirmDialog from "@/components/outbound-accounts/DeleteConfirmDialog";
+import WarmupDialog from "@/components/outbound-accounts/WarmupDialog";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   new: { label: "New", className: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
@@ -345,14 +322,6 @@ export default function OutboundAccounts() {
   };
 
   const warmupProgress = warmupData ? Math.min((warmupData.currentDay / 14) * 100, 100) : 0;
-
-  const ACTION_LABELS: Record<string, string> = {
-    warmup_started: "Warmup started",
-    warmup_stopped: "Warmup stopped",
-    warmup_completed: "Warmup completed",
-    checklist_toggled: "Checklist updated",
-    cap_enforced: "Cap enforced",
-  };
 
   return (
     <div className="flex flex-1 flex-col">
@@ -720,435 +689,43 @@ export default function OutboundAccounts() {
       </div>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{isEdit ? `Edit @${editingAccount.username}` : "Add Outbound Account"}</DialogTitle>
-            <DialogDescription>
-              {isEdit ? "Update the account details below." : "Add a new outbound Instagram account to the vault."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Username *</Label>
-                <Input
-                  value={form.username}
-                  onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
-                  placeholder="instagram_handle"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Password</Label>
-                <Input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                  placeholder="Account password"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Email</Label>
-                <Input
-                  value={form.email}
-                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                  placeholder="account@email.com"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Email Password</Label>
-                <Input
-                  type="password"
-                  value={form.emailPassword}
-                  onChange={(e) => setForm((p) => ({ ...p, emailPassword: e.target.value }))}
-                  placeholder="Email password"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Proxy</Label>
-              <Input
-                value={form.proxy}
-                onChange={(e) => setForm((p) => ({ ...p, proxy: e.target.value }))}
-                placeholder="ip:port:user:pass"
-              />
-              <p className="text-xs text-muted-foreground">Format: ip:port:user:pass</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select value={form.status} onValueChange={(v) => setForm((p) => ({ ...p, status: v }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="warming">Warming</SelectItem>
-                    <SelectItem value="ready">Ready</SelectItem>
-                    <SelectItem value="restricted">Restricted</SelectItem>
-                    <SelectItem value="disabled">Disabled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Assigned To</Label>
-                <Input
-                  value={form.assignedTo}
-                  onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value }))}
-                  placeholder="e.g. Muazm"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>2FA Code <span className="text-muted-foreground font-normal">(optional)</span></Label>
-              <Input
-                value={form.twoFA}
-                onChange={(e) => setForm((p) => ({ ...p, twoFA: e.target.value }))}
-                placeholder="2FA secret or backup code"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>HideMyAcc Profile <span className="text-muted-foreground font-normal">(optional)</span></Label>
-              {hmaAvailable ? (
-                <Select
-                  value={form.hidemyacc_profile_id || "none"}
-                  onValueChange={(v) => setForm((p) => ({ ...p, hidemyacc_profile_id: v === "none" ? "" : v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select profile" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {hmaProfiles.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  value={form.hidemyacc_profile_id}
-                  onChange={(e) => setForm((p) => ({ ...p, hidemyacc_profile_id: e.target.value }))}
-                  placeholder="Profile ID (HideMyAcc not detected)"
-                />
-              )}
-            </div>
-
-            <div className="flex gap-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={form.isConnectedToAISetter}
-                  onCheckedChange={(c) => setForm((p) => ({ ...p, isConnectedToAISetter: !!c }))}
-                />
-                <span className="text-sm">Connected to AI Setter</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={form.isBlacklisted}
-                  onCheckedChange={(c) => setForm((p) => ({ ...p, isBlacklisted: !!c }))}
-                />
-                <span className="text-sm">Blacklisted</span>
-              </label>
-            </div>
-
-            {/* Instagram OAuth Connect */}
-            {isEdit && (
-              <div className="space-y-1.5 border rounded-md p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Instagram API</Label>
-                    <p className="text-xs text-muted-foreground">Connect via OAuth to track DMs</p>
-                  </div>
-                  {editingAccount?.ig_oauth?.access_token ? (
-                    <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      @{editingAccount.ig_oauth.ig_username}
-                    </Badge>
-                  ) : null}
-                </div>
-                {editingAccount?.ig_oauth?.access_token ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={async () => {
-                      try {
-                        const r = await fetchWithAuth(`${API_URL}/api/instagram/outbound/${editingAccount._id}/disconnect`, { method: "DELETE" });
-                        if (r.ok) {
-                          toast({ title: "Disconnected", description: "Instagram disconnected from this account" });
-                          setEditingAccount({ ...editingAccount, ig_oauth: undefined } as OutboundAccount);
-                        }
-                      } catch {
-                        toast({ title: "Error", description: "Failed to disconnect", variant: "destructive" });
-                      }
-                    }}
-                  >
-                    Disconnect Instagram
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    onClick={async () => {
-                      try {
-                        const r = await fetchWithAuth(`${API_URL}/api/instagram/auth-url?outbound_account_id=${editingAccount._id}`);
-                        const data = await r.json();
-                        if (r.ok && data.url) {
-                          window.location.href = data.url;
-                        }
-                      } catch {
-                        toast({ title: "Error", description: "Failed to get auth URL", variant: "destructive" });
-                      }
-                    }}
-                  >
-                    Connect Instagram
-                  </Button>
-                )}
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <Label>Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
-              <Textarea
-                value={form.notes}
-                onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-                placeholder="Any additional notes..."
-                rows={2}
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isPending}>
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} disabled={isPending}>
-                {isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : isEdit ? (
-                  "Save Changes"
-                ) : (
-                  "Add Account"
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddEditAccountDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        isEdit={isEdit}
+        editingAccount={editingAccount}
+        setEditingAccount={setEditingAccount}
+        form={form}
+        setForm={setForm}
+        onSubmit={handleSubmit}
+        isPending={isPending}
+        hmaAvailable={hmaAvailable}
+        hmaProfiles={hmaProfiles}
+      />
 
       {/* Delete Confirm */}
-      <AlertDialog open={!!deletingAccount} onOpenChange={(open) => !open && setDeletingAccount(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Outbound Account</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete @{deletingAccount?.username} from the vault. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmDialog
+        deletingAccount={deletingAccount}
+        onOpenChange={() => setDeletingAccount(null)}
+        onDelete={handleDelete}
+        isPending={deleteMutation.isPending}
+      />
 
       {/* Warmup Dialog */}
-      <Dialog open={!!warmupAccount} onOpenChange={(open) => !open && setWarmupAccount(null)}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Flame className="h-5 w-5 text-yellow-400" />
-              Warmup: @{warmupAccount?.username}
-            </DialogTitle>
-            <DialogDescription>
-              Track warmup progress, checklist, and automation status.
-            </DialogDescription>
-          </DialogHeader>
-
-          {warmupLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : warmupData?.enabled ? (
-            <div className="space-y-5 pt-2">
-              {/* Progress */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">
-                    Day {warmupData.currentDay} of 14
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleStopWarmup}
-                    disabled={stopWarmup.isPending}
-                    className="text-red-400 border-red-500/30 hover:bg-red-500/10"
-                  >
-                    <Square className="h-3 w-3 mr-1.5" />
-                    {stopWarmup.isPending ? "Stopping..." : "Stop Warmup"}
-                  </Button>
-                </div>
-                <Progress value={warmupProgress} className="h-2" />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {warmupData.currentDay >= 15
-                    ? "Warmup complete"
-                    : `${Math.round(warmupProgress)}% complete`}
-                </p>
-              </div>
-
-              {/* Automation Status */}
-              <div className={`rounded-lg border p-3 ${
-                warmupData.automationBlocked
-                  ? "border-red-500/30 bg-red-500/5"
-                  : "border-green-500/30 bg-green-500/5"
-              }`}>
-                <div className="flex items-center gap-2">
-                  {warmupData.automationBlocked ? (
-                    <>
-                      <ShieldOff className="h-4 w-4 text-red-400" />
-                      <span className="text-sm font-medium text-red-400">
-                        Automation blocked until Day 9
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheck className="h-4 w-4 text-green-400" />
-                      <span className="text-sm font-medium text-green-400">
-                        Automation active — {warmupData.todayCap !== null ? `${warmupData.todayCap} DMs/day cap` : "No cap"}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Checklist */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium">Checklist</h4>
-                  <span className="text-xs text-muted-foreground">
-                    {warmupData.checklistProgress.completed}/{warmupData.checklistProgress.total} complete
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {warmupData.checklist.map((item) => (
-                    <label
-                      key={item.key}
-                      className="flex items-center gap-2.5 cursor-pointer rounded-md border border-white/5 px-3 py-2 hover:bg-white/5 transition-colors"
-                    >
-                      <Checkbox
-                        checked={item.completed}
-                        onCheckedChange={() => handleToggleChecklist(item.key)}
-                        disabled={toggleChecklist.isPending}
-                      />
-                      <span className={`text-sm ${item.completed ? "line-through text-muted-foreground" : ""}`}>
-                        {item.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Schedule */}
-              <div>
-                <h4 className="text-sm font-medium mb-2">Warmup Schedule</h4>
-                <div className="rounded-lg border overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="py-1.5 text-xs">Day</TableHead>
-                        <TableHead className="py-1.5 text-xs">DM Cap</TableHead>
-                        <TableHead className="py-1.5 text-xs">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {warmupData.schedule.map((s) => {
-                        const isCurrent = s.day === warmupData.currentDay;
-                        const isPast = s.day < warmupData.currentDay;
-                        return (
-                          <TableRow
-                            key={s.day}
-                            className={isCurrent ? "bg-yellow-500/10" : isPast ? "opacity-50" : ""}
-                          >
-                            <TableCell className="py-1.5 text-xs font-mono">
-                              {s.day}
-                              {isCurrent && (
-                                <Badge className="ml-1.5 text-[9px] bg-yellow-500/15 text-yellow-400 border-yellow-500/30">
-                                  TODAY
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-1.5 text-xs">
-                              {s.cap === 0 ? "-" : s.cap}
-                            </TableCell>
-                            <TableCell className="py-1.5 text-xs text-muted-foreground">
-                              {s.cap === 0 ? "Blocked" : "Active"}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-
-              {/* Activity Log */}
-              {logsData && logsData.logs.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Activity Log</h4>
-                  <div className="space-y-1.5">
-                    {logsData.logs.map((log) => (
-                      <div
-                        key={log._id}
-                        className="flex items-center justify-between text-xs border-b border-white/5 pb-1.5"
-                      >
-                        <div>
-                          <span className="text-muted-foreground">
-                            {new Date(log.createdAt).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </span>
-                          <span className="ml-2">
-                            {ACTION_LABELS[log.action] || log.action}
-                            {log.details?.label && (
-                              <span className="text-muted-foreground">
-                                : &ldquo;{log.details.label as string}&rdquo;
-                                {log.details?.completed ? " ✓" : " ✗"}
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                        <span className="text-muted-foreground">{log.performedBy}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <p className="mb-3">Warmup is not active for this account.</p>
-              <Button
-                onClick={() => warmupAccount && handleStartWarmup(warmupAccount)}
-                disabled={startWarmup.isPending}
-              >
-                <Play className="h-4 w-4 mr-2" />
-                {startWarmup.isPending ? "Starting..." : "Start Warmup"}
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <WarmupDialog
+        warmupAccount={warmupAccount}
+        onOpenChange={() => setWarmupAccount(null)}
+        warmupData={warmupData}
+        warmupLoading={warmupLoading}
+        logsData={logsData}
+        warmupProgress={warmupProgress}
+        onStartWarmup={handleStartWarmup}
+        onStopWarmup={handleStopWarmup}
+        onToggleChecklist={handleToggleChecklist}
+        startWarmupPending={startWarmup.isPending}
+        stopWarmupPending={stopWarmup.isPending}
+        toggleChecklistPending={toggleChecklist.isPending}
+      />
     </div>
   );
 }

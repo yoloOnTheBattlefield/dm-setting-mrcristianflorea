@@ -6,35 +6,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertCircle,
   RefreshCw,
-  Search,
-  ChevronLeft,
-  ChevronRight,
   MessageSquare,
-  Users,
-  Send,
-  MessageCircle,
-  CalendarCheck,
-  DollarSign,
-  Upload,
-  Trash2,
-  ChevronDown,
   Copy,
-  Check,
-  Minus,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -43,16 +22,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePrompts } from "@/hooks/usePrompts";
 import { API_URL, fetchWithAuth } from "@/lib/api";
+import OutboundLeadsFilters from "@/components/outbound-leads/OutboundLeadsFilters";
+import FunnelStatsBar from "@/components/outbound-leads/FunnelStatsBar";
+import SelectionActionBar from "@/components/outbound-leads/SelectionActionBar";
+import DmEditDialog from "@/components/outbound-leads/DmEditDialog";
+import OutboundLeadsPagination from "@/components/outbound-leads/OutboundLeadsPagination";
 
 interface OutboundLead {
   _id: string;
@@ -540,221 +518,29 @@ export default function OutboundLeads() {
 
   return (
     <div className="flex flex-1 flex-col min-w-0">
-      {/* ── Mobile sticky header ── */}
-      <div className="md:hidden sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-4 py-3 space-y-2">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search username or name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-9"
-            />
-          </div>
-          {/* Quick pill filters */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setRepliedFilter((v) => v === "true" ? "all" : "true")}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${repliedFilter === "true" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-foreground/30"}`}
-            >
-              Replied
-            </button>
-            <button
-              type="button"
-              onClick={() => setBookedFilter((v) => v === "true" ? "all" : "true")}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${bookedFilter === "true" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-foreground/30"}`}
-            >
-              Converted
-            </button>
-            <button
-              type="button"
-              onClick={() => setMessagedFilter((v) => v === "true" ? "all" : "true")}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${messagedFilter === "true" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-foreground/30"}`}
-            >
-              Messaged
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Desktop sticky header ── */}
-      <div className="hidden md:block sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-6 py-4 space-y-3">
-          {/* Row 1: Title + Import */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">
-                Outbound Leads
-              </h2>
-              <p className="text-muted-foreground">
-                IG profiles from scraper uploads
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/outbound-leads/import")}
-            >
-              <Upload className="h-4 w-4 mr-1.5" />
-              Import XLSX
-            </Button>
-          </div>
-
-          {/* Row 2: Filters */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1fr_1fr_1fr_auto_auto_auto_minmax(200px,1.5fr)] gap-3">
-            {/* Lead Quality filter */}
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Lead Quality</Label>
-              <Select value={qualifiedFilter} onValueChange={setQualifiedFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Qualified Only" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="true">Qualified Only</SelectItem>
-                  <SelectItem value="false">Unqualified Only</SelectItem>
-                  <SelectItem value="all">All Leads</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Source filter */}
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Source</Label>
-              <Select value={source} onValueChange={setSource}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Sources" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Sources</SelectItem>
-                  {sourceOptions.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      @{s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Prompt filter */}
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Prompt</Label>
-              <Select value={promptFilter} onValueChange={setPromptFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Prompts" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Prompts</SelectItem>
-                  {promptOptions.map((p) => (
-                    <SelectItem key={p._id} value={p.label}>
-                      {p.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Messaged filter */}
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Messaged</Label>
-              <Select value={messagedFilter} onValueChange={setMessagedFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="true">Yes</SelectItem>
-                  <SelectItem value="false">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Replied filter */}
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Replied</Label>
-              <Select value={repliedFilter} onValueChange={setRepliedFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="true">Yes</SelectItem>
-                  <SelectItem value="false">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Converted filter */}
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Converted</Label>
-              <Select value={bookedFilter} onValueChange={setBookedFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="true">Yes</SelectItem>
-                  <SelectItem value="false">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Search */}
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Search</Label>
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search username or name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <OutboundLeadsFilters
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        qualifiedFilter={qualifiedFilter}
+        setQualifiedFilter={setQualifiedFilter}
+        source={source}
+        setSource={setSource}
+        sourceOptions={sourceOptions}
+        promptFilter={promptFilter}
+        setPromptFilter={setPromptFilter}
+        promptOptions={promptOptions}
+        messagedFilter={messagedFilter}
+        setMessagedFilter={setMessagedFilter}
+        repliedFilter={repliedFilter}
+        setRepliedFilter={setRepliedFilter}
+        bookedFilter={bookedFilter}
+        setBookedFilter={setBookedFilter}
+        onNavigateImport={() => navigate("/outbound-leads/import")}
+      />
 
       {/* Funnel – hidden on mobile */}
       {funnelStats && (
-        <div className="hidden md:block px-6 pt-4">
-          <div className="flex items-center gap-1.5 w-full">
-            <FunnelCard
-              label="Total"
-              value={funnelStats.total}
-              icon={<Users className="h-4 w-4 text-muted-foreground" />}
-            />
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-            <FunnelCard
-              label="Messaged"
-              value={funnelStats.messaged}
-              icon={<Send className="h-4 w-4 text-muted-foreground" />}
-            />
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-            <FunnelCard
-              label="Replied"
-              value={funnelStats.replied}
-              icon={<MessageCircle className="h-4 w-4 text-muted-foreground" />}
-            />
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-            <FunnelCard
-              label="Converted"
-              value={funnelStats.booked}
-              icon={<CalendarCheck className="h-4 w-4 text-green-400" />}
-            />
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-            <FunnelCard
-              label={`Revenue (${funnelStats.contracts} deal${funnelStats.contracts !== 1 ? "s" : ""})`}
-              value={`$${funnelStats.contract_value.toLocaleString()}`}
-              icon={<DollarSign className="h-4 w-4 text-green-400" />}
-            />
-          </div>
-        </div>
+        <FunnelStatsBar funnelStats={funnelStats} />
       )}
 
       {/* Table */}
@@ -775,55 +561,16 @@ export default function OutboundLeads() {
           </div>
         ) : (
           <>
-            {/* Selection action bar */}
-            {(selectedIds.size > 0 || selectAll) && (
-              <div className="flex items-center gap-3 mb-3 px-3 py-2 rounded-lg bg-muted/50 border">
-                <span className="text-sm">
-                  {selectAll
-                    ? `All ${pagination?.total ?? 0} leads selected`
-                    : `${selectedIds.size} selected`}
-                </span>
-                {!selectAll &&
-                  selectedIds.size === leads.length &&
-                  pagination &&
-                  pagination.total > leads.length && (
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="text-xs h-auto p-0"
-                      onClick={() => setSelectAll(true)}
-                    >
-                      Select all {pagination.total} matching leads
-                    </Button>
-                  )}
-                {selectAll && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="text-xs h-auto p-0"
-                    onClick={() => {
-                      setSelectAll(false);
-                      setSelectedIds(new Set(leads.map((l) => l._id)));
-                    }}
-                  >
-                    Select this page only
-                  </Button>
-                )}
-                <div className="ml-auto">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleBulkDelete}
-                    disabled={isDeleting}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1.5" />
-                    {isDeleting
-                      ? "Deleting..."
-                      : `Delete ${selectAll ? (pagination?.total ?? 0) : selectedIds.size}`}
-                  </Button>
-                </div>
-              </div>
-            )}
+            <SelectionActionBar
+              selectedIds={selectedIds}
+              selectAll={selectAll}
+              setSelectAll={setSelectAll}
+              setSelectedIds={setSelectedIds}
+              leads={leads}
+              pagination={pagination}
+              isDeleting={isDeleting}
+              handleBulkDelete={handleBulkDelete}
+            />
 
             {/* ── Mobile card layout ── */}
             <div className={`md:hidden space-y-2 relative${isFetching && !showTableSkeleton ? " opacity-60 pointer-events-none" : ""}`}>
@@ -1160,154 +907,27 @@ export default function OutboundLeads() {
             </div>
 
             {/* Pagination */}
-            {pagination && pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between border-t pt-4 mt-4">
-                <div className="text-sm text-muted-foreground">
-                  Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-                  {Math.min(
-                    pagination.page * pagination.limit,
-                    pagination.total,
-                  )}{" "}
-                  of {pagination.total} leads
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.max(1, prev - 1))
-                    }
-                    disabled={pagination.page === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-
-                  <div className="flex items-center gap-1">
-                    {Array.from(
-                      { length: Math.min(5, pagination.totalPages) },
-                      (_, i) => {
-                        let pageNum;
-                        if (pagination.totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (pagination.page <= 3) {
-                          pageNum = i + 1;
-                        } else if (
-                          pagination.page >=
-                          pagination.totalPages - 2
-                        ) {
-                          pageNum = pagination.totalPages - 4 + i;
-                        } else {
-                          pageNum = pagination.page - 2 + i;
-                        }
-
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={
-                              pagination.page === pageNum
-                                ? "default"
-                                : "outline"
-                            }
-                            size="sm"
-                            onClick={() => setCurrentPage(pageNum)}
-                            className="w-10"
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      },
-                    )}
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setCurrentPage((prev) =>
-                        Math.min(pagination.totalPages, prev + 1),
-                      )
-                    }
-                    disabled={pagination.page === pagination.totalPages}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              </div>
+            {pagination && (
+              <OutboundLeadsPagination
+                pagination={pagination}
+                setCurrentPage={setCurrentPage}
+              />
             )}
           </>
         )}
       </div>
 
       {/* DM Edit Dialog */}
-      <Dialog
-        open={!!editingLead}
-        onOpenChange={(open) => !open && setEditingLead(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>DM Details — @{editingLead?.username}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label>DM Date</Label>
-              <Input
-                type="datetime-local"
-                value={dmDate}
-                onChange={(e) => setDmDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Message</Label>
-              <textarea
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                placeholder="Enter the DM message..."
-                value={dmMessage}
-                onChange={(e) => setDmMessage(e.target.value)}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setEditingLead(null)}
-                disabled={isSavingDm}
-              >
-                Cancel
-              </Button>
-              <Button onClick={saveDm} disabled={isSavingDm}>
-                {isSavingDm ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DmEditDialog
+        editingLead={editingLead}
+        setEditingLead={setEditingLead}
+        dmMessage={dmMessage}
+        setDmMessage={setDmMessage}
+        dmDate={dmDate}
+        setDmDate={setDmDate}
+        isSavingDm={isSavingDm}
+        saveDm={saveDm}
+      />
     </div>
-  );
-}
-
-function FunnelCard({
-  label,
-  value,
-  sub,
-  icon,
-}: {
-  label: string;
-  value: number | string;
-  sub?: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <Card className="flex-1 min-w-0">
-      <CardContent className="py-3 px-4 flex items-center gap-3">
-        <div className="shrink-0">{icon}</div>
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground truncate">{label}</p>
-          <p className="text-lg font-bold leading-tight truncate">{value}</p>
-          {sub && <p className="text-[10px] text-muted-foreground truncate">{sub}</p>}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
