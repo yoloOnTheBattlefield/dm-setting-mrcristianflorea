@@ -86,15 +86,15 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
   return (
     <Card>
       <CardContent className="py-4 px-5">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <h3 className="text-sm font-medium">Activity Heatmap</h3>
-          <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5">
+          <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5 overflow-x-auto">
             {METRIC_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setMetric(opt.value)}
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap",
                   metric === opt.value
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -137,12 +137,12 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                     <div key={wi} className="flex flex-col gap-[2px]">
                       {Array.from({ length: 7 }).map((_, di) => {
                         const day = week.find((d) => d.dayOfWeek === di);
-                        if (!day) return <div key={di} className="w-[14px] h-[14px]" />;
+                        if (!day) return <div key={di} className="w-[10px] h-[10px] sm:w-[14px] sm:h-[14px]" />;
                         return (
                           <Tooltip key={di}>
                             <TooltipTrigger asChild>
                               <div
-                                className="w-[14px] h-[14px] rounded-[2px] transition-colors cursor-default"
+                                className="w-[10px] h-[10px] sm:w-[14px] sm:h-[14px] rounded-[2px] transition-colors cursor-default"
                                 style={getIntensityStyle(day.value, max)}
                               />
                             </TooltipTrigger>

@@ -266,17 +266,17 @@ export default function OutboundAnalytics() {
   const linkSent = funnel?.link_sent ?? 0;
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col overflow-x-hidden">
       {/* Header — unified filter toolbar (§10) */}
       <div className="sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-6 py-4 flex items-end justify-between gap-4">
-          <div className="shrink-0">
-            <h2 className="text-2xl font-bold tracking-tight">Outbound Analytics</h2>
-            <p className="text-muted-foreground text-sm">Performance metrics across your outbound pipeline</p>
+        <div className="px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3 md:gap-4">
+          <div className="shrink-0 min-w-0">
+            <h2 className="text-xl md:text-2xl font-bold tracking-tight truncate">Outbound Analytics</h2>
+            <p className="text-muted-foreground text-xs md:text-sm">Performance metrics across your outbound pipeline</p>
           </div>
-          <div className="flex items-center gap-3 rounded-lg border border-[#E2E8F0] bg-card px-3 py-2">
-            <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <div className="flex flex-col gap-1 w-52">
+          <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 md:rounded-lg md:border md:border-[#E2E8F0] md:bg-card md:px-3 md:py-2">
+            <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
+            <div className="flex flex-col gap-1 w-full md:w-52">
               <Label className="text-[10px] text-muted-foreground">Campaign</Label>
               <Select value={campaignId} onValueChange={setCampaignId}>
                 <SelectTrigger className="h-8 text-xs">
@@ -290,19 +290,21 @@ export default function OutboundAnalytics() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-px h-8 bg-border" />
+            <div className="w-px h-8 bg-border hidden md:block" />
             <div className="flex flex-col gap-1">
               <Label className="text-[10px] text-muted-foreground">Date Range</Label>
-              <DateFilter value={dateRange} onChange={setDateRange} />
+              <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+                <DateFilter value={dateRange} onChange={setDateRange} />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 md:p-6">
         <Tabs defaultValue="funnel" className="space-y-6">
           {/* Tab icons + tooltips (§6) */}
-          <TabsList>
+          <TabsList className="w-full md:w-auto overflow-x-auto flex whitespace-nowrap">
             <TooltipProvider delayDuration={300}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -365,14 +367,14 @@ export default function OutboundAnalytics() {
                 {insight && <InsightBanner text={insight.text} type={insight.type} />}
 
                 {/* 5 KPI Cards: Messaged → Replied → Link Sent → Converted → Revenue (§1) */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-col md:flex-row md:items-center gap-1.5">
                   <FunnelCard
                     label="Messaged"
                     value={funnel.messaged}
                     icon={<Send className="h-4 w-4" style={{ color: "#4F6EF7" }} />}
                     zeroMuted={funnel.messaged === 0}
                   />
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
                   <FunnelCard
                     label="Replied"
                     value={funnel.replied}
@@ -381,7 +383,7 @@ export default function OutboundAnalytics() {
                     benchmark={funnel.messaged > 0 ? { value: pct(funnel.replied, funnel.messaged), avg: BENCHMARK_REPLY_RATE } : undefined}
                     zeroMuted={funnel.replied === 0}
                   />
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
                   <FunnelCard
                     label="Link Sent"
                     value={linkSent}
@@ -391,7 +393,7 @@ export default function OutboundAnalytics() {
                     zeroPrompt={linkSent === 0 && funnel.replied > 0 ? "No links sent yet" : undefined}
                     zeroMuted={linkSent === 0}
                   />
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
                   <FunnelCard
                     label="Converted"
                     value={funnel.booked}
@@ -400,7 +402,7 @@ export default function OutboundAnalytics() {
                     zeroPrompt={funnel.booked === 0 && funnel.replied > 0 ? "Focus on follow-up" : undefined}
                     zeroMuted={funnel.booked === 0}
                   />
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
                   <FunnelCard
                     label="Revenue"
                     value={(funnel.contract_value ?? 0) > 0 ? `$${(funnel.contract_value ?? 0).toLocaleString()}` : "$0"}
@@ -422,7 +424,7 @@ export default function OutboundAnalytics() {
                 <Card>
                   <CardContent className="py-4 px-6">
                     <h3 className="text-sm font-medium mb-4">Stage Conversion Rates</h3>
-                    <div className="grid grid-cols-4 gap-4 text-center">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                       <ConversionRateCard
                         label="Messaged → Replied"
                         rate={pct(funnel.replied, funnel.messaged)}
@@ -478,7 +480,7 @@ export default function OutboundAnalytics() {
                   </CollapsibleSection>
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   <CollapsibleSection title="Effort vs Outcome" open={showEffort} onToggle={() => setShowEffort(!showEffort)}>
                     {effortData && <EffortOutcomePanel data={effortData} />}
                   </CollapsibleSection>
@@ -494,7 +496,7 @@ export default function OutboundAnalytics() {
             {messagesLoading ? (
               <DashboardSkeleton />
             ) : (
-              <div className="rounded-lg border bg-card">
+              <div className="rounded-lg border bg-card overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -553,7 +555,7 @@ export default function OutboundAnalytics() {
             {sendersLoading ? (
               <DashboardSkeleton />
             ) : (
-              <div className="rounded-lg border bg-card">
+              <div className="rounded-lg border bg-card overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -593,7 +595,7 @@ export default function OutboundAnalytics() {
             {campaignsAnalyticsLoading ? (
               <DashboardSkeleton />
             ) : (
-              <div className="rounded-lg border bg-card">
+              <div className="rounded-lg border bg-card overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -650,7 +652,7 @@ export default function OutboundAnalytics() {
           <TabsContent value="ai-models">
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="flex flex-col gap-1.5 w-52">
+                <div className="flex flex-col gap-1.5 w-full md:w-52">
                   <Label className="text-xs">Sender</Label>
                   <Select value={senderFilter} onValueChange={setSenderFilter}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="All Senders" /></SelectTrigger>
@@ -820,10 +822,12 @@ function FunnelCTA({ funnel, linkSent }: { funnel: OutboundFunnelData; linkSent:
   if (!text) return null;
 
   return (
-    <div className="rounded-lg border border-[#F59E0B]/20 bg-[#FFF3E0] px-4 py-3 flex items-center gap-3">
-      <ArrowRight className="h-4 w-4 text-[#F59E0B] shrink-0" />
-      <span className="text-sm text-foreground flex-1">{text}</span>
-      <Button variant="outline" size="sm" className="border-[#F59E0B]/40 text-[#F59E0B] hover:bg-[#F59E0B]/10 shrink-0 text-xs">
+    <div className="rounded-lg border border-[#F59E0B]/20 bg-[#FFF3E0] px-4 py-3 flex flex-col md:flex-row md:items-center gap-3">
+      <div className="flex items-start gap-3 flex-1 min-w-0">
+        <ArrowRight className="h-4 w-4 text-[#F59E0B] shrink-0 mt-0.5" />
+        <span className="text-sm text-foreground">{text}</span>
+      </div>
+      <Button variant="outline" size="sm" className="border-[#F59E0B]/40 text-[#F59E0B] hover:bg-[#F59E0B]/10 shrink-0 text-xs w-full md:w-auto">
         {ctaLabel}
       </Button>
     </div>
