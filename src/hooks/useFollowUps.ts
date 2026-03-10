@@ -4,15 +4,12 @@ import { API_URL, fetchWithAuth } from "@/lib/api";
 const BASE = `${API_URL}/api/follow-ups`;
 
 export type FollowUpStatus =
-  | "new"
-  | "contacted"
-  | "interested"
-  | "not_interested"
-  | "booked"
-  | "no_response"
-  | "ghosted"
+  | "need_reply"
+  | "waiting_for_them"
+  | "follow_up_later"
   | "hot_lead"
-  | "disqualified";
+  | "booked"
+  | "not_interested";
 
 export interface FollowUpLead {
   username: string;
@@ -21,6 +18,8 @@ export interface FollowUpLead {
   profileLink: string;
   isVerified: boolean;
   replied_at: string | null;
+  dmDate: string | null;
+  message: string | null;
   source_seeds: string[];
 }
 
@@ -32,6 +31,7 @@ export interface FollowUp {
   status: FollowUpStatus;
   follow_up_date: string | null;
   note: string;
+  last_activity: string | null;
   createdAt: string;
   updatedAt: string;
   lead: FollowUpLead;
@@ -40,15 +40,12 @@ export interface FollowUp {
 
 export interface FollowUpStats {
   total: number;
-  new: number;
-  contacted: number;
-  interested: number;
-  not_interested: number;
-  booked: number;
-  no_response: number;
-  ghosted: number;
+  need_reply: number;
+  waiting_for_them: number;
+  follow_up_later: number;
   hot_lead: number;
-  disqualified: number;
+  booked: number;
+  not_interested: number;
 }
 
 interface FollowUpsResponse {

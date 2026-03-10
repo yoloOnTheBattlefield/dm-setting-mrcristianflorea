@@ -762,7 +762,7 @@ export default function OutboundLeads() {
                 </div>
               )}
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-10 bg-background">
                   <TableRow>
                     <TableHead className="w-10">
                       <Checkbox

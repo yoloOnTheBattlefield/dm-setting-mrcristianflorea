@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSocket } from "@/contexts/SocketContext";
+import { throttle } from "@/lib/throttle";
 import { useOutboundAccounts } from "@/hooks/useOutboundAccounts";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import CampaignList from "@/components/campaigns/CampaignList";
@@ -36,12 +37,12 @@ export default function Campaigns() {
       queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
     };
 
-    const onTaskUpdate = () => {
+    const onTaskUpdate = throttle(() => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
       queryClient.invalidateQueries({ queryKey: ["campaign"] });
       queryClient.invalidateQueries({ queryKey: ["campaign-stats"] });
       queryClient.invalidateQueries({ queryKey: ["campaign-leads"] });
-    };
+    }, 2000);
 
     socket.on("sender:online", onSenderChange);
     socket.on("sender:offline", onSenderChange);

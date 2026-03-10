@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSocket } from "@/contexts/SocketContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { throttle } from "@/lib/throttle";
 import type { QualificationJob } from "@/hooks/useJobs";
 
 interface FileProgress {
@@ -40,7 +41,7 @@ export function useJobProgress(jobId: string | null) {
       setProgress((prev) => ({ ...prev, status: "running" }));
     };
 
-    const onProgress = (data: {
+    const onProgressRaw = (data: {
       jobId: string;
       fileIndex: number;
       processedRows: number;
@@ -60,6 +61,8 @@ export function useJobProgress(jobId: string | null) {
         return { ...prev, fileProgresses: newMap };
       });
     };
+
+    const onProgress = throttle(onProgressRaw, 500);
 
     const onFileStarted = (data: { jobId: string; fileIndex: number }) => {
       if (data.jobId !== jobId) return;

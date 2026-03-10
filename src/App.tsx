@@ -1,44 +1,10 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import NewClient from "./pages/NewClient";
-import ClientsOverview from "./pages/ClientsOverview";
-import ClientDetail from "./pages/ClientDetail";
-import AllContacts from "./pages/AllContacts";
-import LeadDetail from "./pages/LeadDetail";
-import UserSettings from "./pages/UserSettings";
-import Integrations from "./pages/Integrations";
-import TeamMembers from "./pages/TeamMembers";
-import UploadXlsx from "./pages/UploadXlsx";
-import OutboundLeads from "./pages/OutboundLeads";
-import ImportOutboundLeads from "./pages/ImportOutboundLeads";
-import Prompts from "./pages/Prompts";
-import Campaigns from "./pages/Campaigns";
-import CampaignDetail from "./components/campaigns/CampaignDetail";
-import CampaignAddLeads from "./pages/CampaignAddLeads";
-import CampaignEdit from "./pages/CampaignEdit";
-import FollowUps from "./pages/FollowUps";
-import OutboundAccounts from "./pages/OutboundAccounts";
-import OutboundAnalytics from "./pages/OutboundAnalytics";
-import InboundAnalytics from "./pages/InboundAnalytics";
-import Scraper from "./pages/Scraper";
-import DeepScraper from "./pages/DeepScraper";
-import CommentPost from "./pages/CommentPost";
-import DataMigration from "./pages/DataMigration";
-import ResearchOverview from "./pages/research/ResearchOverview";
-import ResearchCompetitors from "./pages/research/Competitors";
-import ResearchCompetitorDetail from "./pages/research/CompetitorDetail";
-import ResearchPostsLibrary from "./pages/research/PostsLibrary";
-import CommentsIntel from "./pages/research/CommentsIntel";
-import LeadMagnetTracker from "./pages/research/LeadMagnetTracker";
-import IdeasBank from "./pages/research/IdeasBank";
-import ResearchAlerts from "./pages/research/Alerts";
-import ResearchReports from "./pages/research/Reports";
-import Landing from "./pages/Landing";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { LoginForm } from "@/components/login-form";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -47,6 +13,44 @@ import { AdminViewProvider } from "@/contexts/AdminViewContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
+
+// Lazy-loaded page components
+const Index = lazy(() => import("./pages/Index"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const NewClient = lazy(() => import("./pages/NewClient"));
+const ClientsOverview = lazy(() => import("./pages/ClientsOverview"));
+const ClientDetail = lazy(() => import("./pages/ClientDetail"));
+const AllContacts = lazy(() => import("./pages/AllContacts"));
+const LeadDetail = lazy(() => import("./pages/LeadDetail"));
+const UserSettings = lazy(() => import("./pages/UserSettings"));
+const Integrations = lazy(() => import("./pages/Integrations"));
+const TeamMembers = lazy(() => import("./pages/TeamMembers"));
+const UploadXlsx = lazy(() => import("./pages/UploadXlsx"));
+const OutboundLeads = lazy(() => import("./pages/OutboundLeads"));
+const ImportOutboundLeads = lazy(() => import("./pages/ImportOutboundLeads"));
+const Prompts = lazy(() => import("./pages/Prompts"));
+const Campaigns = lazy(() => import("./pages/Campaigns"));
+const CampaignDetail = lazy(() => import("./components/campaigns/CampaignDetail"));
+const CampaignAddLeads = lazy(() => import("./pages/CampaignAddLeads"));
+const CampaignEdit = lazy(() => import("./pages/CampaignEdit"));
+const FollowUps = lazy(() => import("./pages/FollowUps"));
+const OutboundAccounts = lazy(() => import("./pages/OutboundAccounts"));
+const OutboundAnalytics = lazy(() => import("./pages/OutboundAnalytics"));
+const InboundAnalytics = lazy(() => import("./pages/InboundAnalytics"));
+const Scraper = lazy(() => import("./pages/Scraper"));
+const DeepScraper = lazy(() => import("./pages/DeepScraper"));
+const CommentPost = lazy(() => import("./pages/CommentPost"));
+const DataMigration = lazy(() => import("./pages/DataMigration"));
+const ResearchOverview = lazy(() => import("./pages/research/ResearchOverview"));
+const ResearchCompetitors = lazy(() => import("./pages/research/Competitors"));
+const ResearchCompetitorDetail = lazy(() => import("./pages/research/CompetitorDetail"));
+const ResearchPostsLibrary = lazy(() => import("./pages/research/PostsLibrary"));
+const CommentsIntel = lazy(() => import("./pages/research/CommentsIntel"));
+const LeadMagnetTracker = lazy(() => import("./pages/research/LeadMagnetTracker"));
+const IdeasBank = lazy(() => import("./pages/research/IdeasBank"));
+const ResearchAlerts = lazy(() => import("./pages/research/Alerts"));
+const ResearchReports = lazy(() => import("./pages/research/Reports"));
+const Landing = lazy(() => import("./pages/Landing"));
 
 const queryClient = new QueryClient();
 
@@ -66,6 +70,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <Suspense fallback={<PageSkeleton />}>
             <Routes>
               <Route path="/" element={
                 <ProtectedRoute>
@@ -258,6 +263,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>

@@ -494,6 +494,9 @@ export default function CampaignDetail() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <Badge className={badge.className}>{badge.label}</Badge>
+          <Button variant="ghost" size="sm" className="h-8 px-2 ml-auto" onClick={() => navigate(`/campaigns/${id}/edit`)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
         </div>
         <p className="text-sm text-muted-foreground pl-1">{campaign.name}</p>
       </div>
@@ -521,6 +524,10 @@ export default function CampaignDetail() {
           </TooltipProvider>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate(`/campaigns/${id}/edit`)}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
           <Button variant="outline" onClick={() => setShowAiModal(true)}>
             <Sparkles className="h-4 w-4 mr-2" />
             AI Personalization

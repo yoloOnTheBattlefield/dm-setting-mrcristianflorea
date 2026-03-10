@@ -10,9 +10,10 @@ const mockFollowUps = [
     outbound_lead_id: "ol1",
     account_id: "a1",
     outbound_account_id: "oa1",
-    status: "new" as const,
+    status: "need_reply" as const,
     follow_up_date: null,
     note: "sent case study",
+    last_activity: "2026-03-10T12:00:00Z",
     createdAt: "2026-03-01T00:00:00Z",
     updatedAt: "2026-03-01T00:00:00Z",
     lead: {
@@ -22,6 +23,8 @@ const mockFollowUps = [
       profileLink: "https://instagram.com/testuser",
       isVerified: false,
       replied_at: "2026-03-06T12:00:00Z",
+      dmDate: null,
+      message: null,
       source_seeds: [],
     },
     outbound_account: { username: "mybiz" },
@@ -30,14 +33,12 @@ const mockFollowUps = [
 
 const mockStats = {
   total: 10,
-  new: 3,
-  contacted: 2,
-  interested: 1,
-  not_interested: 1,
-  booked: 1,
-  no_response: 1,
-  ghosted: 0,
+  need_reply: 3,
   hot_lead: 1,
+  follow_up_later: 2,
+  waiting_for_them: 1,
+  booked: 1,
+  not_interested: 1,
 };
 
 vi.mock("@/hooks/useFollowUps", () => ({
@@ -103,14 +104,11 @@ describe("FollowUps page", () => {
 
   it("renders kanban column headers", () => {
     renderPage();
-    expect(screen.getByText("Need Follow-Up")).toBeInTheDocument();
-    const hotLead = screen.getAllByText("Hot Lead");
-    expect(hotLead.length).toBeGreaterThanOrEqual(1);
-    const followedUp = screen.getAllByText("Followed Up");
-    expect(followedUp.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Interested")).toBeInTheDocument();
-    const booked = screen.getAllByText("Booked");
-    expect(booked.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Need Reply")).toBeInTheDocument();
+    const hotLeads = screen.getAllByText("Hot Leads");
+    expect(hotLeads.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Follow Up Later")).toBeInTheDocument();
+    expect(screen.getByText("Waiting For Them")).toBeInTheDocument();
   });
 
   it("renders lead card with username and account", () => {
@@ -119,15 +117,15 @@ describe("FollowUps page", () => {
     expect(screen.getByText("via @mybiz")).toBeInTheDocument();
   });
 
-  it("renders reply time indicator", () => {
+  it("renders activity indicator", () => {
     renderPage();
-    const replyIndicators = screen.getAllByText(/replied/i);
-    expect(replyIndicators.length).toBeGreaterThan(0);
+    const activityIndicators = screen.getAllByText(/since activity|Active today|No activity/i);
+    expect(activityIndicators.length).toBeGreaterThan(0);
   });
 
-  it("renders DM copy button", () => {
+  it("renders Reply button", () => {
     renderPage();
-    expect(screen.getByText("DM")).toBeInTheDocument();
+    expect(screen.getByText("Reply")).toBeInTheDocument();
   });
 
   it("renders quick follow-up date chips on card", () => {
@@ -139,7 +137,7 @@ describe("FollowUps page", () => {
 
   it("renders column counts from stats", () => {
     renderPage();
-    // The "3" count for "new" column
+    // The "3" count for "need_reply" column
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
@@ -148,8 +146,8 @@ describe("FollowUps page", () => {
     expect(screen.getByPlaceholderText("Search...")).toBeInTheDocument();
   });
 
-  it("renders header summary with replied count", () => {
+  it("renders header summary with total count", () => {
     renderPage();
-    expect(screen.getByText("10 replied")).toBeInTheDocument();
+    expect(screen.getByText("10 total")).toBeInTheDocument();
   });
 });

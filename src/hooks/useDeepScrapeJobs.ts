@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useCallback, useState } from "react";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 import { useSocket } from "@/contexts/SocketContext";
+import { throttle } from "@/lib/throttle";
 import type {
   DeepScrapeJob,
   DeepScrapeJobsResponse,
@@ -284,7 +285,7 @@ export function useDeepScrapeSocket(
       qc.invalidateQueries({ queryKey: ["deep-scrape-jobs"] });
     };
 
-    const handleProgress = (data: {
+    const handleProgressRaw = (data: {
       jobId: string;
       stats: DeepScrapeJobStats;
     }) => {
@@ -308,6 +309,8 @@ export function useDeepScrapeSocket(
         },
       );
     };
+
+    const handleProgress = throttle(handleProgressRaw, 500);
 
     const handleLog = (data: DeepScrapeLogEntry) => {
       onLogRef.current?.(data);

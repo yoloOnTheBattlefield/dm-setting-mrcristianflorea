@@ -420,6 +420,27 @@ Both repos include `.env.example` documenting all required environment variables
 
 `src/lib/api.ts` reads `VITE_API_URL` env var, falling back to localhost (dev) or production URL.
 
+## Route-Based Code Splitting
+
+All page components are lazy-loaded via `React.lazy()` with a `Suspense` fallback, so the browser only downloads the JS for the page the user navigates to. Reduces initial bundle size significantly — each page is now a separate chunk.
+
+### Location
+
+- **App router:** `src/App.tsx` (lazy imports + `<Suspense>` wrapper)
+- **Fallback skeleton:** `src/components/PageSkeleton.tsx`
+
+## Socket Event Throttling
+
+High-frequency socket.io events (scrape progress, deep-scrape progress, job row progress, campaign task updates) are throttled to prevent excessive React re-renders during real-time operations.
+
+### Location
+
+- **Throttle utility:** `src/lib/throttle.ts`
+- **Scrape progress:** `src/hooks/useScrapeJobs.ts` (`scrape:progress` — 500ms)
+- **Deep scrape progress:** `src/hooks/useDeepScrapeJobs.ts` (`deep-scrape:progress` — 500ms)
+- **Job row progress:** `src/hooks/useJobProgress.ts` (`job:progress` — 500ms)
+- **Campaign task updates:** `src/pages/Campaigns.tsx` (`task:completed/failed/new` — 2s, batches rapid DM sends into single query invalidation)
+
 ## Manual Inbound-to-Outbound Lead Linking
 
 Allows manually linking an inbound lead to an outbound lead from the lead detail page. Useful when the AI creates a new inbound lead from a reply but doesn't automatically match it to the original outbound lead.

@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 import { useSocket } from "@/contexts/SocketContext";
+import { throttle } from "@/lib/throttle";
 import type { ScrapeJob, ScrapeJobsResponse, ScrapeJobStatus } from "@/lib/types";
 
 // --- Queries ---
@@ -164,7 +165,7 @@ export function useScrapeSocket() {
       qc.invalidateQueries({ queryKey: ["scrape-jobs"] });
     };
 
-    const handleProgress = (data: {
+    const handleProgressRaw = (data: {
       jobId: string;
       total_followers: number;
       followers_collected: number;
@@ -210,6 +211,8 @@ export function useScrapeSocket() {
         }
       );
     };
+
+    const handleProgress = throttle(handleProgressRaw, 500);
 
     socket.on("scrape:status", handleStatus);
     socket.on("scrape:progress", handleProgress);

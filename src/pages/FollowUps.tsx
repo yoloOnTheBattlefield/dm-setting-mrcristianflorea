@@ -35,13 +35,15 @@ import {
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import {
   Search,
-  Copy,
-  Check,
   CalendarIcon,
   StickyNote,
   AlertTriangle,
   Flame,
-  Snowflake,
+  MessageCircle,
+  Star,
+  CalendarCheck,
+  XCircle,
+  Clock,
 } from "lucide-react";
 
 // ─── Status config ───
@@ -50,40 +52,40 @@ const STATUS_CONFIG: Record<
   FollowUpStatus,
   { label: string; color: string; bg: string; headerBg: string; dotColor: string }
 > = {
-  new: {
-    label: "Need Follow-Up",
+  need_reply: {
+    label: "Need Reply",
     color: "text-amber-700 dark:text-amber-400",
     bg: "bg-amber-500/5",
     headerBg: "bg-amber-500",
     dotColor: "bg-amber-500",
   },
   hot_lead: {
-    label: "Hot Lead",
+    label: "Hot Leads",
     color: "text-orange-700 dark:text-orange-400",
     bg: "bg-orange-500/5",
     headerBg: "bg-orange-500",
     dotColor: "bg-orange-500",
   },
-  contacted: {
-    label: "Followed Up",
+  follow_up_later: {
+    label: "Follow Up Later",
     color: "text-blue-700 dark:text-blue-400",
     bg: "bg-blue-500/5",
     headerBg: "bg-blue-500",
     dotColor: "bg-blue-500",
   },
-  interested: {
-    label: "Interested",
+  waiting_for_them: {
+    label: "Waiting For Them",
+    color: "text-gray-600 dark:text-gray-400",
+    bg: "bg-gray-500/5",
+    headerBg: "bg-gray-400",
+    dotColor: "bg-gray-400",
+  },
+  booked: {
+    label: "Booked",
     color: "text-green-700 dark:text-green-400",
     bg: "bg-green-500/5",
     headerBg: "bg-green-500",
     dotColor: "bg-green-500",
-  },
-  booked: {
-    label: "Booked",
-    color: "text-purple-700 dark:text-purple-400",
-    bg: "bg-purple-500/5",
-    headerBg: "bg-purple-500",
-    dotColor: "bg-purple-500",
   },
   not_interested: {
     label: "Not Interested",
@@ -92,53 +94,33 @@ const STATUS_CONFIG: Record<
     headerBg: "bg-red-500",
     dotColor: "bg-red-500",
   },
-  no_response: {
-    label: "No Response",
-    color: "text-gray-600 dark:text-gray-400",
-    bg: "bg-gray-500/5",
-    headerBg: "bg-gray-400",
-    dotColor: "bg-gray-400",
-  },
-  ghosted: {
-    label: "Ghosted",
-    color: "text-gray-500 dark:text-gray-500",
-    bg: "bg-gray-500/5",
-    headerBg: "bg-gray-500",
-    dotColor: "bg-gray-500",
-  },
-  disqualified: {
-    label: "Disqualified",
-    color: "text-rose-700 dark:text-rose-400",
-    bg: "bg-rose-500/5",
-    headerBg: "bg-rose-500",
-    dotColor: "bg-rose-500",
-  },
 };
 
-// Column order for the kanban board
+// Column order for the kanban board (only action columns, not terminal)
 const COLUMN_ORDER: FollowUpStatus[] = [
-  "new",
+  "need_reply",
   "hot_lead",
-  "contacted",
-  "interested",
-  "booked",
-  "not_interested",
-  "no_response",
-  "ghosted",
-  "disqualified",
+  "follow_up_later",
+  "waiting_for_them",
 ];
 
 // ─── Helpers ───
+
+function daysSince(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
 
 function timeAgo(dateStr: string | null | undefined): string {
   if (!dateStr) return "";
   const diffMs = Date.now() - new Date(dateStr).getTime();
   const diffH = diffMs / (1000 * 60 * 60);
   const diffD = diffH / 24;
-  if (diffH < 1) return `${Math.max(1, Math.round(diffMs / 60000))}m`;
-  if (diffH < 24) return `${Math.round(diffH)}h`;
-  if (diffD < 2) return "1d";
-  return `${Math.round(diffD)}d`;
+  if (diffH < 1) return `${Math.max(1, Math.round(diffMs / 60000))}m ago`;
+  if (diffH < 24) return `${Math.round(diffH)}h ago`;
+  if (diffD < 2) return "1d ago";
+  return `${Math.round(diffD)}d ago`;
 }
 
 function formatFollowers(count: number | null | undefined): string {
@@ -150,19 +132,11 @@ function formatFollowers(count: number | null | undefined): string {
 
 function isOverdue(dateStr: string | null, status: FollowUpStatus): boolean {
   if (!dateStr) return false;
-  if (status === "booked" || status === "not_interested" || status === "ghosted" || status === "disqualified") return false;
+  if (status === "booked" || status === "not_interested") return false;
   const d = new Date(dateStr);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return d < today;
-}
-
-function getHeatLevel(repliedAt: string | null | undefined): "hot" | "warm" | "cold" {
-  if (!repliedAt) return "cold";
-  const hours = (Date.now() - new Date(repliedAt).getTime()) / (1000 * 60 * 60);
-  if (hours < 24) return "hot";
-  if (hours < 72) return "warm";
-  return "cold";
 }
 
 // ─── Component ───
@@ -177,6 +151,7 @@ export default function FollowUps() {
     page: 1,
     limit: 200,
     search,
+    sort: "priority",
     outbound_account_id: accountFilter,
   });
   const { data: stats } = useFollowUpStats();
@@ -202,14 +177,12 @@ export default function FollowUps() {
 
   // Group follow-ups by status
   const columns = useMemo(() => {
-    const grouped: Record<FollowUpStatus, FollowUp[]> = {
-      new: [], hot_lead: [], contacted: [], interested: [],
-      booked: [], not_interested: [], no_response: [], ghosted: [], disqualified: [],
-    };
+    const grouped: Record<string, FollowUp[]> = {};
+    for (const s of COLUMN_ORDER) grouped[s] = [];
     for (const fu of followUps) {
-      grouped[fu.status]?.push(fu);
+      if (grouped[fu.status]) grouped[fu.status].push(fu);
     }
-    return grouped;
+    return grouped as Record<FollowUpStatus, FollowUp[]>;
   }, [followUps]);
 
   const activeFollowUp = activeId ? followUps.find((f) => f._id === activeId) : null;
@@ -226,7 +199,6 @@ export default function FollowUps() {
 
       const followUpId = String(active.id);
       const targetId = String(over.id);
-      // Only accept drops on column droppables (valid statuses)
       if (!COLUMN_ORDER.includes(targetId as FollowUpStatus)) return;
       const newStatus = targetId as FollowUpStatus;
       const fu = followUps.find((f) => f._id === followUpId);
@@ -237,8 +209,7 @@ export default function FollowUps() {
     [followUps, updateMutation],
   );
 
-  const totalReplied = stats?.total ?? 0;
-  const needFollowUp = (stats?.new ?? 0) + (stats?.hot_lead ?? 0);
+  const needAction = (stats?.need_reply ?? 0) + (stats?.hot_lead ?? 0);
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
@@ -247,9 +218,12 @@ export default function FollowUps() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Follow-Ups</h1>
           <p className="text-sm text-muted-foreground">
-            <span>{totalReplied} replied</span>
-            {needFollowUp > 0 && (
-              <span className="text-amber-600 dark:text-amber-400 font-medium"> · {needFollowUp} need action</span>
+            <span>{stats?.total ?? 0} total</span>
+            {needAction > 0 && (
+              <span className="text-amber-600 dark:text-amber-400 font-medium"> · {needAction} need action</span>
+            )}
+            {(stats?.booked ?? 0) > 0 && (
+              <span className="text-green-600 dark:text-green-400"> · {stats!.booked} booked</span>
             )}
           </p>
         </div>
@@ -290,7 +264,7 @@ export default function FollowUps() {
             <KanbanColumn
               key={status}
               status={status}
-              followUps={columns[status]}
+              followUps={columns[status] ?? []}
               count={stats?.[status] ?? 0}
               isLoading={isLoading}
             />
@@ -329,7 +303,7 @@ function KanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex flex-col w-[280px] min-w-[280px] rounded-lg border bg-muted/30 transition-colors",
+        "flex flex-col w-[300px] min-w-[300px] rounded-lg border bg-muted/30 transition-colors",
         isOver && "bg-muted/60 border-foreground/20",
       )}
     >
@@ -346,7 +320,7 @@ function KanbanColumn({
       <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5 min-h-[100px]">
         {isLoading ? (
           Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="h-[88px] rounded-md bg-muted/50 animate-pulse" />
+            <div key={i} className="h-[110px] rounded-md bg-muted/50 animate-pulse" />
           ))
         ) : followUps.length === 0 ? (
           <div className="flex items-center justify-center h-full min-h-[60px]">
@@ -400,36 +374,55 @@ function KanbanCardContent({
   isDragging?: boolean;
 }) {
   const updateMutation = useUpdateFollowUp();
-  const [copied, setCopied] = useState(false);
 
   const lead = followUp.lead;
   const overdue = isOverdue(followUp.follow_up_date, followUp.status);
-  const heat = getHeatLevel(lead?.replied_at);
-  const replyTime = timeAgo(lead?.replied_at);
+  const activityDays = daysSince(followUp.last_activity);
+  const lastMsgTime = timeAgo(lead?.dmDate || lead?.replied_at);
   const initial = (lead?.fullName?.[0] || lead?.username?.[0] || "?").toUpperCase();
 
-  const handleCopy = useCallback(() => {
+  const handleReply = useCallback(() => {
     if (!lead?.username) return;
-    navigator.clipboard.writeText(lead.username);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [lead?.username]);
+    window.open(`https://instagram.com/direct/t/${lead.username}`, "_blank");
+    updateMutation.mutate({ id: followUp._id, updates: { status: "waiting_for_them" } });
+  }, [lead?.username, followUp._id, updateMutation]);
 
   const handleQuickDate = useCallback(
     (days: number) => {
       const date = new Date();
       date.setDate(date.getDate() + days);
-      updateMutation.mutate({ id: followUp._id, updates: { follow_up_date: date.toISOString() } });
+      updateMutation.mutate({
+        id: followUp._id,
+        updates: { status: "follow_up_later", follow_up_date: date.toISOString() },
+      });
     },
     [followUp._id, updateMutation],
   );
 
   const handleDateChange = useCallback(
     (date: Date | undefined) => {
-      updateMutation.mutate({ id: followUp._id, updates: { follow_up_date: date ? date.toISOString() : null } });
+      updateMutation.mutate({
+        id: followUp._id,
+        updates: {
+          status: date ? "follow_up_later" : followUp.status,
+          follow_up_date: date ? date.toISOString() : null,
+        },
+      });
     },
-    [followUp._id, updateMutation],
+    [followUp._id, followUp.status, updateMutation],
   );
+
+  const handleMarkHot = useCallback(() => {
+    updateMutation.mutate({ id: followUp._id, updates: { status: "hot_lead" } });
+  }, [followUp._id, updateMutation]);
+
+  const handleMarkBooked = useCallback(() => {
+    updateMutation.mutate({ id: followUp._id, updates: { status: "booked" } });
+  }, [followUp._id, updateMutation]);
+
+  const handleMarkNotInterested = useCallback(() => {
+    updateMutation.mutate({ id: followUp._id, updates: { status: "not_interested" } });
+  }, [followUp._id, updateMutation]);
 
   return (
     <div
@@ -439,7 +432,7 @@ function KanbanCardContent({
         isDragging && "shadow-lg",
       )}
     >
-      {/* Row 1: avatar + name + DM */}
+      {/* Row 1: avatar + name + reply button */}
       <div className="flex items-center gap-2">
         <div className={cn(
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
@@ -471,36 +464,28 @@ function KanbanCardContent({
         </div>
 
         <button
-          onClick={(e) => { e.stopPropagation(); handleCopy(); }}
-          title={copied ? "Copied!" : "Copy username"}
-          className={cn(
-            "shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold transition-colors",
-            copied
-              ? "bg-green-500/10 text-green-600"
-              : "bg-amber-500 text-white hover:bg-amber-600",
-          )}
+          onClick={(e) => { e.stopPropagation(); handleReply(); }}
+          title="Reply on Instagram"
+          className="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors"
         >
-          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-          DM
+          <MessageCircle className="h-3 w-3" />
+          Reply
         </button>
       </div>
 
-      {/* Row 2: reply heat + follow-up date */}
+      {/* Row 2: activity info */}
       <div className="flex items-center justify-between gap-1">
         <div className="flex items-center gap-1.5">
-          {/* Heat indicator */}
-          {heat === "hot" && <Flame className="h-3 w-3 text-orange-500" />}
-          {heat === "warm" && <span className="h-1.5 w-1.5 rounded-full bg-amber-500 inline-block" />}
-          {heat === "cold" && <Snowflake className="h-3 w-3 text-blue-400/60" />}
-          <span className={cn(
-            "text-[10px]",
-            heat === "hot" ? "text-orange-600 font-medium" : "text-muted-foreground",
-          )}>
-            {replyTime ? `replied ${replyTime}` : "no reply"}
+          <Clock className="h-3 w-3 text-muted-foreground" />
+          <span className="text-[10px] text-muted-foreground">
+            {activityDays != null
+              ? activityDays === 0
+                ? "Active today"
+                : `${activityDays}d since activity`
+              : "No activity"}
           </span>
         </div>
 
-        {/* Follow-up date */}
         <div className="flex items-center gap-1">
           {overdue && (
             <span className="text-[10px] font-semibold text-red-600 flex items-center gap-0.5">
@@ -513,11 +498,17 @@ function KanbanCardContent({
               {new Date(followUp.follow_up_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
           )}
+          {lastMsgTime && (
+            <span className="text-[10px] text-muted-foreground/70">
+              · msg {lastMsgTime}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Row 3: quick actions */}
+      {/* Row 3: action buttons */}
       <div className="flex items-center gap-1 pt-1 border-t border-border/30">
+        {/* Quick schedule buttons */}
         {[1, 3, 7].map((d) => (
           <button
             key={d}
@@ -549,7 +540,33 @@ function KanbanCardContent({
           </PopoverContent>
         </Popover>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-0.5">
+          {followUp.status !== "hot_lead" && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleMarkHot(); }}
+              title="Mark as Hot Lead"
+              className="p-0.5 rounded hover:bg-orange-500/10 transition-colors text-muted-foreground hover:text-orange-500"
+            >
+              <Flame className="h-3 w-3" />
+            </button>
+          )}
+
+          <button
+            onClick={(e) => { e.stopPropagation(); handleMarkBooked(); }}
+            title="Mark as Booked"
+            className="p-0.5 rounded hover:bg-green-500/10 transition-colors text-muted-foreground hover:text-green-500"
+          >
+            <CalendarCheck className="h-3 w-3" />
+          </button>
+
+          <button
+            onClick={(e) => { e.stopPropagation(); handleMarkNotInterested(); }}
+            title="Mark as Not Interested"
+            className="p-0.5 rounded hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-500"
+          >
+            <XCircle className="h-3 w-3" />
+          </button>
+
           <NotePopover followUp={followUp} />
         </div>
       </div>
