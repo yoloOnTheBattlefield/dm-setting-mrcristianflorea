@@ -188,6 +188,7 @@ export default function CampaignDetail() {
 
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [targetCampaignId, setTargetCampaignId] = useState("");
+  const [keepInSource, setKeepInSource] = useState(false);
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
   const [aiPrompt, setAiPrompt] = useState("");
   const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
@@ -415,11 +416,14 @@ export default function CampaignDetail() {
         campaignId,
         lead_ids: Array.from(selectedLeadIds),
         target_campaign_id: targetCampaignId,
+        keep_in_source: keepInSource,
       });
-      toast({ title: "Moved", description: `${result.moved} lead(s) moved to campaign.` });
+      const action = keepInSource ? "copied" : "moved";
+      toast({ title: keepInSource ? "Copied" : "Moved", description: `${result.moved} lead(s) ${action} to campaign.` });
       setSelectedLeadIds(new Set());
       setShowMoveModal(false);
       setTargetCampaignId("");
+      setKeepInSource(false);
     } catch (err) {
       toast({
         title: "Error",
@@ -1335,14 +1339,14 @@ export default function CampaignDetail() {
       </AlertDialog>
 
       {/* Move Leads Modal */}
-      <Dialog open={showMoveModal} onOpenChange={(open) => { setShowMoveModal(open); if (!open) setTargetCampaignId(""); }}>
+      <Dialog open={showMoveModal} onOpenChange={(open) => { setShowMoveModal(open); if (!open) { setTargetCampaignId(""); setKeepInSource(false); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Move Pending Leads</DialogTitle>
+            <DialogTitle>{keepInSource ? "Copy" : "Move"} Pending Leads</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Move {selectedPendingCount} pending lead{selectedPendingCount !== 1 ? "s" : ""} to another campaign. Only pending leads will be moved.
+              {selectedPendingCount} pending lead{selectedPendingCount !== 1 ? "s" : ""} will be {keepInSource ? "copied" : "moved"} to another campaign. Any generated messages will be carried over.
             </p>
             <div className="space-y-1.5">
               <Label>Target Campaign</Label>
@@ -1362,15 +1366,22 @@ export default function CampaignDetail() {
                 </SelectContent>
               </Select>
             </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={keepInSource}
+                onCheckedChange={(checked) => setKeepInSource(!!checked)}
+              />
+              <span className="text-sm">Keep leads in this campaign too</span>
+            </label>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowMoveModal(false); setTargetCampaignId(""); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setShowMoveModal(false); setTargetCampaignId(""); setKeepInSource(false); }}>Cancel</Button>
             <Button
               disabled={!targetCampaignId || moveMutation.isPending}
               onClick={handleMoveSelected}
             >
               {moveMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-              Move Leads
+              {keepInSource ? "Copy" : "Move"} Leads
             </Button>
           </DialogFooter>
         </DialogContent>

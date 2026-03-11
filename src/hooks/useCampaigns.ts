@@ -483,11 +483,11 @@ export function useDuplicateCampaign() {
 export function useMoveLeads() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, lead_ids, target_campaign_id }: { campaignId: string; lead_ids: string[]; target_campaign_id: string }) => {
+    mutationFn: async ({ campaignId, lead_ids, target_campaign_id, keep_in_source }: { campaignId: string; lead_ids: string[]; target_campaign_id: string; keep_in_source?: boolean }) => {
       const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/move`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lead_ids, target_campaign_id }),
+        body: JSON.stringify({ lead_ids, target_campaign_id, keep_in_source }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
