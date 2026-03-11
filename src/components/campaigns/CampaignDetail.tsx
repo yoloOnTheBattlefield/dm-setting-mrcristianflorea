@@ -241,6 +241,7 @@ export default function CampaignDetail() {
       setGenProgress(null);
       queryClient.invalidateQueries({ queryKey: ["campaign"] });
       queryClient.invalidateQueries({ queryKey: ["campaign-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-stats"] });
       toast({ title: "Generation Complete", description: "AI messages generated for all leads." });
     }
   }, [campaignId, queryClient, toast]);
@@ -1186,7 +1187,23 @@ export default function CampaignDetail() {
                         ) : "-"}
                       </TableCell>
                       <TableCell>
-                        <Badge className={lb.className}>{lb.label}</Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge className={lb.className}>{lb.label}</Badge>
+                          {cl.custom_message && (
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-purple-400 cursor-default">
+                                    <Sparkles className="h-3 w-3" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-[260px] whitespace-pre-wrap text-xs">
+                                  {cl.custom_message.length > 120 ? cl.custom_message.slice(0, 120) + "…" : cl.custom_message}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         {lead?.link_sent ? (
