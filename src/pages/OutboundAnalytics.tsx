@@ -304,8 +304,8 @@ export default function OutboundAnalytics() {
       <div className="flex-1 p-4 md:p-6">
         <Tabs defaultValue="funnel" className="space-y-6">
           {/* Tab icons + tooltips (§6) */}
-          <TabsList className="w-full md:w-auto overflow-x-auto flex whitespace-nowrap">
-            <TooltipProvider delayDuration={300}>
+          <TooltipProvider delayDuration={300}>
+            <TabsList className="w-full md:w-auto overflow-x-auto whitespace-nowrap">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <TabsTrigger value="funnel" className="gap-1.5">
@@ -354,8 +354,8 @@ export default function OutboundAnalytics() {
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Breakdown by follower count, industry, and message type</TooltipContent>
               </Tooltip>
-            </TooltipProvider>
-          </TabsList>
+            </TabsList>
+          </TooltipProvider>
 
           {/* ─── Funnel Tab ─── */}
           <TabsContent value="funnel">
