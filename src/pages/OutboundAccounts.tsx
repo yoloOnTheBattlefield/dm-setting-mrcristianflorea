@@ -52,6 +52,7 @@ import {
   Link2,
   Unlink,
   Globe,
+  Download,
 } from "lucide-react";
 import AddEditAccountDialog from "@/components/outbound-accounts/AddEditAccountDialog";
 import DeleteConfirmDialog from "@/components/outbound-accounts/DeleteConfirmDialog";
@@ -332,10 +333,18 @@ export default function OutboundAccounts() {
             <h2 className="text-2xl font-bold tracking-tight">Outbound Accounts</h2>
             <p className="text-muted-foreground">Manage outbound Instagram accounts, credentials, and proxies</p>
           </div>
-          <Button onClick={openAdd}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Account
-          </Button>
+          <div className="flex items-center gap-2">
+            <a href="/extension.zip" download="instagram-dm-automator.zip">
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Download Extension
+              </Button>
+            </a>
+            <Button onClick={openAdd}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Account
+            </Button>
+          </div>
         </div>
       </div>
 

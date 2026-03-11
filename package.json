@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "package-ext": "zip -r public/extension.zip ~/Downloads/instagram-dm-automator/ -x '*/node_modules/*' -x '*.DS_Store'",
+    "build": "npm run package-ext && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
