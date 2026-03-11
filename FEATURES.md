@@ -1,5 +1,21 @@
 # Features
 
+## Move Pending Leads Between Campaigns
+
+Select pending leads in a campaign and move them to another campaign in bulk. Only leads with `status: "pending"` are eligible to move. Stats are updated on both the source and target campaigns. Duplicate leads already in the target campaign are skipped.
+
+### Location
+
+- **Frontend component:** `src/components/campaigns/CampaignDetail.tsx` (Move button in bulk actions, Move modal)
+- **Frontend hook:** `src/hooks/useCampaigns.ts` (`useMoveLeads`)
+- **Backend route:** `quddify-crm/routes/campaigns.js` (`POST /api/campaigns/:id/leads/move`)
+
+### API
+
+- **`POST /api/campaigns/:id/leads/move`** — Body: `{ lead_ids: string[], target_campaign_id: string }`. Moves pending CampaignLead records from source to target campaign and updates stats on both. Returns `{ moved, duplicates_skipped }`.
+
+---
+
 ## Post/Reel Likers Scraping
 
 Scrape users who liked an Instagram post or reel via Apify (`datadoping/instagram-likes-scraper`). Users can select "Commenters", "Likers", or both via checkboxes when creating a deep scrape job. Likers are merged with commenters into the same profile enrichment and qualification pipeline.

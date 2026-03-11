@@ -72,6 +72,8 @@ import {
   useEditLeadMessage,
   useClearMessages,
   useCampaignSenders,
+  useMoveLeads,
+  useCampaigns,
 } from "@/hooks/useCampaigns";
 import type { CampaignSender } from "@/hooks/useCampaigns";
 import { API_URL, fetchWithAuth } from "@/lib/api";
@@ -114,6 +116,7 @@ import {
   Minus,
   SlidersHorizontal,
   ExternalLink,
+  ArrowRightLeft,
 } from "lucide-react";
 import {
   Tooltip,
@@ -173,12 +176,18 @@ export default function CampaignDetail() {
   const regenerateMutation = useRegenerateLeadMessage();
   const editMessageMutation = useEditLeadMessage();
   const clearMessagesMutation = useClearMessages();
+  const moveMutation = useMoveLeads();
   const { data: savedPrompts = [] } = useAIPrompts();
   const createAIPromptMutation = useCreateAIPrompt();
   const updateAIPromptMutation = useUpdateAIPrompt();
   const deleteAIPromptMutation = useDeleteAIPrompt();
   const queryClient = useQueryClient();
 
+  const { data: allCampaignsData } = useCampaigns({ limit: 100 });
+  const otherCampaigns = (allCampaignsData?.campaigns ?? []).filter((c) => c._id !== campaignId);
+
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [targetCampaignId, setTargetCampaignId] = useState("");
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
   const [aiPrompt, setAiPrompt] = useState("");
   const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
@@ -318,6 +327,7 @@ export default function CampaignDetail() {
   const allPageSelected = leads.length > 0 && leads.every((l) => selectedLeadIds.has(l._id));
   const someSelected = selectedLeadIds.size > 0;
   const selectedRetryableCount = retryableLeads.filter((l) => selectedLeadIds.has(l._id)).length;
+  const selectedPendingCount = leads.filter((l) => selectedLeadIds.has(l._id) && l.status === "pending").length;
 
   const toggleLeadSelection = (id: string) => {
     setSelectedLeadIds((prev) => {
@@ -393,6 +403,27 @@ export default function CampaignDetail() {
       toast({
         title: "Error",
         description: err instanceof Error ? err.message : "Failed to remove leads",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMoveSelected = async () => {
+    if (!campaignId || selectedLeadIds.size === 0 || !targetCampaignId) return;
+    try {
+      const result = await moveMutation.mutateAsync({
+        campaignId,
+        lead_ids: Array.from(selectedLeadIds),
+        target_campaign_id: targetCampaignId,
+      });
+      toast({ title: "Moved", description: `${result.moved} lead(s) moved to campaign.` });
+      setSelectedLeadIds(new Set());
+      setShowMoveModal(false);
+      setTargetCampaignId("");
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to move leads",
         variant: "destructive",
       });
     }
@@ -777,6 +808,17 @@ export default function CampaignDetail() {
                   <Trash2 className="h-3.5 w-3.5 mr-1" />
                   Remove {selectedLeadIds.size} Selected
                 </Button>
+                {selectedPendingCount > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMoveModal(true)}
+                    disabled={moveMutation.isPending}
+                  >
+                    <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
+                    Move {selectedPendingCount} Pending
+                  </Button>
+                )}
                 {selectedRetryableCount > 0 && (
                   <Button
                     variant="outline"
@@ -1291,6 +1333,48 @@ export default function CampaignDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Move Leads Modal */}
+      <Dialog open={showMoveModal} onOpenChange={(open) => { setShowMoveModal(open); if (!open) setTargetCampaignId(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move Pending Leads</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Move {selectedPendingCount} pending lead{selectedPendingCount !== 1 ? "s" : ""} to another campaign. Only pending leads will be moved.
+            </p>
+            <div className="space-y-1.5">
+              <Label>Target Campaign</Label>
+              <Select value={targetCampaignId} onValueChange={setTargetCampaignId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a campaign..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {otherCampaigns.map((c) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                  {otherCampaigns.length === 0 && (
+                    <SelectItem value="__none__" disabled>No other campaigns</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowMoveModal(false); setTargetCampaignId(""); }}>Cancel</Button>
+            <Button
+              disabled={!targetCampaignId || moveMutation.isPending}
+              onClick={handleMoveSelected}
+            >
+              {moveMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+              Move Leads
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Remove Selected Confirm */}
       <AlertDialog open={confirmRemoveSelected} onOpenChange={setConfirmRemoveSelected}>
