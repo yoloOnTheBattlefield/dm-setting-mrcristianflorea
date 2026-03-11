@@ -190,6 +190,7 @@ export default function CampaignDetail() {
   const [targetCampaignId, setTargetCampaignId] = useState("");
   const [keepInSource, setKeepInSource] = useState(false);
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [allPendingMode, setAllPendingMode] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState("");
@@ -328,7 +329,7 @@ export default function CampaignDetail() {
   const allPageSelected = leads.length > 0 && leads.every((l) => selectedLeadIds.has(l._id));
   const someSelected = selectedLeadIds.size > 0;
   const selectedRetryableCount = retryableLeads.filter((l) => selectedLeadIds.has(l._id)).length;
-  const selectedPendingCount = leads.filter((l) => selectedLeadIds.has(l._id) && l.status === "pending").length;
+  const selectedPendingCount = allPendingMode ? (stats?.pending ?? 0) : leads.filter((l) => selectedLeadIds.has(l._id) && l.status === "pending").length;
 
   const toggleLeadSelection = (id: string) => {
     setSelectedLeadIds((prev) => {
@@ -340,6 +341,7 @@ export default function CampaignDetail() {
   };
 
   const toggleAllPage = () => {
+    setAllPendingMode(false);
     if (allPageSelected) {
       setSelectedLeadIds((prev) => {
         const next = new Set(prev);
@@ -352,6 +354,19 @@ export default function CampaignDetail() {
         leads.forEach((l) => next.add(l._id));
         return next;
       });
+    }
+  };
+
+  const handleSelectAllPending = async () => {
+    if (!campaignId) return;
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/ids?status=pending`);
+      if (!res.ok) throw new Error("Failed to fetch lead IDs");
+      const { ids } = await res.json();
+      setSelectedLeadIds(new Set(ids));
+      setAllPendingMode(true);
+    } catch (err) {
+      toast({ title: "Error", description: "Could not select all pending leads", variant: "destructive" });
     }
   };
 
@@ -399,6 +414,7 @@ export default function CampaignDetail() {
       });
       toast({ title: "Removed", description: `${result.removed ?? selectedLeadIds.size} lead(s) removed from campaign.` });
       setSelectedLeadIds(new Set());
+      setAllPendingMode(false);
       setConfirmRemoveSelected(false);
     } catch (err) {
       toast({
@@ -421,6 +437,7 @@ export default function CampaignDetail() {
       const action = keepInSource ? "copied" : "moved";
       toast({ title: keepInSource ? "Copied" : "Moved", description: `${result.moved} lead(s) ${action} to campaign.` });
       setSelectedLeadIds(new Set());
+      setAllPendingMode(false);
       setShowMoveModal(false);
       setTargetCampaignId("");
       setKeepInSource(false);
@@ -1077,6 +1094,35 @@ export default function CampaignDetail() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {/* Select-all-pending banner */}
+              {allPageSelected && !allPendingMode && (stats?.pending ?? 0) > leads.length && (
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableCell colSpan={9 + (visibleColumns.message ? 1 : 0) + (visibleColumns.error ? 1 : 0) + 1} className="py-2 text-center text-sm">
+                    All {leads.length} leads on this page are selected.{" "}
+                    <button
+                      type="button"
+                      className="text-primary underline underline-offset-2 hover:no-underline font-medium"
+                      onClick={handleSelectAllPending}
+                    >
+                      Select all {stats?.pending} pending leads
+                    </button>
+                  </TableCell>
+                </TableRow>
+              )}
+              {allPendingMode && (
+                <TableRow className="bg-primary/10 hover:bg-primary/10">
+                  <TableCell colSpan={9 + (visibleColumns.message ? 1 : 0) + (visibleColumns.error ? 1 : 0) + 1} className="py-2 text-center text-sm">
+                    All {stats?.pending} pending leads are selected.{" "}
+                    <button
+                      type="button"
+                      className="text-primary underline underline-offset-2 hover:no-underline font-medium"
+                      onClick={() => { setSelectedLeadIds(new Set()); setAllPendingMode(false); }}
+                    >
+                      Clear selection
+                    </button>
+                  </TableCell>
+                </TableRow>
+              )}
               {leadsLoading ? (
                 <TableRow>
                   <TableCell colSpan={9 + (visibleColumns.message ? 1 : 0) + (visibleColumns.error ? 1 : 0) + 1} className="h-24 text-center text-muted-foreground">
