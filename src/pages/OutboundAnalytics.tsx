@@ -304,58 +304,26 @@ export default function OutboundAnalytics() {
       <div className="flex-1 p-4 md:p-6">
         <Tabs defaultValue="funnel" className="space-y-6">
           {/* Tab icons + tooltips (§6) */}
-          <TooltipProvider delayDuration={300}>
-            <TabsList className="w-full md:w-auto overflow-x-auto whitespace-nowrap">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="funnel" className="gap-1.5">
-                    <Filter className="h-3.5 w-3.5" />Funnel
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Track your full outbound pipeline from message to revenue</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="messages" className="gap-1.5">
-                    <MessageSquare className="h-3.5 w-3.5" />Messages
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Analyze individual message performance and reply rates</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="senders" className="gap-1.5">
-                    <Users className="h-3.5 w-3.5" />Senders
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Compare performance across team members or inboxes</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="campaigns" className="gap-1.5">
-                    <Megaphone className="h-3.5 w-3.5" />Campaigns
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Break down results by campaign</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="ai-models" className="gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5" />AI Models
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Compare AI-generated vs manually edited message performance</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="insights" className="gap-1.5">
-                    <BarChart3 className="h-3.5 w-3.5" />Insights
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Breakdown by follower count, industry, and message type</TooltipContent>
-              </Tooltip>
-            </TabsList>
-          </TooltipProvider>
+          <TabsList className="w-full md:w-auto overflow-x-auto whitespace-nowrap">
+            <TabsTrigger value="funnel" className="gap-1.5">
+              <Filter className="h-3.5 w-3.5" />Funnel
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="gap-1.5">
+              <MessageSquare className="h-3.5 w-3.5" />Messages
+            </TabsTrigger>
+            <TabsTrigger value="senders" className="gap-1.5">
+              <Users className="h-3.5 w-3.5" />Senders
+            </TabsTrigger>
+            <TabsTrigger value="campaigns" className="gap-1.5">
+              <Megaphone className="h-3.5 w-3.5" />Campaigns
+            </TabsTrigger>
+            <TabsTrigger value="ai-models" className="gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" />AI Models
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="gap-1.5">
+              <BarChart3 className="h-3.5 w-3.5" />Insights
+            </TabsTrigger>
+          </TabsList>
 
           {/* ─── Funnel Tab ─── */}
           <TabsContent value="funnel">
