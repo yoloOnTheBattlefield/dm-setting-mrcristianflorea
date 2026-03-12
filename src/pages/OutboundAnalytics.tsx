@@ -304,7 +304,7 @@ export default function OutboundAnalytics() {
       <div className="flex-1 p-4 md:p-6">
         <Tabs defaultValue="funnel" className="space-y-6">
           {/* Tab icons + tooltips (§6) */}
-          <TabsList className="w-full md:w-auto overflow-x-auto whitespace-nowrap">
+          <TabsList className="min-h-10 w-full md:w-auto overflow-x-auto md:overflow-visible whitespace-nowrap">
             <TabsTrigger value="funnel" className="gap-1.5">
               <Filter className="h-3.5 w-3.5" />Funnel
             </TabsTrigger>
