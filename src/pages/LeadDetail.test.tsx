@@ -51,10 +51,16 @@ describe("LeadDetail — Outbound Lead Linking", () => {
   });
 
   it("shows search input when no outbound lead is linked", async () => {
-    mockFetchWithAuth.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(baseLead),
-    });
+    mockFetchWithAuth
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(baseLead),
+      })
+      // auto-search by name fires on mount
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ leads: [] }),
+      });
 
     renderLeadDetail();
 
@@ -98,10 +104,16 @@ describe("LeadDetail — Outbound Lead Linking", () => {
   });
 
   it("searches outbound leads on typing", async () => {
-    mockFetchWithAuth.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(baseLead),
-    });
+    mockFetchWithAuth
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(baseLead),
+      })
+      // auto-search by name fires on mount
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ leads: [] }),
+      });
 
     renderLeadDetail();
 
@@ -127,10 +139,16 @@ describe("LeadDetail — Outbound Lead Linking", () => {
   });
 
   it("links an outbound lead when clicking a search result", async () => {
-    mockFetchWithAuth.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(baseLead),
-    });
+    mockFetchWithAuth
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(baseLead),
+      })
+      // auto-search by name fires on mount
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ leads: [] }),
+      });
 
     renderLeadDetail();
 

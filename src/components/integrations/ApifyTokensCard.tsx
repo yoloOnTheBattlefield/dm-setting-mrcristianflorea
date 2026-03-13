@@ -34,6 +34,7 @@ interface ApifyUsage {
   error?: boolean;
   totalUsageUsd?: number;
   monthlyUsageLimitUsd?: number;
+  usageCycle?: { startAt: string; endAt: string } | null;
 }
 
 interface ApifyTokensCardProps {
@@ -178,7 +179,12 @@ export default function ApifyTokensCard({
                         <div className="mt-1.5 space-y-1">
                           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                             <span>${used.toFixed(2)} used{limit ? ` / $${limit.toFixed(2)} limit` : ""}</span>
-                            {pct !== null && <span>{pct.toFixed(0)}%</span>}
+                            <div className="flex items-center gap-2">
+                              {usage.usageCycle?.endAt && (
+                                <span>Resets {new Date(usage.usageCycle.endAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                              )}
+                              {pct !== null && <span>{pct.toFixed(0)}%</span>}
+                            </div>
                           </div>
                           {pct !== null && (
                             <div className="h-1 rounded-full bg-muted overflow-hidden">

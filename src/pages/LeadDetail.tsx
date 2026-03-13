@@ -126,21 +126,26 @@ interface OutboundLeadResult {
 function OutboundLeadLinker({
   leadId,
   outboundLeadId,
+  leadName,
   onLinked,
 }: {
   leadId: string;
   outboundLeadId?: string | null;
+  leadName: string;
   onLinked: () => void;
 }) {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<OutboundLeadResult[]>([]);
+  const [autoResults, setAutoResults] = useState<OutboundLeadResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
   const [linkedLead, setLinkedLead] = useState<OutboundLeadResult | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [autoSearched, setAutoSearched] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Fetch linked outbound lead details
   useEffect(() => {
@@ -154,6 +159,18 @@ function OutboundLeadLinker({
         if (data) setLinkedLead(data);
       });
   }, [outboundLeadId]);
+
+  // Auto-search by lead name on mount when not already linked
+  useEffect(() => {
+    if (outboundLeadId || autoSearched || leadName.trim().length < 2) return;
+    setAutoSearched(true);
+    const sp = new URLSearchParams({ search: leadName.trim(), limit: "5", page: "1" });
+    fetchWithAuth(`${API_URL}/outbound-leads?${sp}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.leads?.length) setAutoResults(data.leads);
+      });
+  }, [outboundLeadId, leadName, autoSearched]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -203,6 +220,7 @@ function OutboundLeadLinker({
         toast({ title: "Linked", description: "Inbound lead linked to outbound lead." });
         setSearch("");
         setResults([]);
+        setAutoResults([]);
         setShowResults(false);
         onLinked();
       } else {
@@ -255,44 +273,90 @@ function OutboundLeadLinker({
   }
 
   return (
-    <div ref={wrapperRef} className="relative">
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search outbound leads by username or name..."
-          value={search}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          onFocus={() => search.trim().length >= 2 && setShowResults(true)}
-          className="pl-9"
-        />
-        {isSearching && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
-      </div>
-      {showResults && results.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-60 overflow-y-auto">
-          {results.map((ob) => (
-            <button
-              key={ob._id}
-              className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-accent transition-colors"
-              onClick={() => linkOutbound(ob._id)}
-              disabled={isLinking}
+    <div className="space-y-3">
+      {/* Auto-matched suggestions */}
+      {autoResults.length > 0 && !dismissed && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              Possible match{autoResults.length > 1 ? "es" : ""} found for "{leadName}"
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs text-muted-foreground"
+              onClick={() => setDismissed(true)}
             >
-              <div>
-                <p className="text-sm font-medium">@{ob.username}</p>
-                <p className="text-xs text-muted-foreground">
-                  {ob.fullName}
-                  {ob.followersCount != null && ` · ${ob.followersCount.toLocaleString()} followers`}
-                </p>
+              Dismiss
+            </Button>
+          </div>
+          <div className="space-y-1">
+            {autoResults.map((ob) => (
+              <div
+                key={ob._id}
+                className="flex items-center justify-between rounded-md bg-white dark:bg-background border px-3 py-2"
+              >
+                <div>
+                  <p className="text-sm font-medium">@{ob.username}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {ob.fullName}
+                    {ob.followersCount != null && ` · ${ob.followersCount.toLocaleString()} followers`}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => linkOutbound(ob._id)}
+                  disabled={isLinking}
+                >
+                  <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                  Link
+                </Button>
               </div>
-              <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-          ))}
+            ))}
+          </div>
         </div>
       )}
-      {showResults && search.trim().length >= 2 && !isSearching && results.length === 0 && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg px-3 py-4 text-center text-sm text-muted-foreground">
-          No outbound leads found
+
+      {/* Manual search */}
+      <div ref={wrapperRef} className="relative">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search outbound leads by username or name..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onFocus={() => search.trim().length >= 2 && setShowResults(true)}
+            className="pl-9"
+          />
+          {isSearching && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
         </div>
-      )}
+        {showResults && results.length > 0 && (
+          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-60 overflow-y-auto">
+            {results.map((ob) => (
+              <button
+                key={ob._id}
+                className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-accent transition-colors"
+                onClick={() => linkOutbound(ob._id)}
+                disabled={isLinking}
+              >
+                <div>
+                  <p className="text-sm font-medium">@{ob.username}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {ob.fullName}
+                    {ob.followersCount != null && ` · ${ob.followersCount.toLocaleString()} followers`}
+                  </p>
+                </div>
+                <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            ))}
+          </div>
+        )}
+        {showResults && search.trim().length >= 2 && !isSearching && results.length === 0 && (
+          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg px-3 py-4 text-center text-sm text-muted-foreground">
+            No outbound leads found
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -454,6 +518,7 @@ export default function LeadDetail() {
           <OutboundLeadLinker
             leadId={lead._id}
             outboundLeadId={lead.outbound_lead_id}
+            leadName={`${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim()}
             onLinked={() => queryClient.invalidateQueries({ queryKey: ["lead", contactId] })}
           />
         </CardContent>
