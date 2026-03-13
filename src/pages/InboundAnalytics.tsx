@@ -148,14 +148,6 @@ export default function InboundAnalytics() {
       {/* Sticky filter toolbar */}
       <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4 flex items-end justify-between gap-4">
-          <div className="shrink-0">
-            <h2 className="text-2xl font-bold tracking-tight">
-              Inbound Analytics
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Track which posts and sources drive the most leads and revenue
-            </p>
-          </div>
           <div className="flex items-center gap-3 rounded-lg border border-[#E2E8F0] bg-card px-3 py-2">
             <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <div className="flex flex-col gap-1">

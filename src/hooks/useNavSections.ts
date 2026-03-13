@@ -28,7 +28,8 @@ export interface NavItem {
   isActive?: boolean
   disabled?: boolean
   badge?: number
-  items?: { title: string; url: string }[]
+  description?: string
+  items?: { title: string; url: string; description?: string }[]
 }
 
 export interface NavSection {
@@ -45,14 +46,14 @@ export function useNavSections(): NavSection[] {
     const sections: NavSection[] = []
 
     sections.push({
-      items: [{ title: "Dashboard", url: "/", icon: BarChart3, isActive: true }],
+      items: [{ title: "Dashboard", url: "/", icon: BarChart3, isActive: true, description: "Track and analyze your DM pipeline performance" }],
     })
 
     sections.push({
       label: "Inbound",
       items: [
-        { title: "Contacts", url: "/contacts/all", icon: Users },
-        { title: "Analytics", url: "/analytics/inbound", icon: TrendingUp },
+        { title: "Contacts", url: "/contacts/all", icon: Users, description: "View and manage all your contacts" },
+        { title: "Analytics", url: "/analytics/inbound", icon: TrendingUp, description: "Track which posts and sources drive the most leads and revenue" },
       ],
     })
 
@@ -60,21 +61,21 @@ export function useNavSections(): NavSection[] {
       sections.push({
         label: "Acquisition",
         items: [
-          { title: "Scraper", url: "/scraper", icon: Search },
-          { title: "Deep Scraper", url: "/deep-scraper", icon: ScanSearch },
-          { title: "Upload", url: "/contacts/upload", icon: Upload },
-          { title: "Prompts", url: "/prompts", icon: MessageSquareText },
+          { title: "Scraper", url: "/scraper", icon: Search, description: "Scrape Instagram followers" },
+          { title: "Deep Scraper", url: "/deep-scraper", icon: ScanSearch, description: "Scrape reels, comments, and commenter profiles via Apify" },
+          { title: "Upload", url: "/contacts/upload", icon: Upload, description: "Upload IG scraper exports to qualify and import profiles" },
+          { title: "Prompts", url: "/prompts", icon: MessageSquareText, description: "Manage classification prompts for lead qualification" },
         ],
       })
 
       sections.push({
         label: "Outbound",
         items: [
-          { title: "Leads", url: "/outbound-leads", icon: Users },
-          { title: "Follow-Ups", url: "/follow-ups", icon: UserCheck, badge: followUpBadge || undefined },
-          { title: "Campaigns", url: "/campaigns", icon: Send },
-          { title: "Accounts", url: "/outbound-accounts", icon: Building2 },
-          { title: "Analytics", url: "/analytics/outbound", icon: TrendingUp },
+          { title: "Leads", url: "/outbound-leads", icon: Users, description: "Manage your outbound leads pipeline" },
+          { title: "Follow-Ups", url: "/follow-ups", icon: UserCheck, badge: followUpBadge || undefined, description: "Track and manage lead follow-ups" },
+          { title: "Campaigns", url: "/campaigns", icon: Send, description: "Manage your outbound campaigns" },
+          { title: "Accounts", url: "/outbound-accounts", icon: Building2, description: "Manage outbound Instagram accounts, credentials, and proxies" },
+          { title: "Analytics", url: "/analytics/outbound", icon: TrendingUp, description: "Performance metrics across your outbound pipeline" },
         ],
       })
     }
@@ -87,15 +88,15 @@ export function useNavSections(): NavSection[] {
           url: "#",
           icon: Telescope,
           items: [
-            { title: "Overview", url: "/research" },
-            { title: "Scraper", url: "/deep-scraper" },
-            { title: "Competitors", url: "/research/competitors" },
-            { title: "Posts Library", url: "/research/posts" },
-            { title: "Comments Intel", url: "/research/comments" },
-            { title: "Lead Magnets", url: "/research/lead-magnets" },
-            { title: "Ideas Bank", url: "/research/ideas" },
-            { title: "Alerts", url: "/research/alerts" },
-            { title: "Reports", url: "/research/reports" },
+            { title: "Overview", url: "/research", description: "Instagram intelligence dashboard" },
+            { title: "Scraper", url: "/deep-scraper", description: "Scrape reels, comments, and commenter profiles via Apify" },
+            { title: "Competitors", url: "/research/competitors", description: "Track and analyze competitor accounts" },
+            { title: "Posts Library", url: "/research/posts", description: "Your Instagram research swipe file" },
+            { title: "Comments Intel", url: "/research/comments", description: "Keyword radar, commenter patterns, and theme analysis" },
+            { title: "Lead Magnets", url: "/research/lead-magnets", description: "Track competitor lead magnets and keyword funnels" },
+            { title: "Ideas Bank", url: "/research/ideas", description: "Save and organize content ideas from research" },
+            { title: "Alerts", url: "/research/alerts", description: "Stay updated on competitor activity and keyword spikes" },
+            { title: "Reports", url: "/research/reports", description: "Generate client-ready research reports" },
           ],
         }],
       })
@@ -104,9 +105,9 @@ export function useNavSections(): NavSection[] {
     sections.push({
       label: "Workspace",
       items: [
-        { title: "Settings", url: "/settings", icon: Settings2 },
-        { title: "Team", url: "/settings/team", icon: UsersRound },
-        { title: "Integrations", url: "/settings/integrations", icon: Plug },
+        { title: "Settings", url: "/settings", icon: Settings2, description: "Manage your account settings" },
+        { title: "Team", url: "/settings/team", icon: UsersRound, description: "Manage your team members" },
+        { title: "Integrations", url: "/settings/integrations", icon: Plug, description: "Connect and manage your third-party integrations" },
       ],
     })
 
@@ -133,36 +134,45 @@ export function useNavSections(): NavSection[] {
 }
 
 export function usePageTitle(pathname: string): string {
+  const { title } = usePageInfo(pathname)
+  return title
+}
+
+export function usePageInfo(pathname: string): { title: string; description?: string } {
   const sections = useNavSections()
 
   return useMemo(() => {
     let bestMatch = ""
     let bestTitle = ""
+    let bestDescription: string | undefined
 
     for (const section of sections) {
       for (const item of section.items) {
         if (item.url === "/" && pathname === "/") {
-          return item.title
+          return { title: item.title, description: item.description }
         }
         if (item.url !== "#" && item.url !== "/" && pathname.startsWith(item.url) && item.url.length > bestMatch.length) {
           bestMatch = item.url
           bestTitle = item.title
+          bestDescription = item.description
         }
         if (item.items) {
           for (const sub of item.items) {
             if (sub.url !== "#" && sub.url !== "/" && pathname.startsWith(sub.url) && sub.url.length > bestMatch.length) {
               bestMatch = sub.url
               bestTitle = sub.title
+              bestDescription = sub.description
             }
           }
         }
       }
     }
 
-    if (bestTitle) return bestTitle
+    if (bestTitle) return { title: bestTitle, description: bestDescription }
 
     // Fallback: format the last path segment
     const segment = pathname.split("/").filter(Boolean).pop() || "Dashboard"
-    return segment.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+    const title = segment.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+    return { title }
   }, [sections, pathname])
 }

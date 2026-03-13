@@ -11,15 +11,6 @@ import { FileText, Lock } from "lucide-react";
 export default function Reports() {
   return (
     <div className="flex flex-1 flex-col min-w-0">
-      <div className="sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-6 py-4">
-          <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
-          <p className="text-muted-foreground">
-            Generate client-ready research reports
-          </p>
-        </div>
-      </div>
-
       <div className="flex-1 p-6 space-y-6">
         {/* Generate button with coming-soon notice */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">

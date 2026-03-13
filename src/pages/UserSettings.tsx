@@ -183,13 +183,6 @@ export default function UserSettings() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">User Settings</h2>
-        <p className="text-muted-foreground">
-          Manage your account settings
-        </p>
-      </div>
-
       <div className="grid gap-4">
         <AppearanceCard />
 

@@ -329,10 +329,6 @@ export default function OutboundAccounts() {
       {/* Header */}
       <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Outbound Accounts</h2>
-            <p className="text-muted-foreground">Manage outbound Instagram accounts, credentials, and proxies</p>
-          </div>
           <div className="flex items-center gap-2">
             <a href="/extension.zip" download="instagram-dm-automator.zip">
               <Button variant="outline">

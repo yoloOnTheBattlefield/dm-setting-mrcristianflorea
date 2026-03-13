@@ -117,18 +117,6 @@ export default function ResearchOverview() {
 
   return (
     <div className="flex flex-1 flex-col min-w-0">
-      {/* Sticky header */}
-      <div className="sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-6 py-4">
-          <h2 className="text-2xl font-bold tracking-tight">
-            Research Overview
-          </h2>
-          <p className="text-muted-foreground">
-            Instagram intelligence dashboard
-          </p>
-        </div>
-      </div>
-
       <div className="flex-1 p-6 space-y-6">
         {/* KPI Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

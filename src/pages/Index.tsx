@@ -73,12 +73,6 @@ export default function Index() {
   return (
     <div className="flex flex-1 flex-col gap-4 p-3 sm:p-4 overflow-x-hidden">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h2>
-          <p className="text-sm text-muted-foreground">
-            Track and analyze your DM pipeline performance
-          </p>
-        </div>
         <div className="flex flex-wrap gap-3 items-end">
           {/* Source filter — only shown when user has outbound access */}
           {hasOutbound && (

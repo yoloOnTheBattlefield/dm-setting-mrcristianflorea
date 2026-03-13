@@ -2,13 +2,7 @@ import { useLocation } from "react-router-dom"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Separator } from "@/components/ui/separator"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb"
-import { usePageTitle } from "@/hooks/useNavSections"
+import { usePageInfo } from "@/hooks/useNavSections"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -16,7 +10,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { pathname } = useLocation()
-  const pageTitle = usePageTitle(pathname)
+  const { title, description } = usePageInfo(pathname)
 
   return (
     <SidebarProvider>
@@ -25,13 +19,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <header className="sticky top-0 z-50 bg-background opacity-100 flex h-16 shrink-0 items-center gap-2 border-b border-border px-6">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold leading-tight truncate">{title}</h2>
+            {description && (
+              <p className="text-xs text-muted-foreground leading-tight truncate">{description}</p>
+            )}
+          </div>
         </header>
         <div className="flex flex-1 flex-col min-w-0">
           {children}

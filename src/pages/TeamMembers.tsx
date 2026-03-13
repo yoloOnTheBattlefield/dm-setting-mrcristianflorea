@@ -144,13 +144,6 @@ export default function TeamMembers() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Team</h2>
-        <p className="text-muted-foreground">
-          Manage your team members
-        </p>
-      </div>
-
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>

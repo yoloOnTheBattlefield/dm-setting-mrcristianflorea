@@ -24,12 +24,6 @@ export default function CommentsIntel() {
 
   return (
     <div className="flex flex-1 flex-col min-w-0">
-      <div className="sticky top-16 z-40 bg-background border-b border-border">
-        <div className="px-6 py-4">
-          <h2 className="text-2xl font-bold tracking-tight">Comments Intel</h2>
-          <p className="text-muted-foreground">Keyword radar, commenter patterns, and theme analysis</p>
-        </div>
-      </div>
       <div className="flex-1 p-6">
         <Tabs defaultValue="keywords">
           <TabsList>

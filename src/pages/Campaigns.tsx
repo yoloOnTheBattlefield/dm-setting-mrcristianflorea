@@ -64,7 +64,6 @@ export default function Campaigns() {
       {/* Sticky Header */}
       <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4">
-          <h2 className="text-2xl font-bold tracking-tight">Campaigns</h2>
           {statLine && (
             <p className="text-sm text-muted-foreground">{statLine}</p>
           )}

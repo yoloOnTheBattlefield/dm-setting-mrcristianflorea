@@ -225,11 +225,6 @@ export default function UploadXlsx() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
-      <h2 className="text-2xl font-bold tracking-tight">Upload XLSX</h2>
-      <p className="text-sm text-muted-foreground -mt-2">
-        Upload IG scraper exports to qualify and import profiles
-      </p>
-
       {/* Drop zone */}
       {uploadStep === "select" && <Card
         className={`flex flex-col items-center justify-center border-2 border-dashed transition-colors cursor-pointer ${

@@ -141,13 +141,6 @@ export default function Prompts() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Prompts</h2>
-        <p className="text-muted-foreground">
-          Manage classification prompts for lead qualification
-        </p>
-      </div>
-
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>

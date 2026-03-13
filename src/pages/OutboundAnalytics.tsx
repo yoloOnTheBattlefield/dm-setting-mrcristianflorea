@@ -267,14 +267,11 @@ export default function OutboundAnalytics() {
   const linkSent = funnel?.link_sent ?? 0;
 
   return (
+    <Tabs defaultValue="funnel">
     <div className="flex flex-1 flex-col overflow-x-hidden">
       {/* Header — unified filter toolbar (§10) */}
       <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3 md:gap-4">
-          <div className="shrink-0 min-w-0">
-            <h2 className="text-xl md:text-2xl font-bold tracking-tight truncate">Outbound Analytics</h2>
-            <p className="text-muted-foreground text-xs md:text-sm">Performance metrics across your outbound pipeline</p>
-          </div>
           <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 md:rounded-lg md:border md:border-[#E2E8F0] md:bg-card md:px-3 md:py-2">
             <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
             <div className="flex flex-col gap-1 w-full md:w-52">
@@ -300,11 +297,7 @@ export default function OutboundAnalytics() {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="flex-1 p-4 md:p-6">
-        <Tabs defaultValue="funnel" className="space-y-6">
-          {/* Tab icons + tooltips (§6) */}
+        <div className="px-4 md:px-6 pb-2 overflow-x-auto">
           <TabsList>
             <TabsTrigger value="funnel" className="gap-1.5">
               <Filter className="h-3.5 w-3.5" />Funnel
@@ -328,6 +321,10 @@ export default function OutboundAnalytics() {
               <Sparkles className="h-3.5 w-3.5" />AI Report
             </TabsTrigger>
           </TabsList>
+        </div>
+      </div>
+
+      <div className="flex-1 p-4 md:p-6 space-y-6">
 
           {/* ─── Funnel Tab ─── */}
           <TabsContent value="funnel">
@@ -655,9 +652,9 @@ export default function OutboundAnalytics() {
           <TabsContent value="ai-report">
             <AIReportTab filterParams={filterParams} />
           </TabsContent>
-        </Tabs>
       </div>
     </div>
+    </Tabs>
   );
 }
 

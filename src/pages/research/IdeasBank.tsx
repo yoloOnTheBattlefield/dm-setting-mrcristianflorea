@@ -101,15 +101,6 @@ export default function IdeasBank() {
 
   return (
     <div className="flex flex-1 flex-col min-w-0">
-      <div className="sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-6 py-4">
-          <h2 className="text-2xl font-bold tracking-tight">Ideas Bank</h2>
-          <p className="text-muted-foreground">
-            Save and organize content ideas from research
-          </p>
-        </div>
-      </div>
-
       <div className="flex-1 p-6 space-y-6">
         {/* Filter bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">

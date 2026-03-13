@@ -1101,13 +1101,6 @@ export default function DeepScraper() {
     <div className="flex flex-1 flex-col">
       <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4 flex items-end justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Deep Scraper</h2>
-            <p className="text-muted-foreground">
-              Scrape reels, comments, and commenter profiles via Apify
-            </p>
-          </div>
-
           <div className="flex gap-4 items-end">
             <div className="flex flex-col gap-2 w-44">
               <Label>Status</Label>

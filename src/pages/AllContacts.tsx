@@ -319,12 +319,6 @@ export default function AllContacts() {
       <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4 flex items-end justify-between">
           <div className="flex items-center gap-4">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">All Contacts</h2>
-              <p className="text-muted-foreground">
-                View and manage all your contacts
-              </p>
-            </div>
             <Button
               onClick={() => setAddLeadOpen(true)}
               className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"

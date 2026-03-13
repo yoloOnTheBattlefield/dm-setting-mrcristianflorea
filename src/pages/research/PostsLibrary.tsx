@@ -79,16 +79,6 @@ export default function PostsLibrary() {
 
   return (
     <div className="flex flex-1 flex-col min-w-0">
-      {/* Sticky header */}
-      <div className="sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-6 py-4">
-          <h2 className="text-2xl font-bold tracking-tight">Posts Library</h2>
-          <p className="text-muted-foreground">
-            Your Instagram research swipe file
-          </p>
-        </div>
-      </div>
-
       <div className="flex-1 p-6 space-y-6">
         {/* Filter Bar */}
         <Card>

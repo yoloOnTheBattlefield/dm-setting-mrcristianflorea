@@ -369,13 +369,6 @@ export default function Integrations() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Integrations</h2>
-        <p className="text-muted-foreground">
-          Connect and manage your third-party integrations
-        </p>
-      </div>
-
       {/* ── AI Models ── */}
       <AIModelsSection
         openaiToken={openaiToken}

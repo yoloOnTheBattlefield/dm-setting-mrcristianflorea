@@ -89,17 +89,6 @@ export default function LeadMagnetTracker() {
 
   return (
     <div className="flex flex-1 flex-col min-w-0">
-      <div className="sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-6 py-4">
-          <h2 className="text-2xl font-bold tracking-tight">
-            Lead Magnet Tracker
-          </h2>
-          <p className="text-muted-foreground">
-            Track competitor lead magnets and keyword funnels
-          </p>
-        </div>
-      </div>
-
       <div className="flex-1 p-6 space-y-6">
         {/* Summary cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
