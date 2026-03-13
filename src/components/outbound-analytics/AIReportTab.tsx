@@ -22,6 +22,7 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
+  Download,
 } from "lucide-react";
 import {
   useGenerateAIReport,
@@ -230,6 +231,132 @@ export function AIReportTab({ filterParams }: AIReportTabProps) {
   );
 }
 
+// ── PDF Export ───────────────────────────────────────────
+
+function exportReportAsPDF(report: AIReportContent) {
+  const healthColors: Record<string, string> = { green: "#10b981", yellow: "#f59e0b", red: "#ef4444" };
+  const healthLabels: Record<string, string> = { green: "Healthy", yellow: "Needs Attention", red: "Critical" };
+  const priorityColors: Record<string, string> = { high: "#ef4444", medium: "#f59e0b", low: "#6b7280" };
+
+  const section = (title: string, content: string) =>
+    `<div style="margin-bottom:24px"><h2 style="font-size:15px;font-weight:600;margin:0 0 8px;border-bottom:1px solid #e5e7eb;padding-bottom:6px">${title}</h2>${content}</div>`;
+
+  const recList = (items?: string[]) =>
+    items?.length
+      ? `<div style="margin-top:12px;padding-top:8px;border-top:1px solid #f3f4f6"><p style="font-size:12px;font-weight:600;margin:0 0 6px">Recommendations</p><ul style="margin:0;padding-left:18px">${items.map((r) => `<li style="font-size:12px;color:#6b7280;margin-bottom:4px">${r}</li>`).join("")}</ul></div>`
+      : "";
+
+  let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>AI Analytics Report</title>
+<style>
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 32px 24px; color: #1f2937; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; color: white; }
+  .niche-row { display: flex; justify-content: space-between; padding: 6px 10px; border-radius: 6px; margin-bottom: 4px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 6px 8px; border-bottom: 2px solid #e5e7eb; font-weight: 600; }
+  td { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; }
+  .msg-box { padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; }
+</style></head><body>`;
+
+  html += `<h1 style="font-size:20px;font-weight:700;margin:0 0 4px">Outbound Analytics Report</h1>`;
+  html += `<p style="font-size:12px;color:#6b7280;margin:0 0 24px">Generated ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>`;
+
+  // Executive Summary
+  html += section("Executive Summary",
+    `<span class="badge" style="background:${healthColors[report.overall_health]}">${healthLabels[report.overall_health]}</span>
+     <p style="font-size:13px;color:#4b5563;margin-top:8px;line-height:1.6">${report.executive_summary}</p>`);
+
+  // Action Items
+  if (report.action_items?.length) {
+    html += section("Action Items",
+      report.action_items.map((item) =>
+        `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px;background:#f9fafb;border-radius:6px;margin-bottom:6px">
+          <span class="badge" style="background:${priorityColors[item.priority]};flex-shrink:0">${item.priority}</span>
+          <div><p style="font-size:12px;margin:0">${item.action}</p><p style="font-size:11px;color:#6b7280;margin:2px 0 0">${item.expected_impact}</p></div>
+        </div>`
+      ).join(""));
+  }
+
+  // Sender Analysis
+  if (report.sender_analysis?.rankings?.length) {
+    const ratingSymbols: Record<string, string> = { strong: "▲", average: "—", weak: "▼" };
+    const ratingClr: Record<string, string> = { strong: "#10b981", average: "#f59e0b", weak: "#ef4444" };
+    html += section("Sender Analysis",
+      `<p style="font-size:12px;color:#6b7280;margin:0 0 8px">${report.sender_analysis.summary}</p>
+      <table><thead><tr><th>Sender</th><th>Rating</th><th>Reason</th></tr></thead><tbody>
+      ${report.sender_analysis.rankings.map((r) =>
+        `<tr><td style="font-weight:500">@${r.sender}</td><td style="color:${ratingClr[r.rating]};font-weight:600">${ratingSymbols[r.rating]} ${r.rating}</td><td style="color:#6b7280">${r.reason}</td></tr>`
+      ).join("")}</tbody></table>${recList(report.sender_analysis.recommendations)}`);
+  }
+
+  // Message Strategy
+  if (report.message_strategy) {
+    let msgContent = `<p style="font-size:12px;color:#6b7280;margin:0 0 8px">${report.message_strategy.summary}</p>`;
+    if (report.message_strategy.top_performers?.length) {
+      msgContent += `<p style="font-size:12px;font-weight:600;color:#10b981;margin:0 0 6px">Top Performers</p>`;
+      msgContent += report.message_strategy.top_performers.map((m) =>
+        `<div class="msg-box" style="background:#ecfdf5;border:1px solid #a7f3d0"><p style="font-family:monospace;margin:0;color:#065f46">"${m.preview}"</p><p style="margin:4px 0 0;color:#047857">${m.why_it_works}</p></div>`
+      ).join("");
+    }
+    if (report.message_strategy.worst_performers?.length) {
+      msgContent += `<p style="font-size:12px;font-weight:600;color:#ef4444;margin:12px 0 6px">Underperformers</p>`;
+      msgContent += report.message_strategy.worst_performers.map((m) =>
+        `<div class="msg-box" style="background:#fef2f2;border:1px solid #fecaca"><p style="font-family:monospace;margin:0;color:#991b1b">"${m.preview}"</p><p style="margin:4px 0 0;color:#dc2626">${m.why_it_fails}</p></div>`
+      ).join("");
+    }
+    msgContent += recList(report.message_strategy.recommendations);
+    html += section("Message Strategy", msgContent);
+  }
+
+  // Industry Analysis
+  if (report.industry_analysis) {
+    let indContent = `<p style="font-size:12px;color:#6b7280;margin:0 0 8px">${report.industry_analysis.summary}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
+    if (report.industry_analysis.best_niches?.length) {
+      indContent += `<div><p style="font-size:12px;font-weight:600;color:#10b981;margin:0 0 6px">Best Responding</p>`;
+      indContent += report.industry_analysis.best_niches.map((n) =>
+        `<div class="niche-row" style="background:#ecfdf5"><span style="text-transform:capitalize;font-weight:500">${n.niche}</span><span style="color:#047857;font-weight:600">${n.reply_rate}%</span></div>`
+      ).join("") + `</div>`;
+    }
+    if (report.industry_analysis.worst_niches?.length) {
+      indContent += `<div><p style="font-size:12px;font-weight:600;color:#ef4444;margin:0 0 6px">Lowest Responding</p>`;
+      indContent += report.industry_analysis.worst_niches.map((n) =>
+        `<div class="niche-row" style="background:#fef2f2"><span style="text-transform:capitalize;font-weight:500">${n.niche}</span><span style="color:#dc2626;font-weight:600">${n.reply_rate}%</span></div>`
+      ).join("") + `</div>`;
+    }
+    indContent += `</div>${recList(report.industry_analysis.recommendations)}`;
+    html += section("Industry / Niche Analysis", indContent);
+  }
+
+  // Campaign Analysis
+  if (report.campaign_analysis) {
+    let campContent = `<p style="font-size:12px;color:#6b7280;margin:0 0 8px">${report.campaign_analysis.summary}</p>`;
+    if (report.campaign_analysis.highlights?.length) {
+      campContent += `<ul style="margin:0 0 8px;padding-left:18px">${report.campaign_analysis.highlights.map((h) => `<li style="font-size:12px;color:#6b7280;margin-bottom:4px">${h}</li>`).join("")}</ul>`;
+    }
+    campContent += recList(report.campaign_analysis.recommendations);
+    html += section("Campaign Analysis", campContent);
+  }
+
+  // Timing Analysis
+  if (report.timing_analysis) {
+    html += section("Timing Analysis",
+      `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px">
+        <div style="padding:10px;background:#ecfdf5;border-radius:6px;border:1px solid #a7f3d0"><p style="font-size:11px;font-weight:600;color:#047857;margin:0 0 4px">Best Times</p><p style="font-size:12px;color:#065f46;margin:0">${report.timing_analysis.best_times}</p></div>
+        <div style="padding:10px;background:#fef2f2;border-radius:6px;border:1px solid #fecaca"><p style="font-size:11px;font-weight:600;color:#dc2626;margin:0 0 4px">Worst Times</p><p style="font-size:12px;color:#991b1b;margin:0">${report.timing_analysis.worst_times}</p></div>
+      </div>${recList(report.timing_analysis.recommendations)}`);
+  }
+
+  html += `</body></html>`;
+
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.onload = () => {
+    printWindow.print();
+  };
+}
+
 // ── Report Display ───────────────────────────────────────
 
 function ReportDisplay({ report }: { report: AIReportContent }) {
@@ -249,6 +376,15 @@ function ReportDisplay({ report }: { report: AIReportContent }) {
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">{report.executive_summary}</p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 gap-1.5"
+              onClick={() => exportReportAsPDF(report)}
+            >
+              <Download className="h-3.5 w-3.5" />
+              PDF
+            </Button>
           </div>
         </CardContent>
       </Card>

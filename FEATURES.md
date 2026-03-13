@@ -478,7 +478,7 @@ Links inbound leads to outbound leads. On page load, auto-searches outbound lead
 
 ## AI-Powered Analytics Report
 
-On-demand AI analytics report that uses Claude Opus to analyze outreach data and generate actionable insights. Compares sender accounts, message strategies, industries/niches (via bio keyword extraction), campaigns, and timing patterns. Generates a structured report with executive summary, per-section analysis, and prioritized action items.
+On-demand AI analytics report that uses Claude Opus to analyze outreach data and generate actionable insights. Compares sender accounts, message strategies, industries/niches (via bio keyword extraction), campaigns, and timing patterns. Generates a structured report with executive summary, per-section analysis, and prioritized action items. Includes PDF export via print-to-PDF with styled HTML output.
 
 ### Location
 
