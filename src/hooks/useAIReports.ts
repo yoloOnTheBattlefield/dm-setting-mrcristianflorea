@@ -76,7 +76,7 @@ export function useGenerateAIReport() {
       end_date?: string;
       campaign_id?: string;
     }): Promise<{ report_id: string; status: string }> => {
-      const res = await fetchWithAuth(`${API_URL}/api/analytics/outbound/ai-report`, {
+      const res = await fetchWithAuth(`${API_URL}/analytics/outbound/ai-report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
@@ -94,7 +94,7 @@ export function useAIReports(limit = 10) {
   return useQuery({
     queryKey: ["ai-reports", limit],
     queryFn: async (): Promise<AIReportListItem[]> => {
-      const res = await fetchWithAuth(`${API_URL}/api/analytics/outbound/ai-reports?limit=${limit}`);
+      const res = await fetchWithAuth(`${API_URL}/analytics/outbound/ai-reports?limit=${limit}`);
       if (!res.ok) throw new Error("Failed to fetch reports");
       const data = await res.json();
       return data.reports;
@@ -108,7 +108,7 @@ export function useAIReport(reportId: string | null) {
   return useQuery({
     queryKey: ["ai-report", reportId],
     queryFn: async (): Promise<AIReport> => {
-      const res = await fetchWithAuth(`${API_URL}/api/analytics/outbound/ai-reports/${reportId}`);
+      const res = await fetchWithAuth(`${API_URL}/analytics/outbound/ai-reports/${reportId}`);
       if (!res.ok) throw new Error("Failed to fetch report");
       return res.json();
     },
