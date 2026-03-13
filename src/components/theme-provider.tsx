@@ -1,5 +1,5 @@
 import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from "next-themes"
-import { type ThemeProviderProps } from "next-themes"
+import { type ThemeProviderProps } from "next-themes/dist/types"
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react"
 import { ThemeName, DEFAULT_THEME, applyTheme, getStoredTheme, storeTheme } from "@/lib/themes"
 

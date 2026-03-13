@@ -1,189 +1,205 @@
-@import "tailwindcss";
-@import "tw-animate-css";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@custom-variant dark (&:is(.dark *));
 
-:root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(240 10% 3.9%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(240 10% 3.9%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(240 10% 3.9%);
-  --primary: hsl(240 5.9% 10%);
-  --primary-foreground: hsl(0 0% 98%);
-  --secondary: hsl(240 4.8% 95.9%);
-  --secondary-foreground: hsl(240 5.9% 10%);
-  --muted: hsl(240 4.8% 95.9%);
-  --muted-foreground: hsl(240 3.8% 46.1%);
-  --accent: hsl(240 4.8% 95.9%);
-  --accent-foreground: hsl(240 5.9% 10%);
-  --destructive: hsl(0 84.2% 60.2%);
-  --destructive-foreground: hsl(0 0% 98%);
-  --border: hsl(240 5.9% 90%);
-  --input: hsl(240 5.9% 90%);
-  --ring: hsl(240 5.9% 10%);
-  --radius: 0.5rem;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
 
-  /* Stage colors */
-  --stage-created: hsl(220 70% 55%);
-  --stage-qualified: hsl(45 95% 55%);
-  --stage-link-sent: hsl(280 65% 60%);
-  --stage-link-clicked: hsl(35 90% 55%);
-  --stage-booked: hsl(160 70% 45%);
-  --stage-ghosted: hsl(0 75% 60%);
-  --stage-fup: hsl(200 85% 55%);
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
 
-  /* Chart colors */
-  --chart-1: hsl(220 70% 55%);
-  --chart-2: hsl(160 70% 45%);
-  --chart-3: hsl(45 95% 55%);
-  --chart-4: hsl(280 65% 60%);
-  --chart-5: hsl(0 75% 60%);
-  --chart-6: hsl(200 85% 55%);
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
 
-  --sidebar: hsl(0 0% 98%);
-  --sidebar-foreground: hsl(240 5.3% 26.1%);
-  --sidebar-primary: hsl(240 5.9% 10%);
-  --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(240 4.8% 95.9%);
-  --sidebar-accent-foreground: hsl(240 5.9% 10%);
-  --sidebar-border: hsl(220 13% 91%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
-}
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
 
-.dark {
-  --background: hsl(240 10% 3.9%);
-  --foreground: hsl(0 0% 98%);
-  --card: hsl(240 10% 3.9%);
-  --card-foreground: hsl(0 0% 98%);
-  --popover: hsl(240 10% 3.9%);
-  --popover-foreground: hsl(0 0% 98%);
-  --primary: hsl(0 0% 98%);
-  --primary-foreground: hsl(240 5.9% 10%);
-  --secondary: hsl(240 3.7% 15.9%);
-  --secondary-foreground: hsl(0 0% 98%);
-  --muted: hsl(240 3.7% 15.9%);
-  --muted-foreground: hsl(240 5% 64.9%);
-  --accent: hsl(240 3.7% 15.9%);
-  --accent-foreground: hsl(0 0% 98%);
-  --destructive: hsl(0 62.8% 30.6%);
-  --destructive-foreground: hsl(0 0% 98%);
-  --border: hsl(240 3.7% 15.9%);
-  --input: hsl(240 3.7% 15.9%);
-  --ring: hsl(240 4.9% 83.9%);
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
 
-  /* Stage colors - slightly brighter for dark mode */
-  --stage-created: hsl(220 75% 60%);
-  --stage-qualified: hsl(45 90% 60%);
-  --stage-link-sent: hsl(280 70% 65%);
-  --stage-link-clicked: hsl(35 85% 60%);
-  --stage-booked: hsl(160 65% 50%);
-  --stage-ghosted: hsl(0 70% 55%);
-  --stage-fup: hsl(200 80% 60%);
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
 
-  --chart-1: hsl(220 75% 60%);
-  --chart-2: hsl(160 65% 50%);
-  --chart-3: hsl(45 90% 60%);
-  --chart-4: hsl(280 70% 65%);
-  --chart-5: hsl(0 70% 55%);
-  --chart-6: hsl(200 80% 60%);
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
 
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-primary: hsl(224.3 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(240 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-border: hsl(240 3.7% 15.9%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
-}
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
 
-@theme inline {
-  --font-sans: "Inter", system-ui, sans-serif;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
 
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
+    --radius: 0.5rem;
 
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-chart-6: var(--chart-6);
+    /* Stage colors */
+    --stage-created: 220 70% 55%;
+    --stage-qualified: 45 95% 55%;
+    --stage-link-sent: 280 65% 60%;
+    --stage-link-clicked: 35 90% 55%;
+    --stage-booked: 160 70% 45%;
+    --stage-ghosted: 0 75% 60%;
+    --stage-fup: 200 85% 55%;
 
-  --color-stage-created: var(--stage-created);
-  --color-stage-qualified: var(--stage-qualified);
-  --color-stage-link-sent: var(--stage-link-sent);
-  --color-stage-link-clicked: var(--stage-link-clicked);
-  --color-stage-booked: var(--stage-booked);
-  --color-stage-ghosted: var(--stage-ghosted);
-  --color-stage-fup: var(--stage-fup);
+    /* Chart colors */
+    --chart-1: 220 70% 55%;
+    --chart-2: 160 70% 45%;
+    --chart-3: 45 95% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 0 75% 60%;
+    --chart-6: 200 85% 55%;
 
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
 
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+
+    /* Stage colors - slightly brighter for dark mode */
+    --stage-created: 220 75% 60%;
+    --stage-qualified: 45 90% 60%;
+    --stage-link-sent: 280 70% 65%;
+    --stage-link-clicked: 35 85% 60%;
+    --stage-booked: 160 65% 50%;
+    --stage-ghosted: 0 70% 55%;
+    --stage-fup: 200 80% 60%;
+
+    --chart-1: 220 75% 60%;
+    --chart-2: 160 65% 50%;
+    --chart-3: 45 90% 60%;
+    --chart-4: 280 70% 65%;
+    --chart-5: 0 70% 55%;
+    --chart-6: 200 80% 60%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
 }
 
 @layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--color-border);
+  * {
+    @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
-  }
-  * {
-    @apply border-border outline-ring/50;
+    font-family: 'Inter', system-ui, sans-serif;
   }
 }
 
-@utility stat-value {
-  @apply text-2xl font-bold tracking-tight;
-}
+@layer utilities {
+  .stat-value {
+    @apply text-2xl font-bold tracking-tight;
+  }
 
-@utility stat-label {
-  @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
-}
+  .stat-label {
+    @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
+  }
 
-@utility stat-change-positive {
-  @apply text-xs font-medium text-stage-booked;
-}
+  .stat-change-positive {
+    @apply text-xs font-medium text-stage-booked;
+  }
 
-@utility stat-change-negative {
-  @apply text-xs font-medium text-stage-ghosted;
+  .stat-change-negative {
+    @apply text-xs font-medium text-stage-ghosted;
+  }
+
+  .text-stage-created {
+    color: hsl(var(--stage-created));
+  }
+
+  .text-stage-qualified {
+    color: hsl(var(--stage-qualified));
+  }
+
+  .text-stage-link-sent {
+    color: hsl(var(--stage-link-sent));
+  }
+
+  .text-stage-link-clicked {
+    color: hsl(var(--stage-link-clicked));
+  }
+
+  .text-stage-booked {
+    color: hsl(var(--stage-booked));
+  }
+
+  .text-stage-ghosted {
+    color: hsl(var(--stage-ghosted));
+  }
+
+  .text-stage-fup {
+    color: hsl(var(--stage-fup));
+  }
+
+  .bg-stage-created {
+    background-color: hsl(var(--stage-created));
+  }
+
+  .bg-stage-qualified {
+    background-color: hsl(var(--stage-qualified));
+  }
+
+  .bg-stage-link-sent {
+    background-color: hsl(var(--stage-link-sent));
+  }
+
+  .bg-stage-link-clicked {
+    background-color: hsl(var(--stage-link-clicked));
+  }
+
+  .bg-stage-booked {
+    background-color: hsl(var(--stage-booked));
+  }
+
+  .bg-stage-ghosted {
+    background-color: hsl(var(--stage-ghosted));
+  }
+
+  .bg-stage-fup {
+    background-color: hsl(var(--stage-fup));
+  }
 }

@@ -64,11 +64,11 @@ describe("DeepScraper — Lead Sources checkboxes", () => {
     renderDeepScraper();
     openNewDialog();
 
-    const commentersCheckbox = screen.getByLabelText("Commenters");
-    const likersCheckbox = screen.getByLabelText("Likers");
+    const commentersCheckbox = screen.getByRole("checkbox", { name: "Commenters" });
+    const likersCheckbox = screen.getByRole("checkbox", { name: "Likers" });
 
-    expect(commentersCheckbox).toBeChecked();
-    expect(likersCheckbox).not.toBeChecked();
+    expect(commentersCheckbox).toHaveAttribute("data-state", "checked");
+    expect(likersCheckbox).toHaveAttribute("data-state", "unchecked");
   });
 
   it("hides Comment Limit when Commenters is unchecked and Likers is checked", () => {
@@ -78,9 +78,9 @@ describe("DeepScraper — Lead Sources checkboxes", () => {
     expect(screen.getByLabelText("Comment Limit")).toBeInTheDocument();
 
     // First enable Likers so we can disable Commenters
-    fireEvent.click(screen.getByLabelText("Likers"));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Likers" }));
     // Then disable Commenters
-    fireEvent.click(screen.getByLabelText("Commenters"));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Commenters" }));
 
     expect(screen.queryByLabelText("Comment Limit")).not.toBeInTheDocument();
   });
@@ -105,21 +105,21 @@ describe("DeepScraper — Followers checkbox", () => {
     renderDeepScraper();
     openNewDialog();
 
-    const followersCheckbox = screen.getByLabelText("Followers");
-    expect(followersCheckbox).not.toBeChecked();
+    const followersCheckbox = screen.getByRole("checkbox", { name: "Followers" });
+    expect(followersCheckbox).toHaveAttribute("data-state", "unchecked");
   });
 
   it("allows enabling Followers alongside Commenters", () => {
     renderDeepScraper();
     openNewDialog();
 
-    fireEvent.click(screen.getByLabelText("Followers"));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Followers" }));
 
-    const followersCheckbox = screen.getByLabelText("Followers");
-    expect(followersCheckbox).toBeChecked();
+    const followersCheckbox = screen.getByRole("checkbox", { name: "Followers" });
+    expect(followersCheckbox).toHaveAttribute("data-state", "checked");
     // Commenters should still be checked
-    const commentersCheckbox = screen.getByLabelText("Commenters");
-    expect(commentersCheckbox).toBeChecked();
+    const commentersCheckbox = screen.getByRole("checkbox", { name: "Commenters" });
+    expect(commentersCheckbox).toHaveAttribute("data-state", "checked");
   });
 
   it("prevents unchecking Followers when it is the only source selected", () => {
@@ -127,12 +127,12 @@ describe("DeepScraper — Followers checkbox", () => {
     openNewDialog();
 
     // Enable Followers
-    fireEvent.click(screen.getByLabelText("Followers"));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Followers" }));
     // Disable Commenters (now Followers + Likers-unchecked, so Commenters can be unchecked since Followers is on)
-    fireEvent.click(screen.getByLabelText("Commenters"));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Commenters" }));
 
     // Followers is now the only one checked — should be disabled
-    const followersCheckbox = screen.getByLabelText("Followers");
+    const followersCheckbox = screen.getByRole("checkbox", { name: "Followers" });
     expect(followersCheckbox).toBeDisabled();
   });
 });
