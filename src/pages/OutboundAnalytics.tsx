@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import {
   useOutboundFunnel,
@@ -266,11 +266,21 @@ export default function OutboundAnalytics() {
   // Derived link_sent with fallback to 0 for old API responses
   const linkSent = funnel?.link_sent ?? 0;
 
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const [stickyH, setStickyH] = useState(0);
+
+  useEffect(() => {
+    if (!stickyRef.current) return;
+    const ro = new ResizeObserver(([entry]) => setStickyH(entry.contentRect.height));
+    ro.observe(stickyRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <Tabs defaultValue="funnel">
-    <div className="flex flex-1 flex-col overflow-x-hidden">
+    <div className="flex flex-1 flex-col">
       {/* Header — unified filter toolbar (§10) */}
-      <div className="sticky top-16 z-50 bg-background border-b border-border">
+      <div ref={stickyRef} className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3 md:gap-4">
           <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 md:rounded-lg md:border md:border-[#E2E8F0] md:bg-card md:px-3 md:py-2">
             <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
@@ -324,7 +334,7 @@ export default function OutboundAnalytics() {
         </div>
       </div>
 
-      <div className="flex-1 p-4 md:p-6 space-y-6">
+      <div className="flex-1 p-4 md:p-6 space-y-6" style={{ paddingTop: stickyH + 16 }}>
 
           {/* ─── Funnel Tab ─── */}
           <TabsContent value="funnel">
