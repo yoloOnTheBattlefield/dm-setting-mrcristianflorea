@@ -457,9 +457,9 @@ High-frequency socket.io events (scrape progress, deep-scrape progress, job row 
 - **Job row progress:** `src/hooks/useJobProgress.ts` (`job:progress` — 500ms)
 - **Campaign task updates:** `src/pages/Campaigns.tsx` (`task:completed/failed/new` — 2s, batches rapid DM sends into single query invalidation)
 
-## Manual Inbound-to-Outbound Lead Linking
+## Inbound-to-Outbound Lead Linking (Auto-suggest + Manual)
 
-Allows manually linking an inbound lead to an outbound lead from the lead detail page. Useful when the AI creates a new inbound lead from a reply but doesn't automatically match it to the original outbound lead.
+Links inbound leads to outbound leads. On page load, auto-searches outbound leads by the inbound lead's name and shows a confirmation banner with matches. The user can confirm a match with one click or dismiss and search manually.
 
 ### Location
 
@@ -471,4 +471,26 @@ Allows manually linking an inbound lead to an outbound lead from the lead detail
 
 - **Link:** `PATCH /leads/:id` with `{ outbound_lead_id: "<outbound_lead_id>" }`
 - **Unlink:** `PATCH /leads/:id` with `{ outbound_lead_id: null }`
-- **Search outbound leads:** `GET /outbound-leads?search=<query>&limit=10&page=1`
+- **Auto-search on load:** `GET /outbound-leads?search=<lead_name>&limit=5&page=1`
+- **Manual search:** `GET /outbound-leads?search=<query>&limit=10&page=1`
+
+---
+
+## AI-Powered Analytics Report
+
+On-demand AI analytics report that uses Claude Opus to analyze outreach data and generate actionable insights. Compares sender accounts, message strategies, industries/niches (via bio keyword extraction), campaigns, and timing patterns. Generates a structured report with executive summary, per-section analysis, and prioritized action items.
+
+### Location
+
+- **Frontend tab:** `src/components/outbound-analytics/AIReportTab.tsx` (report display, generate button, past reports list)
+- **Frontend hooks:** `src/hooks/useAIReports.ts` (`useGenerateAIReport`, `useAIReports`, `useAIReport`)
+- **Frontend page:** `src/pages/OutboundAnalytics.tsx` (new "AI Report" tab)
+- **Backend model:** `quddify-crm/models/AnalyticsReport.js` (report storage with status tracking)
+- **Backend service:** `quddify-crm/services/analyticsReportGenerator.js` (data aggregation + Claude analysis)
+- **Backend routes:** `quddify-crm/routes/analytics.js` (3 new endpoints)
+
+### API
+
+- **`POST /api/analytics/outbound/ai-report`** — Body: `{ start_date?, end_date?, campaign_id? }`. Creates a report asynchronously. Returns `{ report_id, status: "generating" }`.
+- **`GET /api/analytics/outbound/ai-reports`** — Query: `limit` (default 10). Lists past reports with summaries, sorted by generated_at desc.
+- **`GET /api/analytics/outbound/ai-reports/:id`** — Returns full report document. Multi-tenant isolated by account_id.

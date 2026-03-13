@@ -80,6 +80,7 @@ import { TimeOfDayHeatmap } from "@/components/outbound-analytics/TimeOfDayHeatm
 import { EffortOutcomePanel } from "@/components/outbound-analytics/EffortOutcomePanel";
 import { TrendOverTime } from "@/components/outbound-analytics/TrendOverTime";
 import { InsightsTab } from "@/components/outbound-analytics/InsightsTab";
+import { AIReportTab } from "@/components/outbound-analytics/AIReportTab";
 
 // ─── Benchmarks & Constants ───
 const BENCHMARK_REPLY_RATE = 8;
@@ -322,6 +323,9 @@ export default function OutboundAnalytics() {
             </TabsTrigger>
             <TabsTrigger value="insights" className="gap-1.5">
               <BarChart3 className="h-3.5 w-3.5" />Insights
+            </TabsTrigger>
+            <TabsTrigger value="ai-report" className="gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" />AI Report
             </TabsTrigger>
           </TabsList>
 
@@ -645,6 +649,11 @@ export default function OutboundAnalytics() {
               questionTypes={questionTypes}
               isLoading={insightsLoading}
             />
+          </TabsContent>
+
+          {/* ─── AI Report Tab ─── */}
+          <TabsContent value="ai-report">
+            <AIReportTab filterParams={filterParams} />
           </TabsContent>
         </Tabs>
       </div>
