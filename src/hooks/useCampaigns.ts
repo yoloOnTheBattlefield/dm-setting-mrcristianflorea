@@ -113,6 +113,8 @@ export interface CampaignSender {
   daily_limit: number;
   sent_today: number;
   failed_total: number;
+  reply_rate_7d: number | null;
+  is_connected_to_ai: boolean;
   health: "good" | "warning" | "risk";
   issue: string | null;
   outbound_account: {

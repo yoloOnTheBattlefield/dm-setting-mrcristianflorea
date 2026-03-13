@@ -81,6 +81,7 @@ import { EffortOutcomePanel } from "@/components/outbound-analytics/EffortOutcom
 import { TrendOverTime } from "@/components/outbound-analytics/TrendOverTime";
 import { InsightsTab } from "@/components/outbound-analytics/InsightsTab";
 import { AIReportTab } from "@/components/outbound-analytics/AIReportTab";
+import { useAIReports } from "@/hooks/useAIReports";
 
 // ─── Benchmarks & Constants ───
 const BENCHMARK_REPLY_RATE = 8;
@@ -115,9 +116,27 @@ function fmtPct(a: number, b: number) {
 type MessageSortField = "reply_rate" | "book_rate";
 type SortDir = "asc" | "desc";
 
-// ─── Insight Logic (§4) — Link Sent-aware ───
+// ─── Map AI report health → banner type ───
+function aiHealthToBannerType(
+  health: string | undefined,
+): "info" | "warning" | "success" | null {
+  if (health === "red") return "warning";
+  if (health === "yellow") return "warning";
+  if (health === "green") return "success";
+  return null;
+}
+
+function aiHealthLabel(health: string | undefined): string {
+  if (health === "red") return "Critical";
+  if (health === "yellow") return "Needs Attention";
+  if (health === "green") return "Healthy";
+  return "";
+}
+
+// ─── Insight Logic (§4) — Link Sent-aware, AI Report-aligned ───
 function computeInsight(
   f: OutboundFunnelData,
+  aiReportHealth?: string,
 ): { text: string; type: "info" | "warning" | "success" } | null {
   const linkSent = f.link_sent ?? 0;
 
@@ -132,12 +151,13 @@ function computeInsight(
   if (f.messaged === 0) return null;
 
   const replyRate = pct(f.replied, f.messaged);
+  const aiType = aiHealthToBannerType(aiReportHealth);
 
   // Link Sent = 0, Replied > 0  →  drop-off before offer
   if (linkSent === 0 && f.replied > 0) {
     return {
       text: `${f.replied} people replied but none received a link — your drop-off is before the offer. Try sending a booking link earlier.`,
-      type: "warning",
+      type: aiType ?? "warning",
     };
   }
 
@@ -145,7 +165,7 @@ function computeInsight(
   if (linkSent > 0 && f.booked === 0) {
     return {
       text: `${linkSent} people received your link but none converted — consider A/B testing your offer page or tightening follow-up timing.`,
-      type: "warning",
+      type: aiType ?? "warning",
     };
   }
 
@@ -153,13 +173,20 @@ function computeInsight(
   if (f.replied > 0 && replyRate >= BENCHMARK_REPLY_RATE && f.booked === 0) {
     return {
       text: `Reply rate is ${replyRate.toFixed(1)}% (above ${BENCHMARK_REPLY_RATE}% avg), but ${f.replied} replies haven't converted — focus on follow-up messaging.`,
-      type: "warning",
+      type: aiType ?? "warning",
     };
   }
 
   // Strong performance
   const convRate = pct(f.booked, f.replied);
   if (replyRate >= 15 && convRate >= 10) {
+    // If AI report disagrees, defer to the AI report
+    if (aiType && aiType !== "success") {
+      return {
+        text: `Reply rate is ${replyRate.toFixed(1)}% and conversion is ${convRate.toFixed(1)}%, but AI Report rates overall health as ${aiHealthLabel(aiReportHealth)} — review the AI Report for details.`,
+        type: aiType,
+      };
+    }
     return {
       text: `Strong performance — ${replyRate.toFixed(1)}% reply rate and ${convRate.toFixed(1)}% conversion are well above average.`,
       type: "success",
@@ -170,14 +197,24 @@ function computeInsight(
   if (replyRate < BENCHMARK_REPLY_RATE) {
     return {
       text: `Reply rate is ${replyRate.toFixed(1)}% (below ${BENCHMARK_REPLY_RATE}% avg) — try A/B testing your opening messages or adjusting targeting.`,
-      type: "warning",
+      type: aiType ?? "warning",
     };
   }
 
-  // General
+  // General — align with AI report health when available
+  const defaultType: "info" | "warning" | "success" =
+    replyRate >= BENCHMARK_REPLY_RATE ? "info" : "warning";
+  const effectiveType = aiType ?? defaultType;
+  const healthSuffix =
+    aiReportHealth && aiType
+      ? `AI Report: ${aiHealthLabel(aiReportHealth)}.`
+      : replyRate >= BENCHMARK_REPLY_RATE
+        ? "Reply rate is healthy."
+        : "Reply rate needs attention.";
+
   return {
-    text: `${f.messaged.toLocaleString()} messaged, ${f.replied.toLocaleString()} replied, ${linkSent.toLocaleString()} links sent. ${replyRate >= BENCHMARK_REPLY_RATE ? "Reply rate is healthy" : "Reply rate needs attention"}.`,
-    type: replyRate >= BENCHMARK_REPLY_RATE ? "info" : "warning",
+    text: `${f.messaged.toLocaleString()} messaged, ${f.replied.toLocaleString()} replied, ${linkSent.toLocaleString()} links sent. ${healthSuffix}`,
+    type: effectiveType,
   };
 }
 
@@ -255,6 +292,7 @@ export default function OutboundAnalytics() {
     usePromptLabels(filterParams);
   const { data: questionTypesData, isLoading: questionTypesLoading } =
     useQuestionTypes(filterParams);
+  const { data: aiReports } = useAIReports(1);
 
   const messages = messagesData?.messages || [];
   const senders = sendersData?.senders || [];
@@ -268,10 +306,12 @@ export default function OutboundAnalytics() {
   const questionTypes = questionTypesData?.types || [];
   const insightsLoading = tiersLoading || labelsLoading || questionTypesLoading;
 
+  const latestAIHealth = aiReports?.[0]?.report?.overall_health;
+
   const insight = useMemo(() => {
     if (!funnel) return null;
-    return computeInsight(funnel);
-  }, [funnel]);
+    return computeInsight(funnel, latestAIHealth);
+  }, [funnel, latestAIHealth]);
 
   const sortedMessages = useMemo(() => {
     return [...messages].sort((a, b) => {
@@ -609,6 +649,16 @@ export default function OutboundAnalytics() {
           <TabsContent value="messages">
             {messagesLoading ? (
               <DashboardSkeleton />
+            ) : sortedMessages.length > 0 && sortedMessages.every((m) => m.sent <= 1) ? (
+              <div className="space-y-4">
+                <div className="rounded-lg border-l-4 border-l-[#4F6EF7] bg-[#EFF6FF] px-4 py-3 flex items-start gap-3">
+                  <Lightbulb className="h-4 w-4 mt-0.5 shrink-0 text-[#4F6EF7]" />
+                  <p className="text-sm text-foreground leading-relaxed">
+                    All messages are AI-generated and unique per lead — per-message rates aren't comparable. Showing AI provider performance instead.
+                  </p>
+                </div>
+                <AIModelComparison data={aiModels} isLoading={aiModelsLoading} />
+              </div>
             ) : (
               <div className="rounded-lg border bg-card overflow-x-auto">
                 <Table>

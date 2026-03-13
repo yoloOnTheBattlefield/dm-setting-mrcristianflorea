@@ -652,8 +652,13 @@ export default function CampaignDetail() {
         <div className="hidden md:block border-t border-border/40" />
         {/* Secondary metrics – desktop only */}
         <div className="hidden md:grid grid-cols-4 gap-3">
-          <SecondaryStatCard label="Total" value={s.total} icon={<ListTodo className="h-3.5 w-3.5" />} />
-          <SecondaryStatCard label="Pending" value={s.pending} icon={<Clock className="h-3.5 w-3.5" />} />
+          <SecondaryStatCard label="Total Leads" value={s.total} icon={<ListTodo className="h-3.5 w-3.5" />} />
+          <SecondaryStatCard
+            label="Pending"
+            value={s.pending}
+            icon={<Clock className="h-3.5 w-3.5" />}
+            subtitle={s.pending > s.total ? "Includes retried leads" : undefined}
+          />
           <SecondaryStatCard label="Failed" value={s.failed} icon={<XCircle className="h-3.5 w-3.5" />}
             subtitle={s.sent > 0 ? `${((s.failed || 0) / s.sent * 100).toFixed(1)}% of sent` : undefined} />
           <SecondaryStatCard label="Skipped" value={s.skipped} icon={<SkipForward className="h-3.5 w-3.5" />}
@@ -1851,6 +1856,8 @@ export default function CampaignDetail() {
                     <TableRow>
                       <TableHead>Username</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Reply Rate (7d)</TableHead>
+                      <TableHead>AI</TableHead>
                       <TableHead>Last Activity</TableHead>
                       <TableHead className="text-right">Daily Limit</TableHead>
                       <TableHead className="text-right">Sent Today</TableHead>
@@ -1860,7 +1867,7 @@ export default function CampaignDetail() {
                   <TableBody>
                     {sendersData.senders.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="h-16 text-center text-muted-foreground">
+                        <TableCell colSpan={8} className="h-16 text-center text-muted-foreground">
                           No sender accounts linked to this campaign.
                         </TableCell>
                       </TableRow>
@@ -2073,18 +2080,52 @@ const SENDER_STATUS_DOT: Record<string, string> = {
 };
 
 function SenderRow({ sender }: { sender: CampaignSender }) {
+  const [copied, setCopied] = useState(false);
   const health = HEALTH_CONFIG[sender.health] || HEALTH_CONFIG.good;
   const dot = SENDER_STATUS_DOT[sender.status] || SENDER_STATUS_DOT.offline;
   const limitPct = sender.daily_limit > 0 ? Math.round((sender.sent_today / sender.daily_limit) * 100) : 0;
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(sender.ig_username);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   return (
     <TableRow className={sender.health === "risk" ? "bg-red-500/5" : undefined}>
-      <TableCell className="font-medium">@{sender.ig_username}</TableCell>
+      <TableCell className="font-medium">
+        <div className="flex items-center gap-1.5">
+          <span>@{sender.ig_username}</span>
+          <button
+            onClick={handleCopy}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            title="Copy username"
+          >
+            {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+      </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
           <span className={`h-2 w-2 rounded-full ${dot}`} />
           <span className="text-sm capitalize">{sender.status}</span>
         </div>
+      </TableCell>
+      <TableCell className="text-right">
+        {sender.reply_rate_7d !== null ? (
+          <span className={sender.reply_rate_7d >= 10 ? "text-green-400 font-medium" : "text-muted-foreground"}>
+            {sender.reply_rate_7d}%
+          </span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell>
+        {sender.is_connected_to_ai ? (
+          <Sparkles className="h-4 w-4 text-purple-400" />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </TableCell>
       <TableCell className="text-muted-foreground text-sm">
         {sender.last_seen ? formatRelative(sender.last_seen) : "Never"}
