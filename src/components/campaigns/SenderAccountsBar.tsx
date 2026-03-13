@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Settings2, Plus, Trash2, Wifi, WifiOff } from "lucide-react";
+import { Loader2, Settings2, Plus, Trash2, Wifi, WifiOff, Copy, Check, Sparkles } from "lucide-react";
 
 export default function SenderAccountsBar() {
   const { data, isLoading } = useSenderAccounts();
@@ -54,6 +54,14 @@ export default function SenderAccountsBar() {
 
   // Extension guide
   const [guideOpen, setGuideOpen] = useState(false);
+
+  // Copy username
+  const [copied, setCopied] = useState(false);
+  const handleCopy = (username: string) => {
+    navigator.clipboard.writeText(username);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const openAdd = () => {
     setAddUsername("");
@@ -225,7 +233,14 @@ export default function SenderAccountsBar() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings2 className="h-4 w-4" />
-              @{editingSender?.ig_username}
+              <span>@{editingSender?.ig_username}</span>
+              <button
+                onClick={() => editingSender?.ig_username && handleCopy(editingSender.ig_username)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Copy username"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+              </button>
             </DialogTitle>
             <DialogDescription className="flex items-center gap-1.5">
               {editingSender?.status === "online" ? (
@@ -241,6 +256,25 @@ export default function SenderAccountsBar() {
               )}
             </DialogDescription>
           </DialogHeader>
+          {/* Reply rate & AI status */}
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Reply rate (7d):</span>
+              {editingSender?.reply_rate_7d !== null && editingSender?.reply_rate_7d !== undefined ? (
+                <span className={editingSender.reply_rate_7d >= 10 ? "font-medium text-green-400" : "font-medium"}>
+                  {editingSender.reply_rate_7d}%
+                </span>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </div>
+            {editingSender?.is_connected_to_ai && (
+              <div className="flex items-center gap-1 text-purple-400">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">AI</span>
+              </div>
+            )}
+          </div>
           <div className="space-y-4 pt-2">
             <div className="space-y-1.5">
               <Label>Display Name</Label>

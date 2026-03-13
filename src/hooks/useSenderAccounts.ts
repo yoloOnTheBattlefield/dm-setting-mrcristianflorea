@@ -15,6 +15,8 @@ export interface SenderAccount {
   upcomingTask: { target: string; type: string; status: string } | null;
   outbound_account: { _id: string; username: string; status: string } | null;
   link_status: "linked" | "not_linked";
+  reply_rate_7d: number | null;
+  is_connected_to_ai: boolean;
   createdAt: string;
   updatedAt: string;
 }
