@@ -271,7 +271,7 @@ export default function OutboundAnalytics() {
 
   useEffect(() => {
     if (!stickyRef.current) return;
-    const ro = new ResizeObserver(([entry]) => setStickyH(entry.contentRect.height));
+    const ro = new ResizeObserver(() => setStickyH(stickyRef.current?.offsetHeight ?? 0));
     ro.observe(stickyRef.current);
     return () => ro.disconnect();
   }, []);
@@ -334,7 +334,7 @@ export default function OutboundAnalytics() {
         </div>
       </div>
 
-      <div className="flex-1 p-4 md:p-6 space-y-6" style={{ paddingTop: stickyH + 16 }}>
+      <div className="flex-1 p-4 md:p-6 space-y-6" style={{ paddingTop: stickyH }}>
 
           {/* ─── Funnel Tab ─── */}
           <TabsContent value="funnel">
