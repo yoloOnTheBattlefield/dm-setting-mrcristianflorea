@@ -93,9 +93,9 @@ const EST_DEAL_VALUE = 500;
 // ─── Semantic color helpers (§11) ───
 function rateColor(rate: number | undefined | null) {
   if (rate == null) return "text-[#A0AEC0]"; // gray = no data
-  if (rate >= 10) return "text-[#22C55E]";   // green = good
-  if (rate >= 5) return "text-[#F59E0B]";    // amber = watch
-  return "text-[#EF4444]";                   // red = critical
+  if (rate >= 10) return "text-[#22C55E]"; // green = good
+  if (rate >= 5) return "text-[#F59E0B]"; // amber = watch
+  return "text-[#EF4444]"; // red = critical
 }
 
 function fmtRate(v: number | undefined | null) {
@@ -116,12 +116,17 @@ type MessageSortField = "reply_rate" | "book_rate";
 type SortDir = "asc" | "desc";
 
 // ─── Insight Logic (§4) — Link Sent-aware ───
-function computeInsight(f: OutboundFunnelData): { text: string; type: "info" | "warning" | "success" } | null {
+function computeInsight(
+  f: OutboundFunnelData,
+): { text: string; type: "info" | "warning" | "success" } | null {
   const linkSent = f.link_sent ?? 0;
 
   // All zeros
   if (f.messaged === 0 && f.replied === 0 && linkSent === 0 && f.booked === 0) {
-    return { text: "No activity yet in this date range — try expanding to 90 days or launching a new campaign.", type: "info" };
+    return {
+      text: "No activity yet in this date range — try expanding to 90 days or launching a new campaign.",
+      type: "info",
+    };
   }
 
   if (f.messaged === 0) return null;
@@ -178,9 +183,18 @@ function computeInsight(f: OutboundFunnelData): { text: string; type: "info" | "
 
 export default function OutboundAnalytics() {
   const { user } = useAuth();
-  const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>("ob-analytics-dateRange", "all");
-  const [campaignId, setCampaignId] = usePersistedState<string>("ob-analytics-campaign", "all");
-  const [senderFilter, setSenderFilter] = usePersistedState<string>("ob-analytics-sender", "all");
+  const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>(
+    "ob-analytics-dateRange",
+    "all",
+  );
+  const [campaignId, setCampaignId] = usePersistedState<string>(
+    "ob-analytics-campaign",
+    "all",
+  );
+  const [senderFilter, setSenderFilter] = usePersistedState<string>(
+    "ob-analytics-sender",
+    "all",
+  );
 
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showDailyChart, setShowDailyChart] = useState(true);
@@ -189,7 +203,8 @@ export default function OutboundAnalytics() {
   const [showEffort, setShowEffort] = useState(true);
   const [showTrend, setShowTrend] = useState(true);
 
-  const [msgSortField, setMsgSortField] = useState<MessageSortField>("reply_rate");
+  const [msgSortField, setMsgSortField] =
+    useState<MessageSortField>("reply_rate");
   const [msgSortDir, setMsgSortDir] = useState<SortDir>("desc");
 
   const endDate = useMemo(() => {
@@ -205,29 +220,41 @@ export default function OutboundAnalytics() {
   }, [dateRange]);
 
   const cid = campaignId === "all" ? undefined : campaignId;
-  const filterParams = { start_date: startDate, end_date: endDate, campaign_id: cid };
+  const filterParams = {
+    start_date: startDate,
+    end_date: endDate,
+    campaign_id: cid,
+  };
 
   const { data: campaignsData } = useCampaigns({ limit: 100 });
   const campaigns = campaignsData?.campaigns || [];
 
-  const { data: funnel, isLoading: funnelLoading } = useOutboundFunnel(filterParams);
-  const { data: messagesData, isLoading: messagesLoading } = useMessageAnalytics(filterParams);
-  const { data: sendersData, isLoading: sendersLoading } = useSenderAnalytics(filterParams);
-  const { data: campaignsAnalytics, isLoading: campaignsAnalyticsLoading } = useCampaignAnalytics(filterParams);
+  const { data: funnel, isLoading: funnelLoading } =
+    useOutboundFunnel(filterParams);
+  const { data: messagesData, isLoading: messagesLoading } =
+    useMessageAnalytics(filterParams);
+  const { data: sendersData, isLoading: sendersLoading } =
+    useSenderAnalytics(filterParams);
+  const { data: campaignsAnalytics, isLoading: campaignsAnalyticsLoading } =
+    useCampaignAnalytics(filterParams);
   const { data: dailyData } = useDailyActivity(filterParams);
   const { data: responseSpeedData } = useResponseSpeed(filterParams);
   const { data: conversationDepthData } = useConversationDepth(filterParams);
-  const { data: aiModelsData, isLoading: aiModelsLoading } = useAIModelAnalytics({
-    ...filterParams,
-    sender_id: senderFilter === "all" ? undefined : senderFilter,
-  });
+  const { data: aiModelsData, isLoading: aiModelsLoading } =
+    useAIModelAnalytics({
+      ...filterParams,
+      sender_id: senderFilter === "all" ? undefined : senderFilter,
+    });
   const { data: editedData } = useEditedComparison(filterParams);
   const { data: todData } = useTimeOfDay(filterParams);
   const { data: effortData } = useEffortOutcome(filterParams);
   const { data: trendData } = useTrendOverTime(filterParams);
-  const { data: followerTiersData, isLoading: tiersLoading } = useFollowerTiers(filterParams);
-  const { data: promptLabelsData, isLoading: labelsLoading } = usePromptLabels(filterParams);
-  const { data: questionTypesData, isLoading: questionTypesLoading } = useQuestionTypes(filterParams);
+  const { data: followerTiersData, isLoading: tiersLoading } =
+    useFollowerTiers(filterParams);
+  const { data: promptLabelsData, isLoading: labelsLoading } =
+    usePromptLabels(filterParams);
+  const { data: questionTypesData, isLoading: questionTypesLoading } =
+    useQuestionTypes(filterParams);
 
   const messages = messagesData?.messages || [];
   const senders = sendersData?.senders || [];
@@ -271,71 +298,88 @@ export default function OutboundAnalytics() {
 
   useEffect(() => {
     if (!stickyRef.current) return;
-    const ro = new ResizeObserver(() => setStickyH(stickyRef.current?.offsetHeight ?? 0));
+    const ro = new ResizeObserver(() =>
+      setStickyH(stickyRef.current?.offsetHeight ?? 0),
+    );
     ro.observe(stickyRef.current);
     return () => ro.disconnect();
   }, []);
 
   return (
     <Tabs defaultValue="funnel">
-    <div className="flex flex-1 flex-col">
-      {/* Header — unified filter toolbar (§10) */}
-      <div ref={stickyRef} className="sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3 md:gap-4">
-          <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 md:rounded-lg md:border md:border-[#E2E8F0] md:bg-card md:px-3 md:py-2">
-            <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
-            <div className="flex flex-col gap-1 w-full md:w-52">
-              <Label className="text-[10px] text-muted-foreground">Campaign</Label>
-              <Select value={campaignId} onValueChange={setCampaignId}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="All Campaigns" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Campaigns</SelectItem>
-                  {campaigns.map((c) => (
-                    <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-px h-8 bg-border hidden md:block" />
-            <div className="flex flex-col gap-1">
-              <Label className="text-[10px] text-muted-foreground">Date Range</Label>
-              <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-                <DateFilter value={dateRange} onChange={setDateRange} />
+      <div className="flex flex-1 flex-col">
+        {/* Header — unified filter toolbar (§10) */}
+        <div
+          ref={stickyRef}
+          className="sticky top-16 z-50 bg-background border-b border-border"
+        >
+          <div className="px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3 md:gap-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 md:rounded-lg md:border md:border-[#E2E8F0] md:bg-card md:px-3 md:py-2">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
+              <div className="flex flex-col gap-1 w-full md:w-52">
+                <Label className="text-[10px] text-muted-foreground">
+                  Campaign
+                </Label>
+                <Select value={campaignId} onValueChange={setCampaignId}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="All Campaigns" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Campaigns</SelectItem>
+                    {campaigns.map((c) => (
+                      <SelectItem key={c._id} value={c._id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-px h-8 bg-border hidden md:block" />
+              <div className="flex flex-col gap-1">
+                <Label className="text-[10px] text-muted-foreground">
+                  Date Range
+                </Label>
+                <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+                  <DateFilter value={dateRange} onChange={setDateRange} />
+                </div>
               </div>
             </div>
           </div>
+          <div className="px-4 md:px-6 pb-2 overflow-x-auto">
+            <TabsList>
+              <TabsTrigger value="funnel" className="gap-1.5">
+                <Filter className="h-3.5 w-3.5" />
+                Funnel
+              </TabsTrigger>
+              <TabsTrigger value="messages" className="gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5" />
+                Messages
+              </TabsTrigger>
+              <TabsTrigger value="senders" className="gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                Senders
+              </TabsTrigger>
+              <TabsTrigger value="campaigns" className="gap-1.5">
+                <Megaphone className="h-3.5 w-3.5" />
+                Campaigns
+              </TabsTrigger>
+              <TabsTrigger value="ai-models" className="gap-1.5">
+                <Sparkles className="h-3.5 w-3.5" />
+                AI Models
+              </TabsTrigger>
+              <TabsTrigger value="insights" className="gap-1.5">
+                <BarChart3 className="h-3.5 w-3.5" />
+                Insights
+              </TabsTrigger>
+              <TabsTrigger value="ai-report" className="gap-1.5">
+                <Sparkles className="h-3.5 w-3.5" />
+                AI Report
+              </TabsTrigger>
+            </TabsList>
+          </div>
         </div>
-        <div className="px-4 md:px-6 pb-2 overflow-x-auto">
-          <TabsList>
-            <TabsTrigger value="funnel" className="gap-1.5">
-              <Filter className="h-3.5 w-3.5" />Funnel
-            </TabsTrigger>
-            <TabsTrigger value="messages" className="gap-1.5">
-              <MessageSquare className="h-3.5 w-3.5" />Messages
-            </TabsTrigger>
-            <TabsTrigger value="senders" className="gap-1.5">
-              <Users className="h-3.5 w-3.5" />Senders
-            </TabsTrigger>
-            <TabsTrigger value="campaigns" className="gap-1.5">
-              <Megaphone className="h-3.5 w-3.5" />Campaigns
-            </TabsTrigger>
-            <TabsTrigger value="ai-models" className="gap-1.5">
-              <Sparkles className="h-3.5 w-3.5" />AI Models
-            </TabsTrigger>
-            <TabsTrigger value="insights" className="gap-1.5">
-              <BarChart3 className="h-3.5 w-3.5" />Insights
-            </TabsTrigger>
-            <TabsTrigger value="ai-report" className="gap-1.5">
-              <Sparkles className="h-3.5 w-3.5" />AI Report
-            </TabsTrigger>
-          </TabsList>
-        </div>
-      </div>
 
-      <div className="flex-1 p-4 md:p-6 space-y-6" style={{ paddingTop: stickyH }}>
-
+        <div className="flex-1 p-4 md:p-6 space-y-6">
           {/* ─── Funnel Tab ─── */}
           <TabsContent value="funnel">
             {funnelLoading ? (
@@ -343,14 +387,18 @@ export default function OutboundAnalytics() {
             ) : funnel ? (
               <div className="space-y-6">
                 {/* AI Insight Banner (§4) */}
-                {insight && <InsightBanner text={insight.text} type={insight.type} />}
+                {insight && (
+                  <InsightBanner text={insight.text} type={insight.type} />
+                )}
 
                 {/* 5 KPI Cards: Messaged → Replied → Link Sent → Converted → Revenue (§1) */}
                 <div className="flex flex-col md:flex-row md:items-center gap-1.5">
                   <FunnelCard
                     label="Messaged"
                     value={funnel.messaged}
-                    icon={<Send className="h-4 w-4" style={{ color: "#4F6EF7" }} />}
+                    icon={
+                      <Send className="h-4 w-4" style={{ color: "#4F6EF7" }} />
+                    }
                     zeroMuted={funnel.messaged === 0}
                   />
                   <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
@@ -358,51 +406,108 @@ export default function OutboundAnalytics() {
                     label="Replied"
                     value={funnel.replied}
                     sub={fmtPct(funnel.replied, funnel.messaged)}
-                    icon={<MessageCircle className="h-4 w-4" style={{ color: "#7B68EE" }} />}
-                    benchmark={funnel.messaged > 0 ? { value: pct(funnel.replied, funnel.messaged), avg: BENCHMARK_REPLY_RATE } : undefined}
+                    icon={
+                      <MessageCircle
+                        className="h-4 w-4"
+                        style={{ color: "#7B68EE" }}
+                      />
+                    }
+                    benchmark={
+                      funnel.messaged > 0
+                        ? {
+                            value: pct(funnel.replied, funnel.messaged),
+                            avg: BENCHMARK_REPLY_RATE,
+                          }
+                        : undefined
+                    }
                     zeroMuted={funnel.replied === 0}
                   />
                   <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
                   <FunnelCard
                     label="Link Sent"
                     value={linkSent}
-                    sub={funnel.replied > 0 ? `${pct(linkSent, funnel.replied).toFixed(1)}% of replies` : undefined}
-                    icon={<Link2 className="h-4 w-4" style={{ color: "#F5A623" }} />}
-                    benchmark={funnel.replied > 0 ? { value: pct(linkSent, funnel.replied), avg: BENCHMARK_LINK_SENT_RATE } : undefined}
-                    zeroPrompt={linkSent === 0 && funnel.replied > 0 ? "No links sent yet" : undefined}
+                    sub={
+                      funnel.replied > 0
+                        ? `${pct(linkSent, funnel.replied).toFixed(1)}% of replies`
+                        : undefined
+                    }
+                    icon={
+                      <Link2 className="h-4 w-4" style={{ color: "#F5A623" }} />
+                    }
+                    benchmark={
+                      funnel.replied > 0
+                        ? {
+                            value: pct(linkSent, funnel.replied),
+                            avg: BENCHMARK_LINK_SENT_RATE,
+                          }
+                        : undefined
+                    }
+                    zeroPrompt={
+                      linkSent === 0 && funnel.replied > 0
+                        ? "No links sent yet"
+                        : undefined
+                    }
                     zeroMuted={linkSent === 0}
                   />
                   <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
                   <FunnelCard
                     label="Converted"
                     value={funnel.booked}
-                    sub={linkSent > 0 ? fmtPct(funnel.booked, linkSent) : funnel.replied > 0 ? fmtPct(funnel.booked, funnel.replied) : undefined}
-                    icon={<CalendarCheck className="h-4 w-4" style={{ color: "#22C55E" }} />}
-                    zeroPrompt={funnel.booked === 0 && funnel.replied > 0 ? "Focus on follow-up" : undefined}
+                    sub={
+                      linkSent > 0
+                        ? fmtPct(funnel.booked, linkSent)
+                        : funnel.replied > 0
+                          ? fmtPct(funnel.booked, funnel.replied)
+                          : undefined
+                    }
+                    icon={
+                      <CalendarCheck
+                        className="h-4 w-4"
+                        style={{ color: "#22C55E" }}
+                      />
+                    }
+                    zeroPrompt={
+                      funnel.booked === 0 && funnel.replied > 0
+                        ? "Focus on follow-up"
+                        : undefined
+                    }
                     zeroMuted={funnel.booked === 0}
                   />
                   <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:block" />
                   <FunnelCard
                     label="Revenue"
-                    value={(funnel.contract_value ?? 0) > 0 ? `$${(funnel.contract_value ?? 0).toLocaleString()}` : "$0"}
+                    value={
+                      (funnel.contract_value ?? 0) > 0
+                        ? `$${(funnel.contract_value ?? 0).toLocaleString()}`
+                        : "$0"
+                    }
                     sub={
                       (funnel.contract_value ?? 0) > 0
                         ? `${funnel.contracts ?? 0} deal${(funnel.contracts ?? 0) !== 1 ? "s" : ""}`
                         : funnel.replied > 0
-                        ? `Est. pipeline: $${(funnel.replied * EST_DEAL_VALUE).toLocaleString()}`
-                        : `${funnel.contracts ?? 0} deals`
+                          ? `Est. pipeline: $${(funnel.replied * EST_DEAL_VALUE).toLocaleString()}`
+                          : `${funnel.contracts ?? 0} deals`
                     }
-                    icon={<DollarSign className="h-5 w-5" style={{ color: "#22C55E" }} />}
+                    icon={
+                      <DollarSign
+                        className="h-5 w-5"
+                        style={{ color: "#22C55E" }}
+                      />
+                    }
                     highlight
                     zeroMuted={(funnel.contract_value ?? 0) === 0}
-                    subGreen={(funnel.contract_value ?? 0) === 0 && funnel.replied > 0}
+                    subGreen={
+                      (funnel.contract_value ?? 0) === 0 && funnel.replied > 0
+                    }
                   />
                 </div>
 
                 {/* Stage Conversion Rates — 4 metrics (§3) */}
                 <Card>
                   <CardContent className="py-4 px-6">
-                    <h3 className="text-sm font-medium mb-4">Stage Conversion Rates</h3>
+                    <h3 className="text-sm font-medium mb-4">
+                      Stage Conversion Rates
+                    </h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                       <ConversionRateCard
                         label="Messaged → Replied"
@@ -438,29 +543,59 @@ export default function OutboundAnalytics() {
                 {/* Contextual CTA Banner (§5) */}
                 <FunnelCTA funnel={funnel} linkSent={linkSent} />
 
-                <CollapsibleSection title="Activity Heatmap" open={showHeatmap} onToggle={() => setShowHeatmap(!showHeatmap)}>
+                <CollapsibleSection
+                  title="Activity Heatmap"
+                  open={showHeatmap}
+                  onToggle={() => setShowHeatmap(!showHeatmap)}
+                >
                   <ActivityHeatmap data={dailyDays} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title="Daily Performance" open={showDailyChart} onToggle={() => setShowDailyChart(!showDailyChart)}>
+                <CollapsibleSection
+                  title="Daily Performance"
+                  open={showDailyChart}
+                  onToggle={() => setShowDailyChart(!showDailyChart)}
+                >
                   <DailyPerformanceChart data={dailyDays} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title="Rolling Performance Trends" open={showTrend} onToggle={() => setShowTrend(!showTrend)}>
+                <CollapsibleSection
+                  title="Rolling Performance Trends"
+                  open={showTrend}
+                  onToggle={() => setShowTrend(!showTrend)}
+                >
                   <TrendOverTime data={trends} />
                 </CollapsibleSection>
 
                 <div className="grid gap-6 lg:grid-cols-2">
-                  <CollapsibleSection title="Response Speed" open={showResponseSpeed} onToggle={() => setShowResponseSpeed(!showResponseSpeed)}>
-                    {responseSpeedData && <ResponseSpeedPanel data={responseSpeedData} />}
+                  <CollapsibleSection
+                    title="Response Speed"
+                    open={showResponseSpeed}
+                    onToggle={() => setShowResponseSpeed(!showResponseSpeed)}
+                  >
+                    {responseSpeedData && (
+                      <ResponseSpeedPanel data={responseSpeedData} />
+                    )}
                   </CollapsibleSection>
-                  <CollapsibleSection title="Conversation Depth" open={showConversationDepth} onToggle={() => setShowConversationDepth(!showConversationDepth)}>
-                    {conversationDepthData && <ConversationDepthMetrics data={conversationDepthData} />}
+                  <CollapsibleSection
+                    title="Conversation Depth"
+                    open={showConversationDepth}
+                    onToggle={() =>
+                      setShowConversationDepth(!showConversationDepth)
+                    }
+                  >
+                    {conversationDepthData && (
+                      <ConversationDepthMetrics data={conversationDepthData} />
+                    )}
                   </CollapsibleSection>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  <CollapsibleSection title="Effort vs Outcome" open={showEffort} onToggle={() => setShowEffort(!showEffort)}>
+                  <CollapsibleSection
+                    title="Effort vs Outcome"
+                    open={showEffort}
+                    onToggle={() => setShowEffort(!showEffort)}
+                  >
                     {effortData && <EffortOutcomePanel data={effortData} />}
                   </CollapsibleSection>
                   {editedData && <EditedComparison data={editedData} />}
@@ -482,24 +617,42 @@ export default function OutboundAnalytics() {
                       <TableHead className="w-[45%]">Message</TableHead>
                       <TableHead className="text-right">Sent</TableHead>
                       <TableHead className="text-right">Replied</TableHead>
-                      <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleMsgSort("reply_rate")}>
+                      <TableHead
+                        className="text-right cursor-pointer select-none hover:text-foreground"
+                        onClick={() => handleMsgSort("reply_rate")}
+                      >
                         <div className="flex items-center justify-end gap-1">
                           Reply Rate
-                          <SortIndicator field="reply_rate" current={msgSortField} dir={msgSortDir} />
+                          <SortIndicator
+                            field="reply_rate"
+                            current={msgSortField}
+                            dir={msgSortDir}
+                          />
                         </div>
                       </TableHead>
                       <TableHead className="text-right">Converted</TableHead>
-                      <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleMsgSort("book_rate")}>
+                      <TableHead
+                        className="text-right cursor-pointer select-none hover:text-foreground"
+                        onClick={() => handleMsgSort("book_rate")}
+                      >
                         <div className="flex items-center justify-end gap-1">
                           Conv. Rate
-                          <SortIndicator field="book_rate" current={msgSortField} dir={msgSortDir} />
+                          <SortIndicator
+                            field="book_rate"
+                            current={msgSortField}
+                            dir={msgSortDir}
+                          />
                         </div>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {sortedMessages.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="h-24 text-center">No message data available.</TableCell></TableRow>
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-24 text-center">
+                          No message data available.
+                        </TableCell>
+                      </TableRow>
                     ) : (
                       sortedMessages.map((m, i) => (
                         <TableRow key={i}>
@@ -507,19 +660,41 @@ export default function OutboundAnalytics() {
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className="block truncate">{m.message}</span>
+                                  <span className="block truncate">
+                                    {m.message}
+                                  </span>
                                 </TooltipTrigger>
-                                <TooltipContent side="bottom" className="max-w-[600px] whitespace-pre-wrap text-xs">
+                                <TooltipContent
+                                  side="bottom"
+                                  className="max-w-[600px] whitespace-pre-wrap text-xs"
+                                >
                                   {m.message}
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </TableCell>
                           <TableCell className="text-right">{m.sent}</TableCell>
-                          <TableCell className="text-right">{m.replied}</TableCell>
-                          <TableCell className={`text-right font-medium ${rateColor(m.reply_rate)}`}>{fmtRate(m.reply_rate)}</TableCell>
-                          <TableCell className={cn("text-right", (m.booked ?? 0) === 0 && "text-[#A0AEC0]")}>{m.booked ?? 0}</TableCell>
-                          <TableCell className={`text-right font-medium ${rateColor(m.book_rate)}`}>{fmtRate(m.book_rate)}</TableCell>
+                          <TableCell className="text-right">
+                            {m.replied}
+                          </TableCell>
+                          <TableCell
+                            className={`text-right font-medium ${rateColor(m.reply_rate)}`}
+                          >
+                            {fmtRate(m.reply_rate)}
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              "text-right",
+                              (m.booked ?? 0) === 0 && "text-[#A0AEC0]",
+                            )}
+                          >
+                            {m.booked ?? 0}
+                          </TableCell>
+                          <TableCell
+                            className={`text-right font-medium ${rateColor(m.book_rate)}`}
+                          >
+                            {fmtRate(m.book_rate)}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -549,17 +724,38 @@ export default function OutboundAnalytics() {
                   </TableHeader>
                   <TableBody>
                     {senders.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="h-24 text-center">No sender data available.</TableCell></TableRow>
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-24 text-center">
+                          No sender data available.
+                        </TableCell>
+                      </TableRow>
                     ) : (
                       senders.map((s) => (
                         <TableRow key={s.sender_id}>
-                          <TableCell className="font-medium">@{s.ig_username}</TableCell>
+                          <TableCell className="font-medium">
+                            @{s.ig_username}
+                          </TableCell>
                           <TableCell>{s.display_name || "—"}</TableCell>
                           <TableCell className="text-right">{s.sent}</TableCell>
-                          <TableCell className="text-right">{s.replied}</TableCell>
-                          <TableCell className={`text-right font-medium ${rateColor(s.reply_rate)}`}>{fmtRate(s.reply_rate)}</TableCell>
-                          <TableCell className={cn("text-right", (s.booked ?? 0) === 0 && "text-[#A0AEC0]")}>{s.booked ?? 0}</TableCell>
-                          <TableCell className="text-right">{fmtRate(s.book_rate)}</TableCell>
+                          <TableCell className="text-right">
+                            {s.replied}
+                          </TableCell>
+                          <TableCell
+                            className={`text-right font-medium ${rateColor(s.reply_rate)}`}
+                          >
+                            {fmtRate(s.reply_rate)}
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              "text-right",
+                              (s.booked ?? 0) === 0 && "text-[#A0AEC0]",
+                            )}
+                          >
+                            {s.booked ?? 0}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {fmtRate(s.book_rate)}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -591,32 +787,64 @@ export default function OutboundAnalytics() {
                   </TableHeader>
                   <TableBody>
                     {campaignPerf.length === 0 ? (
-                      <TableRow><TableCell colSpan={9} className="h-24 text-center">No campaign data available.</TableCell></TableRow>
+                      <TableRow>
+                        <TableCell colSpan={9} className="h-24 text-center">
+                          No campaign data available.
+                        </TableCell>
+                      </TableRow>
                     ) : (
                       campaignPerf.map((c) => (
                         <TableRow key={c.campaign_id}>
-                          <TableCell className="font-medium">{c.name}</TableCell>
+                          <TableCell className="font-medium">
+                            {c.name}
+                          </TableCell>
                           <TableCell>
                             <Badge
-                              variant={c.status === "active" ? "default" : "outline"}
+                              variant={
+                                c.status === "active" ? "default" : "outline"
+                              }
                               className={
-                                c.status === "active" ? "bg-[#22C55E]/20 text-[#22C55E] border-[#22C55E]/30"
-                                : c.status === "paused" ? "bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/30"
-                                : c.status === "completed" ? "bg-[#4F6EF7]/20 text-[#4F6EF7] border-[#4F6EF7]/30"
-                                : ""
+                                c.status === "active"
+                                  ? "bg-[#22C55E]/20 text-[#22C55E] border-[#22C55E]/30"
+                                  : c.status === "paused"
+                                    ? "bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/30"
+                                    : c.status === "completed"
+                                      ? "bg-[#4F6EF7]/20 text-[#4F6EF7] border-[#4F6EF7]/30"
+                                      : ""
                               }
                             >
                               {c.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">{c.total_leads}</TableCell>
+                          <TableCell className="text-right">
+                            {c.total_leads}
+                          </TableCell>
                           <TableCell className="text-right">{c.sent}</TableCell>
-                          <TableCell className="text-right">{c.replied}</TableCell>
-                          <TableCell className={`text-right font-medium ${rateColor(c.reply_rate)}`}>{fmtRate(c.reply_rate)}</TableCell>
-                          <TableCell className={cn("text-right", (c.booked ?? 0) === 0 && "text-[#A0AEC0]")}>{c.booked ?? 0}</TableCell>
-                          <TableCell className="text-right">{fmtRate(c.book_rate)}</TableCell>
+                          <TableCell className="text-right">
+                            {c.replied}
+                          </TableCell>
+                          <TableCell
+                            className={`text-right font-medium ${rateColor(c.reply_rate)}`}
+                          >
+                            {fmtRate(c.reply_rate)}
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              "text-right",
+                              (c.booked ?? 0) === 0 && "text-[#A0AEC0]",
+                            )}
+                          >
+                            {c.booked ?? 0}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {fmtRate(c.book_rate)}
+                          </TableCell>
                           <TableCell className="text-right font-medium">
-                            {(c.contract_value ?? 0) > 0 ? `$${c.contract_value.toLocaleString()}` : <span className="text-[#A0AEC0]">—</span>}
+                            {(c.contract_value ?? 0) > 0 ? (
+                              `$${c.contract_value.toLocaleString()}`
+                            ) : (
+                              <span className="text-[#A0AEC0]">—</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))
@@ -634,11 +862,15 @@ export default function OutboundAnalytics() {
                 <div className="flex flex-col gap-1.5 w-full md:w-52">
                   <Label className="text-xs">Sender</Label>
                   <Select value={senderFilter} onValueChange={setSenderFilter}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="All Senders" /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="All Senders" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Senders</SelectItem>
                       {senders.map((s) => (
-                        <SelectItem key={s.sender_id} value={s.sender_id}>@{s.ig_username}</SelectItem>
+                        <SelectItem key={s.sender_id} value={s.sender_id}>
+                          @{s.ig_username}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -662,35 +894,57 @@ export default function OutboundAnalytics() {
           <TabsContent value="ai-report">
             <AIReportTab filterParams={filterParams} />
           </TabsContent>
+        </div>
       </div>
-    </div>
     </Tabs>
   );
 }
 
 // ─── Helper Components ───
 
-function InsightBanner({ text, type }: { text: string; type: "info" | "warning" | "success" }) {
+function InsightBanner({
+  text,
+  type,
+}: {
+  text: string;
+  type: "info" | "warning" | "success";
+}) {
   return (
     <div
       className={cn(
         "rounded-lg border-l-4 px-4 py-3 flex items-start gap-3",
-        type === "success" ? "bg-[#F0FDF4] border-l-[#22C55E]"
-          : type === "warning" ? "bg-[#FFF8EE] border-l-[#F59E0B]"
-          : "bg-[#EFF6FF] border-l-[#4F6EF7]"
+        type === "success"
+          ? "bg-[#F0FDF4] border-l-[#22C55E]"
+          : type === "warning"
+            ? "bg-[#FFF8EE] border-l-[#F59E0B]"
+            : "bg-[#EFF6FF] border-l-[#4F6EF7]",
       )}
     >
-      <Lightbulb className={cn(
-        "h-4 w-4 mt-0.5 shrink-0",
-        type === "success" ? "text-[#22C55E]" : type === "warning" ? "text-[#F59E0B]" : "text-[#4F6EF7]"
-      )} />
+      <Lightbulb
+        className={cn(
+          "h-4 w-4 mt-0.5 shrink-0",
+          type === "success"
+            ? "text-[#22C55E]"
+            : type === "warning"
+              ? "text-[#F59E0B]"
+              : "text-[#4F6EF7]",
+        )}
+      />
       <p className="text-sm text-foreground leading-relaxed">{text}</p>
     </div>
   );
 }
 
 function FunnelCard({
-  label, value, sub, icon, highlight, benchmark, zeroPrompt, zeroMuted, subGreen,
+  label,
+  value,
+  sub,
+  icon,
+  highlight,
+  benchmark,
+  zeroPrompt,
+  zeroMuted,
+  subGreen,
 }: {
   label: string;
   value: number | string;
@@ -707,24 +961,43 @@ function FunnelCard({
   const showMuted = zeroMuted && (isZeroNum || isZeroStr);
 
   return (
-    <Card className={cn(
-      "flex-1 min-w-0 transition-colors",
-      highlight && "bg-[#F0FDF4] border-[#22C55E]/20"
-    )}>
+    <Card
+      className={cn(
+        "flex-1 min-w-0 transition-colors",
+        highlight && "bg-[#F0FDF4] border-[#22C55E]/20",
+      )}
+    >
       <CardContent className="py-2.5 px-3 flex items-center gap-2.5">
         {icon}
         <div className="min-w-0">
-          <p className="text-[10px] text-muted-foreground leading-tight">{label}</p>
-          <p className={cn(
-            "font-bold leading-tight",
-            highlight ? "text-xl" : "text-lg",
-            showMuted && "text-[#A0AEC0]"
-          )}>
+          <p className="text-[10px] text-muted-foreground leading-tight">
+            {label}
+          </p>
+          <p
+            className={cn(
+              "font-bold leading-tight",
+              highlight ? "text-xl" : "text-lg",
+              showMuted && "text-[#A0AEC0]",
+            )}
+          >
             {value}
           </p>
-          {sub && <p className={cn("text-[10px] leading-tight", subGreen ? "text-[#22C55E]" : "text-muted-foreground")}>{sub}</p>}
-          {zeroPrompt && <p className="text-[10px] text-[#F59E0B] mt-0.5">{zeroPrompt}</p>}
-          {benchmark && <BenchmarkChip value={benchmark.value} avg={benchmark.avg} />}
+          {sub && (
+            <p
+              className={cn(
+                "text-[10px] leading-tight",
+                subGreen ? "text-[#22C55E]" : "text-muted-foreground",
+              )}
+            >
+              {sub}
+            </p>
+          )}
+          {zeroPrompt && (
+            <p className="text-[10px] text-[#F59E0B] mt-0.5">{zeroPrompt}</p>
+          )}
+          {benchmark && (
+            <BenchmarkChip value={benchmark.value} avg={benchmark.avg} />
+          )}
         </div>
       </CardContent>
     </Card>
@@ -735,20 +1008,31 @@ function BenchmarkChip({ value, avg }: { value: number; avg: number }) {
   if (value === 0) return null;
   const above = value >= avg;
   return (
-    <span className={cn(
-      "inline-flex items-center gap-0.5 text-[9px] font-medium mt-0.5 px-1.5 py-0.5 rounded-full",
-      above ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-[#FEF2F2] text-[#EF4444]"
-    )}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 text-[9px] font-medium mt-0.5 px-1.5 py-0.5 rounded-full",
+        above ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-[#FEF2F2] text-[#EF4444]",
+      )}
+    >
       {above ? "↑" : "↓"} {above ? "Above" : "Below"} avg ({avg}%)
     </span>
   );
 }
 
-function ConversionRateCard({ label, rate, benchmark, benchmarkLabel }: {
-  label: string; rate: number; benchmark: number; benchmarkLabel: string;
+function ConversionRateCard({
+  label,
+  rate,
+  benchmark,
+  benchmarkLabel,
+}: {
+  label: string;
+  rate: number;
+  benchmark: number;
+  benchmarkLabel: string;
 }) {
   const pctVal = Math.min(rate, 100);
-  const arcColor = rate === 0 ? "#EF4444" : rate >= benchmark ? "#22C55E" : "#EF4444";
+  const arcColor =
+    rate === 0 ? "#EF4444" : rate >= benchmark ? "#22C55E" : "#EF4444";
   const noData = rate === 0;
 
   return (
@@ -757,23 +1041,41 @@ function ConversionRateCard({ label, rate, benchmark, benchmarkLabel }: {
       <div className="relative w-[60px] h-[60px]">
         <svg viewBox="0 0 64 64" className="w-full h-full -rotate-90">
           {/* Background ring */}
-          <circle cx="32" cy="32" r="28" fill="none" stroke="#A0AEC0" strokeWidth="4" strokeOpacity="0.15" />
+          <circle
+            cx="32"
+            cy="32"
+            r="28"
+            fill="none"
+            stroke="#A0AEC0"
+            strokeWidth="4"
+            strokeOpacity="0.15"
+          />
           {noData ? (
             /* Red dot indicator for 0% (§12) */
             <circle cx="32" cy="4" r="3" fill="#EF4444" />
           ) : (
             <circle
-              cx="32" cy="32" r="28" fill="none"
-              strokeWidth="4" strokeLinecap="round"
+              cx="32"
+              cy="32"
+              r="28"
+              fill="none"
+              strokeWidth="4"
+              strokeLinecap="round"
               strokeDasharray={`${(pctVal / 100) * 175.9} 175.9`}
               stroke={arcColor}
             />
           )}
         </svg>
-        <span className={cn(
-          "absolute inset-0 flex items-center justify-center text-sm font-bold",
-          noData ? "text-[#A0AEC0]" : rate >= benchmark ? "text-[#22C55E]" : "text-[#EF4444]"
-        )}>
+        <span
+          className={cn(
+            "absolute inset-0 flex items-center justify-center text-sm font-bold",
+            noData
+              ? "text-[#A0AEC0]"
+              : rate >= benchmark
+                ? "text-[#22C55E]"
+                : "text-[#EF4444]",
+          )}
+        >
           {rate === 0 ? "0%" : `${rate.toFixed(1)}%`}
         </span>
       </div>
@@ -783,7 +1085,13 @@ function ConversionRateCard({ label, rate, benchmark, benchmarkLabel }: {
   );
 }
 
-function FunnelCTA({ funnel, linkSent }: { funnel: OutboundFunnelData; linkSent: number }) {
+function FunnelCTA({
+  funnel,
+  linkSent,
+}: {
+  funnel: OutboundFunnelData;
+  linkSent: number;
+}) {
   let text = "";
   let ctaLabel = "";
 
@@ -811,15 +1119,27 @@ function FunnelCTA({ funnel, linkSent }: { funnel: OutboundFunnelData; linkSent:
         <ArrowRight className="h-4 w-4 text-[#F59E0B] shrink-0 mt-0.5" />
         <span className="text-sm text-foreground">{text}</span>
       </div>
-      <Button variant="outline" size="sm" className="border-[#F59E0B]/40 text-[#F59E0B] hover:bg-[#F59E0B]/10 shrink-0 text-xs w-full md:w-auto">
+      <Button
+        variant="outline"
+        size="sm"
+        className="border-[#F59E0B]/40 text-[#F59E0B] hover:bg-[#F59E0B]/10 shrink-0 text-xs w-full md:w-auto"
+      >
         {ctaLabel}
       </Button>
     </div>
   );
 }
 
-function CollapsibleSection({ title, open, onToggle, children }: {
-  title: string; open: boolean; onToggle: () => void; children: React.ReactNode;
+function CollapsibleSection({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
 }) {
   return (
     <div>
@@ -828,10 +1148,14 @@ function CollapsibleSection({ title, open, onToggle, children }: {
         className={cn(
           "w-full flex items-center gap-2 text-sm font-medium transition-colors mb-3",
           "rounded-lg px-3 py-2.5 bg-muted/40 hover:bg-muted/60",
-          "text-muted-foreground hover:text-foreground"
+          "text-muted-foreground hover:text-foreground",
         )}
       >
-        {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        {open ? (
+          <ChevronUp className="h-4 w-4" />
+        ) : (
+          <ChevronDown className="h-4 w-4" />
+        )}
         {title}
       </button>
       {open && children}
@@ -839,7 +1163,20 @@ function CollapsibleSection({ title, open, onToggle, children }: {
   );
 }
 
-function SortIndicator({ field, current, dir }: { field: string; current: string; dir: SortDir }) {
-  if (field !== current) return <ArrowUpDown className="h-3 w-3 text-muted-foreground" />;
-  return dir === "desc" ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />;
+function SortIndicator({
+  field,
+  current,
+  dir,
+}: {
+  field: string;
+  current: string;
+  dir: SortDir;
+}) {
+  if (field !== current)
+    return <ArrowUpDown className="h-3 w-3 text-muted-foreground" />;
+  return dir === "desc" ? (
+    <ChevronDown className="h-3 w-3" />
+  ) : (
+    <ChevronUp className="h-3 w-3" />
+  );
 }

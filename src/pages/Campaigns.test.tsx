@@ -111,9 +111,9 @@ function renderPage() {
 }
 
 describe("Campaigns page", () => {
-  it("renders page header", () => {
+  it("renders stat line", () => {
     renderPage();
-    expect(screen.getByText("Campaigns")).toBeInTheDocument();
+    expect(screen.getByText(/2 campaigns/)).toBeInTheDocument();
   });
 
   it("renders stat line with campaign count", () => {
