@@ -506,3 +506,19 @@ Shows a purple sparkles icon next to each outbound account on the campaign edit 
 - **Frontend page:** `src/pages/CampaignEdit.tsx` (Outbound Accounts section)
 - **Frontend type:** `src/hooks/useOutboundAccounts.ts` (`OutboundAccount.isConnectedToAISetter`)
 - **Backend model:** `quddify-crm/models/OutboundAccount.js` (`isConnectedToAISetter`)
+
+---
+
+## Add Deep Scrape Leads to Campaign
+
+Adds an "Add to Campaign" button on each completed deep scrape job that has qualified leads. Opens a dialog to pick a campaign, then bulk-adds all qualified leads from that job to the selected campaign. Duplicates already in the campaign are skipped.
+
+### Location
+
+- **Frontend page:** `src/pages/DeepScraper.tsx` (Add to Campaign button + dialog)
+- **Frontend hook:** `src/hooks/useDeepScrapeJobs.ts` (`useAddDeepScrapeLeadsToCampaign`)
+- **Backend route:** `quddify-crm/routes/deep-scrape.js`
+
+### API
+
+- **`POST /api/deep-scrape/:id/add-to-campaign`** — Body: `{ campaign_id: string }`. Finds all qualified OutboundLeads linked to the job and bulk-inserts them as CampaignLeads. Returns `{ added, duplicates_skipped, total_qualified }`.

@@ -59,8 +59,17 @@ import {
   useDeepScrapeTargetStats,
   useSkipComments,
   useResumeComments,
+  useAddDeepScrapeLeadsToCampaign,
 } from "@/hooks/useDeepScrapeJobs";
 import type { DeepScrapeJob, DeepScrapeJobStatus, DeepScrapeLeadEntry } from "@/lib/types";
+import { useCampaigns } from "@/hooks/useCampaigns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { NewDeepScrapeDialog } from "@/components/deep-scraper/NewDeepScrapeDialog";
 import { TargetPickerDialog } from "@/components/deep-scraper/TargetPickerDialog";
 import { EditJobDialog } from "@/components/deep-scraper/EditJobDialog";
@@ -91,6 +100,7 @@ import {
   MessageSquare,
   CalendarClock,
   Inbox,
+  SendHorizontal,
 } from "lucide-react";
 
 const STATUS_BADGE: Record<DeepScrapeJobStatus, { label: string; className: string }> = {
@@ -763,6 +773,31 @@ export default function DeepScraper() {
   const skipCommentsMutation = useSkipComments();
   const resumeCommentsMutation = useResumeComments();
   const updateMutation = useUpdateDeepScrape();
+  const addToCampaignMutation = useAddDeepScrapeLeadsToCampaign();
+
+  // Add to Campaign dialog state
+  const [addToCampaignJobId, setAddToCampaignJobId] = useState<string | null>(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+  const { data: campaignsData } = useCampaigns({ limit: 100 });
+  const campaigns = campaignsData?.campaigns || [];
+
+  const handleAddToCampaign = async () => {
+    if (!addToCampaignJobId || !selectedCampaignId) return;
+    try {
+      const result = await addToCampaignMutation.mutateAsync({
+        jobId: addToCampaignJobId,
+        campaign_id: selectedCampaignId,
+      });
+      toast({
+        title: "Leads added to campaign",
+        description: `${result.added} added, ${result.duplicates_skipped} duplicates skipped`,
+      });
+      setAddToCampaignJobId(null);
+      setSelectedCampaignId("");
+    } catch (err: any) {
+      toast({ title: "Failed to add leads", description: err.message, variant: "destructive" });
+    }
+  };
 
   const { data: targetStatsData } = useDeepScrapeTargetStats();
 
@@ -1374,6 +1409,16 @@ export default function DeepScraper() {
                                     <MessageSquare className="h-3.5 w-3.5 text-purple-400" />
                                   </ActionBtn>
                                 )}
+                                {!active && job.stats.qualified > 0 && (
+                                  <ActionBtn
+                                    tooltip="Add to Campaign"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { setAddToCampaignJobId(job._id); setSelectedCampaignId(""); }}
+                                  >
+                                    <SendHorizontal className="h-3.5 w-3.5 text-blue-400" />
+                                  </ActionBtn>
+                                )}
                                 {!active && (
                                   <ActionBtn
                                     tooltip="Delete"
@@ -1542,6 +1587,47 @@ export default function DeepScraper() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add to Campaign Dialog */}
+      <Dialog open={!!addToCampaignJobId} onOpenChange={(open) => { if (!open) { setAddToCampaignJobId(null); setSelectedCampaignId(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Qualified Leads to Campaign</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              All qualified leads from this job will be added to the selected campaign. Duplicates will be skipped.
+            </p>
+            <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a campaign" />
+              </SelectTrigger>
+              <SelectContent>
+                {campaigns.map((c) => (
+                  <SelectItem key={c._id} value={c._id}>
+                    {c.name} ({c.status})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setAddToCampaignJobId(null); setSelectedCampaignId(""); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddToCampaign}
+              disabled={!selectedCampaignId || addToCampaignMutation.isPending}
+            >
+              {addToCampaignMutation.isPending ? (
+                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Adding...</>
+              ) : (
+                "Add Leads"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Job Dialog */}
       <EditJobDialog

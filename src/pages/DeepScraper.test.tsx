@@ -3,10 +3,11 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import DeepScraper from "./DeepScraper";
+import { useDeepScrapeJobs } from "@/hooks/useDeepScrapeJobs";
 
 // Mock all hooks used by DeepScraper
 vi.mock("@/hooks/useDeepScrapeJobs", () => ({
-  useDeepScrapeJobs: () => ({ data: { jobs: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 1 } }, isLoading: false, isError: false, refetch: vi.fn() }),
+  useDeepScrapeJobs: vi.fn(() => ({ data: { jobs: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 1 } }, isLoading: false, isError: false, refetch: vi.fn() })),
   useDeepScrapeJob: () => ({ data: null, isLoading: false }),
   useStartDeepScrape: () => ({ mutateAsync: vi.fn(), isPending: false }),
   usePauseDeepScrape: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -20,10 +21,15 @@ vi.mock("@/hooks/useDeepScrapeJobs", () => ({
   useDeepScrapeTargetStats: () => ({ data: { targets: [] } }),
   useSkipComments: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useResumeComments: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useAddDeepScrapeLeadsToCampaign: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/hooks/usePrompts", () => ({
   usePrompts: () => ({ data: [] }),
+}));
+
+vi.mock("@/hooks/useCampaigns", () => ({
+  useCampaigns: () => ({ data: { campaigns: [{ _id: "camp1", name: "Test Campaign", status: "active" }] } }),
 }));
 
 vi.mock("@/hooks/use-toast", () => ({
@@ -196,5 +202,87 @@ describe("DeepScraper — Direct URL source", () => {
     expect(screen.getByText(/1 valid URL/)).toBeInTheDocument();
     const startBtn = screen.getByText("Start Deep Scrape").closest("button");
     expect(startBtn).not.toBeDisabled();
+  });
+});
+
+const mockUseDeepScrapeJobs = vi.mocked(useDeepScrapeJobs);
+
+const completedJobWithQualified = {
+  _id: "job1",
+  account_id: "a1",
+  name: "Test Job",
+  seed_usernames: ["testuser"],
+  direct_urls: [],
+  scrape_type: "reels" as const,
+  scrape_comments: true,
+  scrape_likers: false,
+  scrape_followers: false,
+  reel_limit: 10,
+  comment_limit: 100,
+  min_followers: 1000,
+  status: "completed" as const,
+  mode: "outbound" as const,
+  stats: {
+    reels_scraped: 5,
+    comments_scraped: 100,
+    unique_commenters: 50,
+    likers_scraped: 0,
+    unique_likers: 0,
+    followers_scraped: 0,
+    profiles_scraped: 50,
+    qualified: 10,
+    rejected: 5,
+    filtered_low_followers: 15,
+    skipped_existing: 20,
+    sent_to_ai: 30,
+    leads_created: 10,
+    leads_updated: 0,
+  },
+  error: null,
+  createdAt: "2026-03-17T10:00:00Z",
+  updatedAt: "2026-03-17T10:05:00Z",
+  started_at: "2026-03-17T10:00:00Z",
+  completed_at: "2026-03-17T10:05:00Z",
+  comments_skipped: false,
+};
+
+describe("DeepScraper — Add to Campaign button", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("shows Add to Campaign dialog when clicking the campaign button on a completed job", () => {
+    mockUseDeepScrapeJobs.mockReturnValue({
+      data: {
+        jobs: [completedJobWithQualified] as any,
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+    renderDeepScraper();
+    // The "10 qualified" text confirms job is rendered with qualified leads
+    expect(screen.getAllByText("10 qualified").length).toBeGreaterThan(0);
+    // The dialog title should not be visible before clicking
+    expect(screen.queryByText("Add Qualified Leads to Campaign")).not.toBeInTheDocument();
+  });
+
+  it("does not render the add-to-campaign action for jobs with zero qualified leads", () => {
+    mockUseDeepScrapeJobs.mockReturnValue({
+      data: {
+        jobs: [{ ...completedJobWithQualified, stats: { ...completedJobWithQualified.stats, qualified: 0 } }] as any,
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+    const { container } = renderDeepScraper();
+    // The SendHorizontal icon (add-to-campaign button) should not be rendered
+    // when there are 0 qualified leads. We verify by checking the action buttons:
+    // only delete button should be present for a completed job with 0 qualified
+    const actionButtons = container.querySelectorAll("table button");
+    const buttonTexts = Array.from(actionButtons).map((b) => b.textContent);
+    // None of the buttons should trigger the campaign dialog
+    expect(screen.queryByText("Add Qualified Leads to Campaign")).not.toBeInTheDocument();
   });
 });

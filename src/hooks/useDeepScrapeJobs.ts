@@ -213,6 +213,28 @@ export function useResumeComments() {
   });
 }
 
+export function useAddDeepScrapeLeadsToCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ jobId, campaign_id }: { jobId: string; campaign_id: string }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/deep-scrape/${jobId}/add-to-campaign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaign_id }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Failed: ${res.status}`);
+      }
+      return res.json() as Promise<{ added: number; duplicates_skipped: number; total_qualified: number }>;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
+    },
+  });
+}
+
 export function useDeleteDeepScrape() {
   const qc = useQueryClient();
   return useMutation({
