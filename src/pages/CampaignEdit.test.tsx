@@ -40,11 +40,13 @@ vi.mock("@/hooks/useCampaigns", () => ({
 }));
 
 vi.mock("@/hooks/useOutboundAccounts", () => ({
-  useOutboundAccounts: () => ({ data: { accounts: [] } }),
+  useOutboundAccounts: vi.fn(() => ({ data: { accounts: [] } })),
 }));
 
 import { useCampaign } from "@/hooks/useCampaigns";
+import { useOutboundAccounts } from "@/hooks/useOutboundAccounts";
 const mockUseCampaign = vi.mocked(useCampaign);
+const mockUseOutboundAccounts = vi.mocked(useOutboundAccounts);
 
 function renderWithProviders(campaign: typeof baseCampaign) {
   mockUseCampaign.mockReturnValue({ data: campaign, isLoading: false } as any);
@@ -59,6 +61,34 @@ function renderWithProviders(campaign: typeof baseCampaign) {
     </QueryClientProvider>,
   );
 }
+
+describe("CampaignEdit – AI badge on outbound accounts", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("shows AI sparkle icon when account is connected to AI", () => {
+    mockUseOutboundAccounts.mockReturnValue({
+      data: {
+        accounts: [
+          { _id: "oa1", username: "aiuser", status: "ready", isConnectedToAISetter: true, linked_sender_status: null },
+        ],
+      },
+    } as any);
+    renderWithProviders(baseCampaign);
+    expect(screen.getByTitle("Connected to AI")).toBeInTheDocument();
+  });
+
+  it("does not show AI sparkle icon when account is not connected to AI", () => {
+    mockUseOutboundAccounts.mockReturnValue({
+      data: {
+        accounts: [
+          { _id: "oa2", username: "normaluser", status: "ready", isConnectedToAISetter: false, linked_sender_status: null },
+        ],
+      },
+    } as any);
+    renderWithProviders(baseCampaign);
+    expect(screen.queryByTitle("Connected to AI")).not.toBeInTheDocument();
+  });
+});
 
 describe("CampaignEdit – Skip Wait Time toggle", () => {
   beforeEach(() => vi.clearAllMocks());

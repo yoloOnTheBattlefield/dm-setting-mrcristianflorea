@@ -348,6 +348,9 @@ export default function CampaignEdit() {
                     >
                       {a.status}
                     </Badge>
+                    {a.isConnectedToAISetter && (
+                      <Sparkles className="h-3.5 w-3.5 text-purple-400" title="Connected to AI" />
+                    )}
                     {a.linked_sender_status === "online" && (
                       <span className="h-2 w-2 rounded-full bg-green-400 ml-auto" title="Browser connected" />
                     )}

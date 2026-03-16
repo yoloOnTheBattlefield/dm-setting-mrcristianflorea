@@ -494,3 +494,15 @@ On-demand AI analytics report that uses Claude Opus to analyze outreach data and
 - **`POST /api/analytics/outbound/ai-report`** — Body: `{ start_date?, end_date?, campaign_id? }`. Creates a report asynchronously. Returns `{ report_id, status: "generating" }`.
 - **`GET /api/analytics/outbound/ai-reports`** — Query: `limit` (default 10). Lists past reports with summaries, sorted by generated_at desc.
 - **`GET /api/analytics/outbound/ai-reports/:id`** — Returns full report document. Multi-tenant isolated by account_id.
+
+---
+
+## AI Badge on Campaign Edit Outbound Accounts
+
+Shows a purple sparkles icon next to each outbound account on the campaign edit page when that account is connected to an AI setter (`isConnectedToAISetter`).
+
+### Location
+
+- **Frontend page:** `src/pages/CampaignEdit.tsx` (Outbound Accounts section)
+- **Frontend type:** `src/hooks/useOutboundAccounts.ts` (`OutboundAccount.isConnectedToAISetter`)
+- **Backend model:** `quddify-crm/models/OutboundAccount.js` (`isConnectedToAISetter`)
