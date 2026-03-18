@@ -53,7 +53,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (accountId === user?.account_id) return
     try {
       await switchAccount(accountId)
-      queryClient.clear()
+      queryClient.invalidateQueries()
       toast({ title: "Account switched", description: "You are now viewing a different account." })
     } catch {
       toast({ title: "Switch failed", description: "Could not switch accounts.", variant: "destructive" })
