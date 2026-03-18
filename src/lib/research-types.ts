@@ -26,6 +26,7 @@ export interface ResearchPost {
   commentsCount: number;
   likesCount: number;
   playsCount?: number;
+  viralityScore: number;
   postedAt: string;
   reelUrl?: string;
   keywordDistribution: { keyword: string; count: number }[];
@@ -124,6 +125,6 @@ export interface KeywordDetailData {
   suggestion: string;
 }
 
-export type PostSortBy = "comments" | "keyword_repetition" | "newest";
+export type PostSortBy = "comments" | "keyword_repetition" | "newest" | "views" | "virality";
 export type IdeaCategory = IdeaItem["category"];
 export type AlertType = ResearchAlert["type"];

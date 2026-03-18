@@ -34,6 +34,8 @@ export function useResearchPosts(params: PostFilters) {
         const sortMap: Record<string, string> = {
           newest: "newest",
           comments: "most_comments",
+          views: "most_views",
+          virality: "virality",
           keyword_repetition: "newest",
         };
         sp.append("sort_by", sortMap[params.sortBy] || "newest");

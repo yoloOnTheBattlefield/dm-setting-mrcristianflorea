@@ -561,3 +561,32 @@ Comprehensive UI improvements to the Research Posts Library page (`/research/pos
 
 - **Frontend page:** `src/pages/research/PostsLibrary.tsx`
 - **Type update:** `src/lib/research-types.ts` (`playsCount` added to `ResearchPost`)
+
+---
+
+## Virality Score Algorithm
+
+Per-post virality score that measures how much a post outperforms its account's baseline engagement. Uses per-competitor averages as the baseline so a small account going viral is scored the same as a large account going viral.
+
+### Formula
+
+```
+viralityScore = 0.5 × (views / avgViews) + 0.3 × (likes / avgLikes) + 0.2 × (comments / avgComments)
+```
+
+Where averages are computed per-competitor across all their tracked posts. Score of ~1.0 = normal, 2–3 = strong performer, 3+ = viral.
+
+### Changes
+
+- Backend computes per-competitor averages via aggregation, returns `viralityScore` with each post
+- `sort_by=virality` sorts all matching posts by score (computed in-memory) with proper pagination
+- Default sort changed from "newest" to "Most Viral"
+- Virality column in table with color-coded badges: gray (<1.5×), amber (1.5–3×), red with flame icon (3×+)
+- Column header is sortable (client-side asc/desc toggle)
+
+### Location
+
+- **Backend route:** `quddify-crm/routes/research.js` (`GET /api/research/posts`)
+- **Frontend page:** `src/pages/research/PostsLibrary.tsx`
+- **Frontend type:** `src/lib/research-types.ts` (`viralityScore` added to `ResearchPost`, `"virality"` added to `PostSortBy`)
+- **Frontend hook:** `src/hooks/useResearchPosts.ts` (`virality` → `virality` mapping)

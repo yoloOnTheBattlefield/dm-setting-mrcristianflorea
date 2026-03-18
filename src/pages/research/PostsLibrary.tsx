@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
-import { Search, ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, ExternalLink, ChevronUp, ChevronDown, Flame } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 
 const ALL_VALUE = "__all__";
 
-type ColumnSortField = "commentsCount" | "likesCount" | "playsCount";
+type ColumnSortField = "commentsCount" | "likesCount" | "playsCount" | "viralityScore";
 type SortDirection = "asc" | "desc";
 
 function typeBadgeClass(postType: string) {
@@ -81,7 +81,7 @@ export default function PostsLibrary() {
   const [ctaType, setCtaType] = useState<string>("");
   const [hasLeadMagnet, setHasLeadMagnet] = useState<string>("");
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<PostSortBy>("newest");
+  const [sortBy, setSortBy] = useState<PostSortBy>("virality");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [columnSort, setColumnSort] = useState<{
@@ -142,7 +142,7 @@ export default function PostsLibrary() {
     setCtaType("");
     setHasLeadMagnet("");
     setSearch("");
-    setSortBy("newest");
+    setSortBy("virality");
     setPage(1);
     setLimit(10);
     setColumnSort(null);
@@ -356,6 +356,8 @@ export default function PostsLibrary() {
                 <SelectContent>
                   <SelectItem value="newest">Newest</SelectItem>
                   <SelectItem value="comments">Most Comments</SelectItem>
+                  <SelectItem value="views">Most Views</SelectItem>
+                  <SelectItem value="virality">Most Viral</SelectItem>
                   <SelectItem value="keyword_repetition">
                     Keyword Repetition
                   </SelectItem>
@@ -458,6 +460,24 @@ export default function PostsLibrary() {
                             ))}
                         </div>
                       </TableHead>
+                      <TableHead
+                        className={cn(
+                          "text-right cursor-pointer select-none hover:text-foreground",
+                          columnSort?.field === "viralityScore" &&
+                            "text-foreground font-semibold",
+                        )}
+                        onClick={() => toggleColumnSort("viralityScore")}
+                      >
+                        <div className="flex items-center justify-end gap-1">
+                          Virality
+                          {columnSort?.field === "viralityScore" &&
+                            (columnSort.direction === "asc" ? (
+                              <ChevronUp className="h-3.5 w-3.5" />
+                            ) : (
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            ))}
+                        </div>
+                      </TableHead>
                       <TableHead>Posted</TableHead>
                       <TableHead className="w-10">Link</TableHead>
                     </TableRow>
@@ -531,6 +551,22 @@ export default function PostsLibrary() {
                           {post.playsCount != null
                             ? post.playsCount.toLocaleString()
                             : ""}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {post.viralityScore >= 3 ? (
+                            <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-transparent gap-1">
+                              <Flame className="h-3 w-3" />
+                              {post.viralityScore}×
+                            </Badge>
+                          ) : post.viralityScore >= 1.5 ? (
+                            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-transparent">
+                              {post.viralityScore}×
+                            </Badge>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              {post.viralityScore}×
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {format(new Date(post.postedAt), "MMM d, yyyy")}
