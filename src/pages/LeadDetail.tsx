@@ -241,7 +241,13 @@ function OutboundLeadLinker({
         body: JSON.stringify({ outbound_lead_id: outboundId }),
       });
       if (res.ok) {
-        toast({ title: "Linked", description: "Outbound lead linked." });
+        // Mark the outbound lead as replied
+        await fetchWithAuth(`${API_URL}/outbound-leads/${outboundId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ replied: true }),
+        }).catch(() => {}); // best-effort, don't block linking
+        toast({ title: "Linked", description: "Outbound lead linked and marked as replied." });
         setSearch(""); setResults([]); setAutoResults([]); setShowResults(false);
         onLinked();
       } else {
