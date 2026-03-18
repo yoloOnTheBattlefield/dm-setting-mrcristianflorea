@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
@@ -26,6 +26,8 @@ import {
   X,
   Send,
   Check,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -355,6 +357,7 @@ function OutboundLeadLinker({
 
 export default function LeadDetail() {
   const { contactId } = useParams<{ contactId: string }>();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -367,6 +370,39 @@ export default function LeadDetail() {
   const [taskDueDate, setTaskDueDate] = useState("");
   const [showFollowUpInput, setShowFollowUpInput] = useState(false);
   const [followUpDate, setFollowUpDate] = useState("");
+
+  // Fetch lead IDs for prev/next navigation
+  const { data: leadIds = [] } = useQuery({
+    queryKey: ["lead-ids"],
+    queryFn: async () => {
+      const res = await fetchWithAuth(`${API_URL}/leads?limit=500&sort_by=date_created&sort_order=desc`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.leads || data).map((l: { _id: string }) => l._id);
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const currentIndex = contactId ? leadIds.indexOf(contactId) : -1;
+  const prevLeadId = currentIndex > 0 ? leadIds[currentIndex - 1] : null;
+  const nextLeadId = currentIndex >= 0 && currentIndex < leadIds.length - 1 ? leadIds[currentIndex + 1] : null;
+
+  // Keyboard navigation (left/right arrows)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Don't navigate when typing in an input/textarea
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      if (e.key === "ArrowLeft" && prevLeadId) {
+        navigate(`/lead/${prevLeadId}`);
+      } else if (e.key === "ArrowRight" && nextLeadId) {
+        navigate(`/lead/${nextLeadId}`);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [prevLeadId, nextLeadId, navigate]);
 
   const {
     data: lead,
@@ -544,16 +580,46 @@ export default function LeadDetail() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
-      {/* Breadcrumb */}
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild><Link to="/contacts/all">Leads</Link></BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>{leadName}</BreadcrumbPage></BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      {/* Breadcrumb + prev/next nav */}
+      <div className="flex items-center justify-between">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild><Link to="/contacts/all">Leads</Link></BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbPage>{leadName}</BreadcrumbPage></BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 w-7 p-0"
+            disabled={!prevLeadId}
+            onClick={() => prevLeadId && navigate(`/lead/${prevLeadId}`)}
+            title="Previous lead (←)"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          {currentIndex >= 0 && leadIds.length > 0 && (
+            <span className="text-xs text-muted-foreground tabular-nums px-1">
+              {currentIndex + 1}/{leadIds.length}
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 w-7 p-0"
+            disabled={!nextLeadId}
+            onClick={() => nextLeadId && navigate(`/lead/${nextLeadId}`)}
+            title="Next lead (→)"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       {/* ── Header ── */}
       <div className="space-y-3">
