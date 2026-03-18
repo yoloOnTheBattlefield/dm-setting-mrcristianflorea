@@ -43,10 +43,10 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTeamMembers, useAddTeamMember, useUpdateTeamMember, useDeleteTeamMember } from "@/hooks/useTeamMembers";
+import { useTeamMembers, useAddTeamMember, useUpdateTeamMember, useDeleteTeamMember, useResetPassword } from "@/hooks/useTeamMembers";
 import { useClientTrackingEvents } from "@/hooks/useTracking";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Trash2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, RefreshCw, KeyRound } from "lucide-react";
 
 interface ClientData {
   account_id: string;
@@ -79,9 +79,12 @@ export default function ClientDetail() {
     has_outbound: false,
   });
   const { data: teamMembers = [], isLoading: isTeamLoading } = useTeamMembers(client?.account_id);
+  const [resetPasswordDialog, setResetPasswordDialog] = useState<{ open: boolean; userId: string; name: string }>({ open: false, userId: "", name: "" });
+  const [newPassword, setNewPassword] = useState("");
   const addMember = useAddTeamMember();
   const updateMember = useUpdateTeamMember();
   const deleteMember = useDeleteTeamMember();
+  const resetPassword = useResetPassword();
   const { data: trackingData, isLoading: isTrackingLoading, refetch: refetchTracking } = useClientTrackingEvents(client?.account_id);
   const [isTogglingOutbound, setIsTogglingOutbound] = useState(false);
   const [isTogglingResearch, setIsTogglingResearch] = useState(false);
@@ -222,6 +225,21 @@ export default function ClientDetail() {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to remove team member",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResetPassword = async () => {
+    try {
+      await resetPassword.mutateAsync({ userId: resetPasswordDialog.userId, new_password: newPassword });
+      toast({ title: "Success", description: `Password updated for ${resetPasswordDialog.name}` });
+      setResetPasswordDialog({ open: false, userId: "", name: "" });
+      setNewPassword("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reset password",
         variant: "destructive",
       });
     }
@@ -539,7 +557,7 @@ export default function ClientDetail() {
                       </TableCell>
                       <TableCell>{member.email}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        Team Member
+                        {member.role === 1 ? "Owner" : "Team Member"}
                       </TableCell>
                       <TableCell>
                         <Switch
@@ -549,32 +567,42 @@ export default function ClientDetail() {
                         />
                       </TableCell>
                       <TableCell>
-                        {member._id !== user?.id && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove team member?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently remove {member.first_name} {member.last_name} from this account. This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteMember(member._id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Remove
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Reset password"
+                            onClick={() => setResetPasswordDialog({ open: true, userId: member.user_id, name: `${member.first_name} ${member.last_name}` })}
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                          {member.role !== 1 && member._id !== user?.id && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remove team member?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently remove {member.first_name} {member.last_name} from this account. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteMember(member._id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Remove
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -661,6 +689,34 @@ export default function ClientDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={resetPasswordDialog.open} onOpenChange={(open) => { setResetPasswordDialog((prev) => ({ ...prev, open })); if (!open) setNewPassword(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {resetPasswordDialog.name}. They will need to use this new password to log in.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Label htmlFor="reset-password">New Password</Label>
+            <PasswordInput
+              id="reset-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Minimum 6 characters"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setResetPasswordDialog({ open: false, userId: "", name: "" }); setNewPassword(""); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleResetPassword} disabled={resetPassword.isPending || newPassword.length < 6}>
+              {resetPassword.isPending ? "Updating..." : "Update Password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
