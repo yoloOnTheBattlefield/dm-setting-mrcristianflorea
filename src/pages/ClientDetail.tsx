@@ -44,9 +44,11 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeamMembers, useAddTeamMember, useUpdateTeamMember, useDeleteTeamMember, useResetPassword } from "@/hooks/useTeamMembers";
+import { useInviteTeamMember } from "@/hooks/useInvitations";
 import { useClientTrackingEvents } from "@/hooks/useTracking";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Trash2, RefreshCw, KeyRound } from "lucide-react";
+import { DetailPageSkeleton, TableSkeleton } from "@/components/skeletons";
+import { ArrowLeft, Plus, Trash2, RefreshCw, KeyRound, Mail } from "lucide-react";
 
 interface ClientData {
   account_id: string;
@@ -85,6 +87,14 @@ export default function ClientDetail() {
   const updateMember = useUpdateTeamMember();
   const deleteMember = useDeleteTeamMember();
   const resetPassword = useResetPassword();
+  const inviteTeamMember = useInviteTeamMember();
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteMember, setInviteMember] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    has_outbound: false,
+  });
   const { data: trackingData, isLoading: isTrackingLoading, refetch: refetchTracking } = useClientTrackingEvents(client?.account_id);
   const [isTogglingOutbound, setIsTogglingOutbound] = useState(false);
   const [isTogglingResearch, setIsTogglingResearch] = useState(false);
@@ -149,6 +159,31 @@ export default function ClientDetail() {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to add team member",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle invite team member
+  const handleInviteMember = async () => {
+    if (!client) return;
+    try {
+      await inviteTeamMember.mutateAsync({
+        email: inviteMember.email,
+        first_name: inviteMember.first_name,
+        last_name: inviteMember.last_name,
+        type: "team_member",
+        account_id: client.account_id,
+        role: 2,
+        has_outbound: inviteMember.has_outbound,
+      });
+      toast({ title: "Invitation sent", description: `Invite email sent to ${inviteMember.email}` });
+      setInviteMember({ first_name: "", last_name: "", email: "", has_outbound: false });
+      setInviteDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send invitation",
         variant: "destructive",
       });
     }
@@ -312,14 +347,7 @@ export default function ClientDetail() {
   if (isLoading) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/clients")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Loading...</h2>
-          </div>
-        </div>
+        <DetailPageSkeleton />
       </div>
     );
   }
@@ -442,6 +470,84 @@ export default function ClientDetail() {
                 Manage team members for this client account
               </CardDescription>
             </div>
+            <div className="flex gap-2">
+            <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Mail className="h-4 w-4 mr-2" />
+                  Invite via Email
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Invite Team Member</DialogTitle>
+                  <DialogDescription>
+                    Send an email invitation. The member will set their own password.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="invite-first-name">First Name</Label>
+                      <Input
+                        id="invite-first-name"
+                        value={inviteMember.first_name}
+                        onChange={(e) =>
+                          setInviteMember((prev) => ({ ...prev, first_name: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="invite-last-name">Last Name</Label>
+                      <Input
+                        id="invite-last-name"
+                        value={inviteMember.last_name}
+                        onChange={(e) =>
+                          setInviteMember((prev) => ({ ...prev, last_name: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-email">Email</Label>
+                    <Input
+                      id="invite-email"
+                      type="email"
+                      value={inviteMember.email}
+                      onChange={(e) =>
+                        setInviteMember((prev) => ({ ...prev, email: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border p-3">
+                    <div>
+                      <Label htmlFor="invite-outbound">Outbound Access</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Allow this member to access outbound campaigns and accounts
+                      </p>
+                    </div>
+                    <Switch
+                      id="invite-outbound"
+                      checked={inviteMember.has_outbound}
+                      onCheckedChange={(checked) =>
+                        setInviteMember((prev) => ({ ...prev, has_outbound: checked }))
+                      }
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    onClick={handleInviteMember}
+                    disabled={
+                      inviteTeamMember.isPending ||
+                      !inviteMember.email
+                    }
+                  >
+                    {inviteTeamMember.isPending ? "Sending..." : "Send Invitation"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm">
@@ -532,10 +638,11 @@ export default function ClientDetail() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           </CardHeader>
           <CardContent>
             {isTeamLoading ? (
-              <p className="text-sm text-muted-foreground">Loading team members...</p>
+              <TableSkeleton rows={3} cols={5} colWidths={["w-28", "w-32", "w-20", "w-12", "w-12"]} />
             ) : teamMembers.length === 0 ? (
               <p className="text-sm text-muted-foreground">No team members yet.</p>
             ) : (
@@ -633,7 +740,7 @@ export default function ClientDetail() {
           </CardHeader>
           <CardContent>
             {isTrackingLoading ? (
-              <p className="text-sm text-muted-foreground">Loading tracking events...</p>
+              <TableSkeleton rows={3} cols={5} colWidths={["w-20", "w-28", "w-36", "w-28", "w-24"]} />
             ) : !trackingData?.events || trackingData.events.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No tracking events recorded for this client yet.

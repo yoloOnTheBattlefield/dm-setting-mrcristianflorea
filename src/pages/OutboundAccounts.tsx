@@ -54,6 +54,7 @@ import {
   Globe,
   Download,
 } from "lucide-react";
+import { TableSkeleton } from "@/components/skeletons";
 import AddEditAccountDialog from "@/components/outbound-accounts/AddEditAccountDialog";
 import DeleteConfirmDialog from "@/components/outbound-accounts/DeleteConfirmDialog";
 import WarmupDialog from "@/components/outbound-accounts/WarmupDialog";
@@ -406,9 +407,8 @@ export default function OutboundAccounts() {
 
         {/* Table */}
         {isLoading ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-            Loading...
+          <div className="rounded-lg border">
+            <TableSkeleton rows={5} cols={6} colWidths={["w-24", "w-20", "w-16", "w-16", "w-20", "w-12"]} />
           </div>
         ) : (
           <>

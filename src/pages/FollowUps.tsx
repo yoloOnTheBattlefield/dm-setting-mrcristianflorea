@@ -47,6 +47,7 @@ import {
   FileText,
 } from "lucide-react";
 import { QuickNoteDialog } from "@/components/QuickNoteDialog";
+import { KanbanColumnSkeleton } from "@/components/skeletons";
 
 // ─── Status config ───
 
@@ -262,15 +263,21 @@ export default function FollowUps() {
         onDragEnd={handleDragEnd}
       >
         <div className="flex-1 flex gap-2 overflow-x-auto pb-2 min-h-0">
-          {COLUMN_ORDER.map((status) => (
-            <KanbanColumn
-              key={status}
-              status={status}
-              followUps={columns[status] ?? []}
-              count={stats?.[status] ?? 0}
-              isLoading={isLoading}
-            />
-          ))}
+          {isLoading ? (
+            COLUMN_ORDER.map((status, i) => (
+              <KanbanColumnSkeleton key={status} cards={3} delay={`${i * 100}ms`} />
+            ))
+          ) : (
+            COLUMN_ORDER.map((status) => (
+              <KanbanColumn
+                key={status}
+                status={status}
+                followUps={columns[status] ?? []}
+                count={stats?.[status] ?? 0}
+                isLoading={false}
+              />
+            ))
+          )}
         </div>
 
         <DragOverlay>
@@ -320,11 +327,7 @@ function KanbanColumn({
 
       {/* Cards */}
       <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5 min-h-[100px]">
-        {isLoading ? (
-          Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="h-[110px] rounded-md bg-muted/50 animate-pulse" />
-          ))
-        ) : followUps.length === 0 ? (
+        {followUps.length === 0 ? (
           <div className="flex items-center justify-center h-full min-h-[60px]">
             <p className="text-[11px] text-muted-foreground/50">No leads</p>
           </div>

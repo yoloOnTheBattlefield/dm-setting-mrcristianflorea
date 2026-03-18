@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Shimmer } from "@/components/skeletons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { ApiLead } from "@/lib/types";
@@ -320,18 +320,18 @@ export function ContactsTable({
             Array.from({ length: 8 }).map((_, i) => (
               <TableRow key={i}>
                 {selectable && (
-                  <TableCell className="pl-4"><Skeleton className="h-4 w-4" /></TableCell>
+                  <TableCell className="pl-4"><Shimmer className="h-4 w-4" delay={`${i * 40}ms`} /></TableCell>
                 )}
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                    <Skeleton className="h-4 w-32" />
+                    <Shimmer className="h-8 w-8 rounded-full" delay={`${i * 40}ms`} />
+                    <Shimmer className="h-4 w-32" delay={`${i * 40 + 10}ms`} />
                   </div>
                 </TableCell>
-                <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell><Shimmer className="h-5 w-20 rounded-full" delay={`${i * 40 + 15}ms`} /></TableCell>
+                <TableCell><Shimmer className="h-4 w-20" delay={`${i * 40 + 20}ms`} /></TableCell>
+                <TableCell><Shimmer className="h-4 w-20" delay={`${i * 40 + 25}ms`} /></TableCell>
+                <TableCell><Shimmer className="h-4 w-24" delay={`${i * 40 + 30}ms`} /></TableCell>
                 <TableCell />
               </TableRow>
             ))

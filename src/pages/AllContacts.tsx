@@ -11,6 +11,7 @@ import {
   AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight, Plus, X,
   List, Columns3, Download, Ghost, CalendarCheck, Link2, CheckCircle2,
 } from "lucide-react";
+import { StatsBarSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -678,15 +679,8 @@ export default function AllContacts() {
         <>
           {/* Conversion Rate Stats Bar */}
           {statsLoading ? (
-            <div className="mb-4 rounded-lg border bg-card p-4 animate-pulse">
-              <div className="flex gap-6">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex-1">
-                    <div className="h-4 bg-muted rounded w-16 mb-2" />
-                    <div className="h-6 bg-muted rounded w-10" />
-                  </div>
-                ))}
-              </div>
+            <div className="mb-4">
+              <StatsBarSkeleton count={8} />
             </div>
           ) : stats && stats.total > 0 ? (
             <div className="mb-4 rounded-lg border bg-card px-5 py-4">

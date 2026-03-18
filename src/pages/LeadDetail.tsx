@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
-import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { DetailPageSkeleton } from "@/components/skeletons";
 import {
   AlertCircle,
   RefreshCw,
@@ -503,7 +503,7 @@ export default function LeadDetail() {
   };
 
   // Loading / Error / Not Found
-  if (isLoading) return <div className="flex flex-1 flex-col gap-4 p-4"><DashboardSkeleton /></div>;
+  if (isLoading) return <div className="flex flex-1 flex-col gap-4 p-4"><DetailPageSkeleton /></div>;
 
   if (isError) {
     return (

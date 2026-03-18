@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Shimmer } from "@/components/skeletons";
 import { ApiLead } from "@/lib/types";
 import {
   Ghost,
@@ -389,14 +389,14 @@ export function ContactsKanban({ contacts, isLoading, onMove }: ContactsKanbanPr
   if (isLoading) {
     return (
       <div className="flex gap-4 overflow-x-auto pb-4">
-        {KANBAN_COLUMNS.map((col) => (
+        {KANBAN_COLUMNS.map((col, ci) => (
           <div key={col.key} className="flex flex-col rounded-xl border min-w-[260px] flex-1 bg-muted/20">
             <div className="px-3 py-2.5 border-b">
-              <Skeleton className="h-6 w-24 rounded-full" />
+              <Shimmer className="h-6 w-24 rounded-full" delay={`${ci * 80}ms`} />
             </div>
             <div className="p-2 space-y-2">
               {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                <Shimmer key={i} className="h-24 w-full rounded-lg" delay={`${ci * 80 + (i + 1) * 60}ms`} />
               ))}
             </div>
           </div>

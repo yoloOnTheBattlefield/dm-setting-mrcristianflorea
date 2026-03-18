@@ -32,6 +32,7 @@ import { useTasks, useCreateTasks } from "@/hooks/useTasks";
 import { useSocket } from "@/contexts/SocketContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Send, ChevronLeft, ChevronRight } from "lucide-react";
+import { TableSkeleton } from "@/components/skeletons";
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
   pending: { label: "Pending", className: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
@@ -269,7 +270,7 @@ export default function CommentPost() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading tasks...</p>
+            <TableSkeleton rows={5} cols={4} colWidths={["w-24", "w-48", "w-20", "w-28"]} />
           ) : tasks.length === 0 ? (
             <p className="text-sm text-muted-foreground">No comment tasks yet. Create one above to get started.</p>
           ) : (

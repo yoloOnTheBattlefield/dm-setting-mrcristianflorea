@@ -1,5 +1,45 @@
 # Features
 
+## Shimmer Loading Screens
+
+Polished shimmer loading skeletons for every page. Uses a gradient shimmer animation instead of plain gray pulse, with staggered animation delays and layouts that mirror the actual page content.
+
+### Reusable Building Blocks
+
+- `Shimmer` — base shimmer block with delay
+- `TableSkeleton` — configurable rows/cols/widths for any table
+- `StatCardsSkeleton` — grid of stat card placeholders
+- `StatsBarSkeleton` — horizontal inline stats bar
+- `FormCardSkeleton` — card with label + input field placeholders
+- `ChartCardSkeleton` — bar chart or pie chart placeholder
+- `KanbanColumnSkeleton` — kanban column with card placeholders
+- `DetailPageSkeleton` — full detail page (header + cards + table)
+
+### Location
+
+- **Skeleton component:** `src/components/ui/skeleton.tsx` (added `shimmer` prop)
+- **Reusable skeletons:** `src/components/skeletons.tsx`
+- **Dashboard skeleton:** `src/components/dashboard/DashboardSkeleton.tsx`
+- **Page-level skeleton:** `src/components/PageSkeleton.tsx`
+- **Shimmer CSS animation:** `src/index.css` (`animate-shimmer` keyframes)
+
+### Pages Updated
+
+- Dashboard (Index) — shimmer stat cards, chart bars, radar circle, table
+- All Contacts — shimmer stats bar + contacts table/kanban
+- Bookings — shimmer table rows with varying widths
+- Follow-Ups — shimmer kanban columns with card skeletons
+- EOD Report — shimmer stat cards (replaced "—" placeholders)
+- Booking Analytics — shimmer stat cards + chart/pie placeholders
+- Comment Post — shimmer table (replaced "Loading tasks..." text)
+- Campaign Edit — shimmer form cards (replaced mismatched DashboardSkeleton)
+- Client Detail — shimmer detail page (replaced "Loading..." text)
+- Clients Overview — shimmer table (replaced mismatched DashboardSkeleton)
+- Lead Detail — shimmer detail page (replaced mismatched DashboardSkeleton)
+- Outbound Leads — shimmer table rows + mobile cards
+- Outbound Accounts — shimmer table (replaced spinner + "Loading..." text)
+- Inbound Analytics — spinner for post performance section
+
 ## Error Boundary
 
 Catches runtime errors in any React component and shows a friendly fallback UI instead of crashing the entire app. Users can retry or reload.

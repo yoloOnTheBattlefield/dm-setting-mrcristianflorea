@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAccountsAnalytics, useDeleteAccount, useRestoreAccount } from "@/hooks/useAccountsAnalytics";
 import { DateRangeFilter } from "@/lib/types";
 import { DateFilter } from "@/components/dashboard/DateFilter";
-import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { Shimmer, TableSkeleton } from "@/components/skeletons";
 import { AlertCircle, RefreshCw, Trash2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,8 +95,14 @@ export default function ClientsOverview() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <DashboardSkeleton />
+      <div className="flex flex-1 flex-col gap-4 p-4 animate-in fade-in duration-300">
+        <div className="space-y-2">
+          <Shimmer className="h-7 w-40" />
+          <Shimmer className="h-4 w-56" />
+        </div>
+        <div className="rounded-lg border">
+          <TableSkeleton rows={6} cols={7} colWidths={["w-32", "w-16", "w-16", "w-16", "w-16", "w-16", "w-12"]} />
+        </div>
       </div>
     );
   }

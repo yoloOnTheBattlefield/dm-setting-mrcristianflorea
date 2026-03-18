@@ -21,6 +21,7 @@ import {
   DollarSign,
   TrendingUp,
 } from "lucide-react";
+import { StatCardsSkeleton, ChartCardSkeleton } from "@/components/skeletons";
 
 function rateColor(rate: number): string {
   if (rate >= 70) return "text-green-500";
@@ -35,12 +36,14 @@ export default function BookingAnalytics() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6 animate-in fade-in duration-300">
         <h1 className="text-2xl font-bold tracking-tight">Booking Analytics</h1>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}><CardContent className="py-6"><div className="h-12 bg-muted animate-pulse rounded" /></CardContent></Card>
-          ))}
+        <StatCardsSkeleton count={4} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <ChartCardSkeleton titleWidth="w-36" height={250} barCount={14} delay="200ms" />
+          </div>
+          <ChartCardSkeleton titleWidth="w-32" height={180} type="pie" delay="300ms" />
         </div>
       </div>
     );

@@ -64,6 +64,7 @@ import {
   Trash2,
   ExternalLink,
 } from "lucide-react";
+import { Shimmer } from "@/components/skeletons";
 
 const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; icon: typeof Clock }> = {
   scheduled: { label: "Scheduled", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400", icon: Clock },
@@ -281,8 +282,8 @@ export default function Bookings() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <TableCell key={j}><div className="h-4 bg-muted animate-pulse rounded" /></TableCell>
+                  {["w-28", "w-20", "w-20", "w-16", "w-14", "w-14", "w-10"].map((w, j) => (
+                    <TableCell key={j}><Shimmer className={`h-4 ${w}`} delay={`${(i * 7 + j) * 25}ms`} /></TableCell>
                   ))}
                 </TableRow>
               ))

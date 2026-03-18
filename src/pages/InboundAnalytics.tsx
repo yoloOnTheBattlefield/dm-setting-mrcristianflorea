@@ -29,6 +29,7 @@ import {
   TrendingUp,
   Repeat2,
   Info,
+  Loader2,
 } from "lucide-react";
 import {
   BarChart,
@@ -356,8 +357,8 @@ export default function InboundAnalytics() {
               <CardContent className="py-4 px-6">
                 <h3 className="text-sm font-medium mb-3">Post Performance</h3>
                 {postsLoading ? (
-                  <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">
-                    Loading...
+                  <div className="h-32 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
                 ) : trackedPosts.length === 0 ? (
                   <div className="py-8 text-center">

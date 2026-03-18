@@ -25,6 +25,7 @@ import {
   type EodReport as EodReportType,
 } from "@/hooks/useEodReports";
 import { useAuth } from "@/contexts/AuthContext";
+import { Shimmer, StatCardsSkeleton, FormCardSkeleton } from "@/components/skeletons";
 
 const MOOD_OPTIONS = [
   { value: 1, icon: Frown, label: "Rough day", color: "text-red-500 hover:text-red-400" },
@@ -105,19 +106,23 @@ export default function EodReport() {
 
         <TabsContent value="my-report" className="space-y-6 mt-4">
           {/* Stat Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {STAT_CARDS.map((stat) => (
-              <Card key={stat.key}>
-                <CardContent className="py-4 px-4 flex flex-col items-center text-center">
-                  <stat.icon className={cn("h-5 w-5 mb-1.5", stat.color)} />
-                  <span className="text-2xl font-bold tabular-nums">
-                    {isLoading ? "\u2014" : report?.stats[stat.key] ?? 0}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground mt-0.5">{stat.label}</span>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {isLoading ? (
+            <StatCardsSkeleton count={4} />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {STAT_CARDS.map((stat) => (
+                <Card key={stat.key}>
+                  <CardContent className="py-4 px-4 flex flex-col items-center text-center">
+                    <stat.icon className={cn("h-5 w-5 mb-1.5", stat.color)} />
+                    <span className="text-2xl font-bold tabular-nums">
+                      {report?.stats[stat.key] ?? 0}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5">{stat.label}</span>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Checklist */}
           <Card>

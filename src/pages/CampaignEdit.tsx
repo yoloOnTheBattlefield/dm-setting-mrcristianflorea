@@ -26,7 +26,7 @@ import { useOutboundAccounts } from "@/hooks/useOutboundAccounts";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Plus, Trash2, Loader2, Save, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { Shimmer, FormCardSkeleton } from "@/components/skeletons";
 
 const TIMEZONES = [
   "America/New_York",
@@ -187,14 +187,21 @@ export default function CampaignEdit() {
 
   if (isLoading || !form) {
     return (
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col animate-in fade-in duration-300">
         <div className="sticky top-16 z-50 bg-background border-b border-border">
-          <div className="px-6 py-4">
-            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+          <div className="px-6 py-4 flex items-center gap-3">
+            <Shimmer className="h-8 w-16 rounded-md" />
+            <div className="space-y-1.5">
+              <Shimmer className="h-6 w-36" />
+              <Shimmer className="h-3 w-24" />
+            </div>
           </div>
         </div>
-        <div className="p-6">
-          <DashboardSkeleton />
+        <div className="flex-1 p-6 max-w-3xl space-y-6">
+          <FormCardSkeleton fields={2} titleWidth="w-24" delay="0ms" />
+          <FormCardSkeleton fields={2} titleWidth="w-36" delay="150ms" />
+          <FormCardSkeleton fields={3} titleWidth="w-36" delay="300ms" />
+          <FormCardSkeleton fields={4} titleWidth="w-32" delay="450ms" />
         </div>
       </div>
     );

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { readPersisted, writePersisted } from "@/hooks/usePersistedState";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Shimmer } from "@/components/skeletons";
 import {
   AlertCircle,
   RefreshCw,
@@ -606,11 +606,11 @@ export default function OutboundLeads() {
               {showTableSkeleton ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="rounded-lg border bg-card p-3 space-y-2">
-                    <Skeleton className="h-4 w-32" />
+                    <Shimmer className="h-4 w-32" delay={`${i * 60}ms`} />
                     <div className="flex gap-4">
-                      <Skeleton className="h-4 w-4" />
-                      <Skeleton className="h-4 w-4" />
-                      <Skeleton className="h-4 w-4" />
+                      <Shimmer className="h-4 w-16" delay={`${i * 60 + 20}ms`} />
+                      <Shimmer className="h-4 w-12" delay={`${i * 60 + 40}ms`} />
+                      <Shimmer className="h-4 w-12" delay={`${i * 60 + 60}ms`} />
                     </div>
                   </div>
                 ))
@@ -798,19 +798,19 @@ export default function OutboundLeads() {
                   {showTableSkeleton ? (
                     Array.from({ length: 10 }).map((_, i) => (
                       <TableRow key={i}>
-                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                        <TableCell><Skeleton className="h-7 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                        <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-4 w-24" delay={`${i * 40 + 5}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-4 w-28" delay={`${i * 40 + 10}ms`} /></TableCell>
+                        <TableCell className="text-right"><Shimmer className="h-4 w-12 ml-auto" delay={`${i * 40 + 15}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-5 w-16 rounded-full" delay={`${i * 40 + 20}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-5 w-16 rounded-full" delay={`${i * 40 + 25}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40 + 30}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40 + 30}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40 + 30}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40 + 30}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40 + 30}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-7 w-24" delay={`${i * 40 + 35}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-8 w-8" delay={`${i * 40 + 35}ms`} /></TableCell>
                       </TableRow>
                     ))
                   ) : leads.length === 0 ? (
