@@ -1,5 +1,15 @@
 # Features
 
+## Error Boundary
+
+Catches runtime errors in any React component and shows a friendly fallback UI instead of crashing the entire app. Users can retry or reload.
+
+### Location
+
+- **Component:** `src/components/ErrorBoundary.tsx`
+- **Wired in:** `src/App.tsx` (wraps the router inside `<BrowserRouter>`)
+- **Test:** `src/components/ErrorBoundary.test.tsx`
+
 ## Email Invitation Flow
 
 Invite new clients or team members via email. Recipients click a link to set their own password and join the platform — no admin-set passwords needed.
