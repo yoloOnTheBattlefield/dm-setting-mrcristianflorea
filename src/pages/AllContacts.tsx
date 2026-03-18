@@ -324,13 +324,19 @@ export default function AllContacts() {
     if (!statsData?.leads) return null;
     const leads = statsData.leads;
     const total = statsData.pagination.total;
-    const linkSent = leads.filter((l) => l.link_sent_at).length;
-    const booked = leads.filter((l) => l.booked_at).length;
-    const closed = leads.filter((l) => l.closed_at).length;
-    const ghosted = leads.filter((l) => l.ghosted_at).length;
-    const followUp = leads.filter((l) => l.follow_up_at && !l.booked_at && !l.ghosted_at).length;
 
-    // Avg days from created to booked
+    // Mutually exclusive stage counts (same priority as kanban getLeadStageKey)
+    let newCount = 0, linkSent = 0, followUp = 0, booked = 0, closed = 0, ghosted = 0;
+    for (const l of leads) {
+      if (l.ghosted_at) ghosted++;
+      else if (l.closed_at) closed++;
+      else if (l.booked_at) booked++;
+      else if (l.follow_up_at) followUp++;
+      else if (l.link_sent_at) linkSent++;
+      else newCount++;
+    }
+
+    // Avg days from created to booked (all leads that reached booked, regardless of current stage)
     const bookedLeads = leads.filter((l) => l.booked_at && l.date_created);
     const avgDaysToBook = bookedLeads.length > 0
       ? (bookedLeads.reduce((sum, l) => sum + (new Date(l.booked_at!).getTime() - new Date(l.date_created).getTime()) / (1000 * 60 * 60 * 24), 0) / bookedLeads.length).toFixed(1)
@@ -338,11 +344,12 @@ export default function AllContacts() {
 
     return {
       total,
+      newCount,
       linkSent,
+      followUp,
       booked,
       closed,
       ghosted,
-      followUp,
       avgDaysToBook,
       bookRate: total > 0 ? ((booked / total) * 100).toFixed(1) : "0.0",
       closeRate: total > 0 ? ((closed / total) * 100).toFixed(1) : "0.0",
@@ -687,6 +694,11 @@ export default function AllContacts() {
                 <button className="text-left hover:opacity-80 transition-opacity" onClick={() => setSelectedStatuses([])}>
                   <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Total</p>
                   <p className="text-xl font-bold tabular-nums">{stats.total}</p>
+                </button>
+                <div className="border-l pl-6" />
+                <button className="text-left hover:opacity-80 transition-opacity" onClick={() => handleStatClick("new")}>
+                  <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">New</p>
+                  <p className="text-xl font-bold tabular-nums">{stats.newCount}</p>
                 </button>
                 <button className="text-left hover:opacity-80 transition-opacity" onClick={() => handleStatClick("link_sent")}>
                   <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Link Sent</p>
