@@ -25,6 +25,7 @@ export interface ResearchPost {
   leadMagnetKeyword?: string | null;
   commentsCount: number;
   likesCount: number;
+  playsCount?: number;
   postedAt: string;
   reelUrl?: string;
   keywordDistribution: { keyword: string; count: number }[];

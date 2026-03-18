@@ -522,3 +522,42 @@ Adds an "Add to Campaign" button on each completed deep scrape job that has qual
 ### API
 
 - **`POST /api/deep-scrape/:id/add-to-campaign`** — Body: `{ campaign_id: string }`. Finds all qualified OutboundLeads linked to the job and bulk-inserts them as CampaignLeads. Returns `{ added, duplicates_skipped, total_qualified }`.
+
+---
+
+## Posts Library UI Overhaul
+
+Comprehensive UI improvements to the Research Posts Library page (`/research/posts`).
+
+### Changes
+
+**Filter Section:**
+- Replaced Card wrapper with a lighter container (white bg, border, rounded-lg, shadow-sm)
+- Added labeled dropdowns with small gray labels: Competitor, Type, Topic, Hook Style, CTA, Engagement, Sort By
+- Search input promoted to full-width primary filter above dropdowns
+- "Any" renamed to "Any Engagement" on the lead magnet dropdown
+- Reset button styled as ghost variant instead of outline
+
+**Results Table:**
+- New "Plays" column (playsCount) after Likes with comma-formatted numbers
+- New "Link" column with ExternalLink icon opening reelUrl in new tab
+- Sortable column headers for Comments, Likes, Plays (client-side asc/desc toggle with chevron icons)
+- Null Hook Style / CTA values styled as italic muted "—" instead of plain dashes
+- Empty captions show "No caption" in italic muted text
+- Caption expanded to 2-line clamp (line-clamp-2) instead of 60-char truncation
+- Row hover state (bg-muted/40, cursor-pointer)
+- Type badges color-coded: reel (blue), carousel (purple), image (green)
+- Account handle is a clickable Instagram profile link with ExternalLink icon
+
+**Results Header:**
+- Post count displayed inline next to "Results" heading with muted dot separator
+
+**Pagination:**
+- Page number buttons with ellipsis (max 5 visible at a time)
+- "Rows per page" selector (10, 25, 50) resets to page 1 on change
+- Previous/Next buttons retained alongside numbered pages
+
+### Location
+
+- **Frontend page:** `src/pages/research/PostsLibrary.tsx`
+- **Type update:** `src/lib/research-types.ts` (`playsCount` added to `ResearchPost`)
