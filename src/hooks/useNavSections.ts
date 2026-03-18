@@ -103,6 +103,13 @@ export function useNavSections(): NavSection[] {
     }
 
     sections.push({
+      label: "Advisory",
+      items: [
+        { title: "Clients", url: "/advisory", icon: Users, description: "Manage advisory clients" },
+      ],
+    })
+
+    sections.push({
       label: "Workspace",
       items: [
         { title: "Settings", url: "/settings", icon: Settings2, description: "Manage your account settings" },
@@ -169,6 +176,9 @@ export function usePageInfo(pathname: string): { title: string; description?: st
     }
 
     if (bestTitle) return { title: bestTitle, description: bestDescription }
+
+    // Known detail routes — show a friendly title instead of the raw ID
+    if (pathname.startsWith("/lead/")) return { title: "Lead Detail" }
 
     // Fallback: format the last path segment
     const segment = pathname.split("/").filter(Boolean).pop() || "Dashboard"

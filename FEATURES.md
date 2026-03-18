@@ -580,6 +580,47 @@ Allows role 0 (admin) users to reset any team member's password without knowing 
 
 ---
 
+## Lead Detail Page Redesign
+
+Comprehensive UI overhaul of the `/lead/:id` page to improve usability, information density, and visual hierarchy.
+
+### Changes
+
+**Header & Navigation:**
+- Layout header now shows "Lead Detail" instead of the raw MongoDB ID
+- Added breadcrumb navigation: Leads > Lead Name (clickable back to contacts list)
+
+**Profile Header Card:**
+- Avatar with initials, lead name, and color-coded status badge (emerald/Converted, red/Ghosted, amber/Follow Up, blue/Link Sent, slate/New)
+- Contact info row: email, Instagram handle (clickable link), source, creation date
+- "Mark as Converted" promoted to a filled emerald button in the header actions area
+
+**Two-Column Layout:**
+- Left column (2/3 width): Outbound Lead, Summary, Q&A sections
+- Right column (1/3 width): Sales Tracking, Timeline
+- Responsive — stacks vertically on mobile
+
+**Improved Empty States:**
+- Outbound Lead: shows dashed border prompt "No outbound lead linked — search below to connect one"
+- Summary: icon + descriptive text instead of plain "No summary"
+
+**Sales Tracking:**
+- Vertical layout in sidebar card with separators between fields
+- Contract Value input has `$` prefix
+- Score dropdown shows "X / 10" labels
+- Mark as Closed button spans full width
+
+**New Timeline Card:**
+- Displays all key dates (Created, Link Sent, Follow Up, Booked, Ghosted, Closed) with color-coded dots
+- Only shows dates that have values
+
+### Location
+
+- **Frontend page:** `src/pages/LeadDetail.tsx`
+- **Nav hook:** `src/hooks/useNavSections.ts` (`usePageInfo` updated for `/lead/` routes)
+
+---
+
 ## Virality Score Algorithm
 
 Per-post virality score that measures how much a post outperforms its account's baseline engagement. Uses per-competitor averages as the baseline so a small account going viral is scored the same as a large account going viral.
@@ -606,3 +647,47 @@ Where averages are computed per-competitor across all their tracked posts. Score
 - **Frontend page:** `src/pages/research/PostsLibrary.tsx`
 - **Frontend type:** `src/lib/research-types.ts` (`viralityScore` added to `ResearchPost`, `"virality"` added to `PostSortBy`)
 - **Frontend hook:** `src/hooks/useResearchPosts.ts` (`virality` → `virality` mapping)
+
+---
+
+## Advisory Module — Frontend
+
+Client management and session tracking for advisory/coaching clients. Includes a dashboard with aggregate metrics, individual client detail pages with session logs and monthly metrics history.
+
+### Routes
+
+- `/advisory` — Advisory dashboard with stat cards, client grid, search, filters, and pagination
+- `/advisory/clients/:id` — Client detail page with info card, latest metrics, session history, and metrics table
+
+### API Endpoints Consumed
+
+- `GET /api/advisory/clients` — Paginated client list with search, status, and health filters
+- `GET /api/advisory/clients/:id` — Single client with populated latest_session and latest_metric
+- `POST /api/advisory/clients` — Create a new client
+- `PATCH /api/advisory/clients/:id` — Update a client
+- `DELETE /api/advisory/clients/:id` — Soft delete a client
+- `GET /api/advisory/sessions` — Paginated session list, filterable by client_id
+- `GET /api/advisory/sessions/:id` — Single session
+- `POST /api/advisory/sessions` — Create a session with action items
+- `PATCH /api/advisory/sessions/:id` — Update a session (including action item toggles)
+- `DELETE /api/advisory/sessions/:id` — Delete a session
+- `GET /api/advisory/metrics` — Metrics list, filterable by client_id
+- `GET /api/advisory/metrics/summary` — Aggregate summary (total MRR, cash collected, avg show/close rate)
+- `POST /api/advisory/metrics` — Upsert monthly metrics for a client
+- `PATCH /api/advisory/metrics/:id` — Update a metric
+
+### Location
+
+- **Types:** `src/lib/advisory-types.ts`
+- **Hooks:** `src/hooks/useAdvisoryClients.ts`, `src/hooks/useAdvisorySessions.ts`, `src/hooks/useAdvisoryMetrics.ts`
+- **Components:** `src/components/advisory/` — ClientHealthBadge, ConstraintBadge, ClientCard, ActionItemList, SessionCard, MetricInputRow, CreateClientDialog, CreateSessionDialog, UpsertMetricDialog
+- **Pages:** `src/pages/AdvisoryDashboard.tsx`, `src/pages/AdvisoryClientDetail.tsx`
+- **Routing:** `src/App.tsx` (lazy-loaded routes)
+- **Sidebar:** `src/hooks/useNavSections.ts` (Advisory section with Clients item)
+
+### Tests
+
+- `src/hooks/useAdvisoryClients.test.ts` — Hook tests for pagination params, search, filters, error handling
+- `src/components/advisory/ClientHealthBadge.test.tsx` — Renders correct text and color for each health value
+- `src/components/advisory/ActionItemList.test.tsx` — Renders items, strikethrough on completed, empty state, overdue styling
+- `src/pages/AdvisoryDashboard.test.tsx` — Renders stat cards, client list, search input, New Client button
