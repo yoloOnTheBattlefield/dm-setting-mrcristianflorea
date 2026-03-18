@@ -172,11 +172,13 @@ function OutboundLeadLinker({
   leadId,
   outboundLeadId,
   leadName,
+  leadCreatedAt,
   onLinked,
 }: {
   leadId: string;
   outboundLeadId?: string | null;
   leadName: string;
+  leadCreatedAt?: string | null;
   onLinked: () => void;
 }) {
   const { toast } = useToast();
@@ -243,11 +245,14 @@ function OutboundLeadLinker({
         body: JSON.stringify({ outbound_lead_id: outboundId }),
       });
       if (res.ok) {
-        // Mark the outbound lead as replied
+        // Mark the outbound lead as replied, using the inbound lead's creation date
         await fetchWithAuth(`${API_URL}/outbound-leads/${outboundId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ replied: true }),
+          body: JSON.stringify({
+            replied: true,
+            replied_at: leadCreatedAt || new Date().toISOString(),
+          }),
         }).catch(() => {}); // best-effort, don't block linking
         toast({ title: "Linked", description: "Outbound lead linked and marked as replied." });
         setSearch(""); setResults([]); setAutoResults([]); setShowResults(false);
@@ -943,6 +948,7 @@ export default function LeadDetail() {
                   leadId={lead._id}
                   outboundLeadId={lead.outbound_lead_id}
                   leadName={leadName}
+                  leadCreatedAt={lead.date_created}
                   onLinked={() => queryClient.invalidateQueries({ queryKey: ["lead", contactId] })}
                 />
               </CardContent>
