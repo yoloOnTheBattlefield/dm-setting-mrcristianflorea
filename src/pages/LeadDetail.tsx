@@ -532,89 +532,82 @@ export default function LeadDetail() {
 
       {/* ── Header ── */}
       <div className="space-y-3">
-        {/* Row 1: Avatar + Name + IG handle + Pipeline */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <Avatar className="h-14 w-14 text-lg shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                {getInitials(lead.first_name, lead.last_name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight truncate">{leadName}</h1>
-                {igHandle && (
-                  <a
-                    href={`https://instagram.com/${igHandle}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Instagram className="h-3.5 w-3.5" />
-                    <span>@{igHandle}</span>
-                  </a>
-                )}
-                {isGhosted && (
-                  <Badge variant="destructive" className="shrink-0">
-                    <Ghost className="h-3 w-3 mr-1" />Ghosted
-                  </Badge>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
-                {lead.email && (
-                  <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{lead.email}</span>
-                )}
-                {lead.source && (
-                  <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{lead.source}</span>
-                )}
-                <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatShortDate(lead.date_created)}</span>
-              </div>
+        {/* Row 1: Avatar + Name + IG handle */}
+        <div className="flex items-center gap-3 min-w-0">
+          <Avatar className="h-14 w-14 text-lg shrink-0">
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+              {getInitials(lead.first_name, lead.last_name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight truncate">{leadName}</h1>
+              {igHandle && (
+                <a
+                  href={`https://instagram.com/${igHandle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Instagram className="h-3.5 w-3.5" />
+                  <span>@{igHandle}</span>
+                </a>
+              )}
+              {isGhosted && (
+                <Badge variant="destructive" className="shrink-0">
+                  <Ghost className="h-3 w-3 mr-1" />Ghosted
+                </Badge>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
+              {lead.email && (
+                <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{lead.email}</span>
+              )}
+              {lead.source && (
+                <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{lead.source}</span>
+              )}
+              <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatShortDate(lead.date_created)}</span>
             </div>
           </div>
+        </div>
 
-          {/* Pipeline Stepper — improved active state */}
-          <div className="flex items-center gap-0.5 sm:ml-auto shrink-0">
-            {PIPELINE_STAGES.map((stage, i) => {
-              const isCompleted = i < currentStageIndex;
-              const isCurrent = i === currentStageIndex;
-              const isFuture = i > currentStageIndex;
-              return (
-                <div key={stage.key} className="flex items-center">
-                  <button
-                    onClick={() => { if (isFuture) handleAdvanceStage(i); }}
-                    disabled={isSaving || !isFuture}
-                    className={cn(
-                      "relative px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
-                      // Shape: first has left-rounded, last has right-rounded, middle square
-                      i === 0 && "rounded-l-full",
-                      i === PIPELINE_STAGES.length - 1 && "rounded-r-full",
-                      // Completed stages: solid colored bg
-                      isCompleted && `${stage.bg} text-white`,
-                      // Current stage: solid colored bg with ring + scale
-                      isCurrent && `${stage.bg} text-white ring-2 ${stage.ring} ring-offset-2 ring-offset-background rounded-full z-10 scale-110`,
-                      // Future stages: muted, clickable
-                      isFuture && "bg-muted/60 text-muted-foreground hover:bg-muted cursor-pointer",
-                    )}
-                  >
-                    {isCompleted ? (
-                      <span className="flex items-center gap-1">
-                        <Check className="h-3 w-3" />{stage.label}
-                      </span>
-                    ) : (
-                      stage.label
-                    )}
-                  </button>
-                  {/* Connector line between pills */}
-                  {i < PIPELINE_STAGES.length - 1 && !isCurrent && i + 1 !== currentStageIndex && (
-                    <div className={cn(
-                      "w-px h-4",
-                      i < currentStageIndex ? stage.bg : "bg-border",
-                    )} />
+        {/* Row 2: Pipeline Stepper — directly below name for visual connection */}
+        <div className="flex items-center gap-0.5">
+          {PIPELINE_STAGES.map((stage, i) => {
+            const isCompleted = i < currentStageIndex;
+            const isCurrent = i === currentStageIndex;
+            const isFuture = i > currentStageIndex;
+            return (
+              <div key={stage.key} className="flex items-center">
+                <button
+                  onClick={() => { if (isFuture) handleAdvanceStage(i); }}
+                  disabled={isSaving || !isFuture}
+                  className={cn(
+                    "relative px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
+                    i === 0 && "rounded-l-full",
+                    i === PIPELINE_STAGES.length - 1 && "rounded-r-full",
+                    isCompleted && `${stage.bg} text-white`,
+                    isCurrent && `${stage.bg} text-white ring-2 ${stage.ring} ring-offset-2 ring-offset-background rounded-full z-10 scale-110`,
+                    isFuture && "bg-muted/60 text-muted-foreground hover:bg-muted cursor-pointer",
                   )}
-                </div>
-              );
-            })}
-          </div>
+                >
+                  {isCompleted ? (
+                    <span className="flex items-center gap-1">
+                      <Check className="h-3 w-3" />{stage.label}
+                    </span>
+                  ) : (
+                    stage.label
+                  )}
+                </button>
+                {i < PIPELINE_STAGES.length - 1 && !isCurrent && i + 1 !== currentStageIndex && (
+                  <div className={cn(
+                    "w-px h-4",
+                    i < currentStageIndex ? stage.bg : "bg-border",
+                  )} />
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Row 2: Action Bar */}
@@ -660,12 +653,12 @@ export default function LeadDetail() {
             <SquareCheckBig className="h-3.5 w-3.5 mr-1.5" />Task
           </Button>
 
-          {/* Ghosted toggle */}
+          {/* Ghosted toggle — visually distinct since it's a stage-terminating action */}
           {!isGhosted ? (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-8 text-muted-foreground ml-auto"
+              className="h-8 ml-auto border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
               onClick={() => patchLead({ ghosted_at: new Date().toISOString() }, "Marked as ghosted")}
               disabled={isSaving}
             >
@@ -673,9 +666,9 @@ export default function LeadDetail() {
             </Button>
           ) : (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-8 text-muted-foreground ml-auto"
+              className="h-8 ml-auto border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950 dark:text-red-400"
               onClick={() => patchLead({ ghosted_at: null }, "Ghosted cleared")}
               disabled={isSaving}
             >
@@ -751,14 +744,31 @@ export default function LeadDetail() {
             <CardHeader className="pb-2 pt-4 px-4">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contact</CardTitle>
             </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-3">
-              <DetailRow label="Source" value={lead.source} placeholder="No source" />
-              <DetailRow label="Email" value={lead.email} placeholder="No email" />
-              <DetailRow
+            <CardContent className="px-4 pb-4 space-y-2">
+              <EditableDetailRow
+                label="Source"
+                value={lead.source}
+                placeholder="Add source..."
+                onSave={(val) => patchLead({ source: val }, val ? `Source set to ${val}` : "Source cleared")}
+                disabled={isSaving}
+              />
+              <EditableDetailRow
+                label="Email"
+                value={lead.email}
+                placeholder="Add email..."
+                onSave={(val) => patchLead({ email: val }, val ? `Email set to ${val}` : "Email cleared")}
+                disabled={isSaving}
+              />
+              <EditableDetailRow
                 label="Instagram"
                 value={igHandle ? `@${igHandle}` : null}
-                placeholder="No handle"
+                placeholder="Add handle..."
                 href={igHandle ? `https://instagram.com/${igHandle}` : undefined}
+                onSave={(val) => {
+                  const clean = val?.replace(/^@/, "") || null;
+                  patchLead({ ig_username: clean }, clean ? `Instagram set to @${clean}` : "Instagram cleared");
+                }}
+                disabled={isSaving}
               />
             </CardContent>
           </Card>
@@ -999,7 +1009,7 @@ export default function LeadDetail() {
                   {/* Vertical line */}
                   <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
 
-                  {activityItems.map((item) => (
+                  {activityItems.map((item, idx) => (
                     <div key={item.id} className="relative flex gap-3 py-3 first:pt-0 last:pb-0">
                       {/* Dot */}
                       <div className={cn(
@@ -1053,6 +1063,18 @@ export default function LeadDetail() {
                       </div>
                     </div>
                   ))}
+                  {/* Nudge at bottom when activity is sparse */}
+                  {activityItems.length <= 3 && (
+                    <div className="relative flex gap-3 pt-3">
+                      <div className="relative z-10 mt-1 h-[9px] w-[9px] rounded-full border-2 border-dashed border-muted-foreground/30 shrink-0" />
+                      <button
+                        className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                        onClick={() => { setShowNoteInput(true); setShowTaskInput(false); setShowFollowUpInput(false); }}
+                      >
+                        + Add a note to keep track of this lead...
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -1067,22 +1089,68 @@ export default function LeadDetail() {
 // Small helpers
 // ---------------------------------------------------------------------------
 
-function DetailRow({
+function EditableDetailRow({
   label,
   value,
   placeholder,
   href,
+  onSave,
+  disabled,
 }: {
   label: string;
   value: string | null | undefined;
   placeholder: string;
   href?: string;
+  onSave?: (val: string | null) => void;
+  disabled?: boolean;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
   const hasValue = !!value;
   const display = hasValue ? value : placeholder;
 
+  const commit = () => {
+    const trimmed = draft.trim();
+    const newVal = trimmed || null;
+    if (newVal !== (value || null)) {
+      onSave?.(newVal);
+    }
+    setEditing(false);
+  };
+
+  if (editing && onSave) {
+    return (
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground shrink-0">{label}</p>
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          autoFocus
+          className="h-7 text-sm text-right flex-1 min-w-0"
+          placeholder={placeholder}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center justify-between">
+    <div
+      className={cn(
+        "flex items-center justify-between group",
+        onSave && !disabled && "cursor-pointer hover:bg-muted/50 -mx-1.5 px-1.5 py-0.5 rounded"
+      )}
+      onClick={() => {
+        if (onSave && !disabled) {
+          setDraft(value || "");
+          setEditing(true);
+        }
+      }}
+    >
       <p className="text-xs text-muted-foreground">{label}</p>
       {hasValue && href ? (
         <a
@@ -1090,6 +1158,7 @@ function DetailRow({
           target="_blank"
           rel="noopener noreferrer"
           className="text-sm font-medium truncate ml-4 text-right hover:underline"
+          onClick={(e) => e.stopPropagation()}
         >
           {display}
         </a>
