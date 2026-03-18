@@ -25,10 +25,10 @@ import {
   DollarSign,
   ArrowRight,
   ArrowUpDown,
-  Filter,
   ExternalLink,
   TrendingUp,
   Repeat2,
+  Info,
 } from "lucide-react";
 import {
   BarChart,
@@ -78,7 +78,7 @@ type SortDir = "asc" | "desc";
 export default function InboundAnalytics() {
   const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>(
     "ib-analytics-dateRange",
-    "all",
+    30,
   );
 
   const [postSortField, setPostSortField] = useState<PostSortField>("total");
@@ -104,14 +104,18 @@ export default function InboundAnalytics() {
     useInboundPosts(filterParams);
   const { data: dailyData } = useInboundDaily(filterParams);
 
-  // Sort posts
-  const sortedPosts = useMemo(() => {
+  // Sort posts — exclude "unknown" rows from the main table
+  const { trackedPosts, unknownPost } = useMemo(() => {
     const posts = postsData?.posts || [];
-    return [...posts].sort((a, b) => {
-      const aVal = a[postSortField] ?? 0;
-      const bVal = b[postSortField] ?? 0;
-      return postSortDir === "desc" ? bVal - aVal : aVal - bVal;
-    });
+    const unknown = posts.find((p) => p.post_url === "unknown");
+    const tracked = posts
+      .filter((p) => p.post_url !== "unknown")
+      .sort((a, b) => {
+        const aVal = a[postSortField] ?? 0;
+        const bVal = b[postSortField] ?? 0;
+        return postSortDir === "desc" ? bVal - aVal : aVal - bVal;
+      });
+    return { trackedPosts: tracked, unknownPost: unknown };
   }, [postsData, postSortField, postSortDir]);
 
   function handlePostSort(field: PostSortField) {
@@ -134,29 +138,53 @@ export default function InboundAnalytics() {
     />
   );
 
-  // Daily chart data
+  // Daily chart data — trim leading zero-value days
   const chartData = useMemo(() => {
     if (!dailyData?.days) return [];
-    return dailyData.days.map((d) => ({
+    const days = dailyData.days.map((d) => ({
       ...d,
       label: d.date.slice(5), // MM-DD
     }));
+
+    // Find the first day with any non-zero value
+    const firstActiveIdx = days.findIndex(
+      (d) => d.created > 0 || d.booked > 0 || d.closed > 0,
+    );
+    if (firstActiveIdx === -1) return [];
+    return days.slice(firstActiveIdx);
   }, [dailyData]);
+
+  // Determine if sources are all "unknown"
+  const hasRealSources = useMemo(() => {
+    if (!overview?.sources) return false;
+    return overview.sources.some(
+      (s) => s.source !== "unknown" && s.source !== "",
+    );
+  }, [overview]);
+
+  // Contextual subtitle
+  const subtitle = useMemo(() => {
+    if (!overview) return null;
+    if (!hasRealSources && trackedPosts.length === 0) {
+      return "Connect post tracking and UTM sources to unlock full attribution.";
+    }
+    return "Track which posts and sources drive the most leads and revenue.";
+  }, [overview, hasRealSources, trackedPosts]);
 
   return (
     <div className="flex flex-1 flex-col">
-      {/* Sticky filter toolbar */}
+      {/* Page header with integrated date filter */}
       <div className="sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-6 py-4 flex items-end justify-between gap-4">
-          <div className="flex items-center gap-3 rounded-lg border border-[#E2E8F0] bg-card px-3 py-2">
-            <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-muted-foreground">
-                Date Range
-              </span>
-              <DateFilter value={dateRange} onChange={setDateRange} />
-            </div>
+        <div className="px-6 py-4 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-lg font-semibold">Inbound Analytics</h1>
+            {subtitle && (
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {subtitle}
+              </p>
+            )}
           </div>
+          <DateFilter value={dateRange} onChange={setDateRange} />
         </div>
       </div>
 
@@ -165,8 +193,8 @@ export default function InboundAnalytics() {
           <DashboardSkeleton />
         ) : overview ? (
           <>
-            {/* KPI Cards */}
-            <div className="flex items-center gap-1.5">
+            {/* KPI Cards — uniform grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
               <KpiCard
                 label="Total Leads"
                 value={overview.total}
@@ -174,7 +202,6 @@ export default function InboundAnalytics() {
                   <Users className="h-4 w-4" style={{ color: "#4F6EF7" }} />
                 }
               />
-              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <KpiCard
                 label="Booked"
                 value={overview.booked}
@@ -190,7 +217,6 @@ export default function InboundAnalytics() {
                   />
                 }
               />
-              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <KpiCard
                 label="Closed"
                 value={overview.closed}
@@ -206,10 +232,10 @@ export default function InboundAnalytics() {
                   />
                 }
               />
-              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <KpiCard
                 label="Book Rate"
                 value={`${overview.book_rate.toFixed(1)}%`}
+                rateValue={overview.book_rate}
                 icon={
                   <TrendingUp
                     className="h-4 w-4"
@@ -217,7 +243,6 @@ export default function InboundAnalytics() {
                   />
                 }
               />
-              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <KpiCard
                 label="Revenue"
                 value={`$${overview.revenue.toLocaleString()}`}
@@ -231,173 +256,230 @@ export default function InboundAnalytics() {
                 highlight
               />
               {overview.cross_channel > 0 && (
-                <>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <KpiCard
-                    label="Cross-Channel"
-                    value={overview.cross_channel}
-                    sub={`${overview.cross_channel_rate.toFixed(1)}% were outbound first`}
-                    icon={
-                      <Repeat2
-                        className="h-4 w-4"
-                        style={{ color: "#F59E0B" }}
-                      />
-                    }
-                  />
-                </>
+                <KpiCard
+                  label="Cross-Channel"
+                  value={overview.cross_channel}
+                  sub={`${overview.cross_channel_rate.toFixed(1)}% were outbound first`}
+                  icon={
+                    <Repeat2
+                      className="h-4 w-4"
+                      style={{ color: "#F59E0B" }}
+                    />
+                  }
+                />
               )}
             </div>
 
             {/* Source Breakdown */}
-            {overview.sources.length > 0 && (
-              <Card>
-                <CardContent className="py-4 px-6">
-                  <h3 className="text-sm font-medium mb-3">
-                    Source Breakdown
-                  </h3>
+            <Card>
+              <CardContent className="py-4 px-6">
+                <h3 className="text-sm font-medium mb-3">Source Breakdown</h3>
+                {!hasRealSources ? (
+                  <div className="py-8 text-center">
+                    <Info className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      No UTM source data detected.
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      Tag your links with{" "}
+                      <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
+                        ?utm_source=...
+                      </code>{" "}
+                      to track where leads come from.
+                    </p>
+                  </div>
+                ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Source</TableHead>
                         <TableHead className="text-right">Leads</TableHead>
                         <TableHead className="text-right">Booked</TableHead>
+                        <TableHead className="text-right">Book Rate</TableHead>
                         <TableHead className="text-right">Closed</TableHead>
+                        <TableHead className="text-right">Close Rate</TableHead>
                         <TableHead className="text-right">Revenue</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {overview.sources.map((s) => (
-                        <TableRow key={s.source}>
-                          <TableCell className="font-medium text-sm">
-                            {s.source}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {s.total}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {s.booked}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {s.closed}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            ${s.revenue.toLocaleString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {overview.sources
+                        .filter((s) => s.source !== "unknown")
+                        .map((s) => {
+                          const bookRate =
+                            s.total > 0 ? (s.booked / s.total) * 100 : 0;
+                          const closeRate =
+                            s.booked > 0 ? (s.closed / s.booked) * 100 : 0;
+                          return (
+                            <TableRow key={s.source}>
+                              <TableCell className="font-medium text-sm">
+                                {s.source}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {s.total}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {s.booked}
+                              </TableCell>
+                              <TableCell
+                                className={cn(
+                                  "text-right text-sm",
+                                  rateColor(bookRate),
+                                )}
+                              >
+                                {fmtRate(bookRate)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {s.closed}
+                              </TableCell>
+                              <TableCell
+                                className={cn(
+                                  "text-right text-sm",
+                                  rateColor(closeRate),
+                                )}
+                              >
+                                {fmtRate(closeRate)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                ${s.revenue.toLocaleString()}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                     </TableBody>
                   </Table>
-                </CardContent>
-              </Card>
-            )}
+                )}
+              </CardContent>
+            </Card>
 
             {/* Post Performance Table */}
             <Card>
               <CardContent className="py-4 px-6">
-                <h3 className="text-sm font-medium mb-3">
-                  Post Performance
-                </h3>
+                <h3 className="text-sm font-medium mb-3">Post Performance</h3>
                 {postsLoading ? (
                   <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">
                     Loading...
                   </div>
-                ) : sortedPosts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-6 text-center">
-                    No post data yet. Configure ManyChat to send{" "}
-                    <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                      post_url
-                    </code>{" "}
-                    in the webhook body.
-                  </p>
+                ) : trackedPosts.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <Info className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      No post tracking data yet.
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      Configure ManyChat to send{" "}
+                      <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
+                        post_url
+                      </code>{" "}
+                      in the webhook body to track which posts drive leads.
+                    </p>
+                    {unknownPost && unknownPost.total > 0 && (
+                      <p className="text-xs text-muted-foreground/50 mt-3">
+                        {unknownPost.total} lead
+                        {unknownPost.total !== 1 ? "s" : ""} with no post
+                        attributed
+                        {unknownPost.revenue > 0 &&
+                          ` ($${unknownPost.revenue.toLocaleString()} revenue)`}
+                      </p>
+                    )}
+                  </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Post</TableHead>
-                        <TableHead
-                          className="text-right cursor-pointer select-none"
-                          onClick={() => handlePostSort("total")}
-                        >
-                          Leads
-                          <SortIndicator field="total" />
-                        </TableHead>
-                        <TableHead
-                          className="text-right cursor-pointer select-none"
-                          onClick={() => handlePostSort("booked")}
-                        >
-                          Booked
-                          <SortIndicator field="booked" />
-                        </TableHead>
-                        <TableHead
-                          className="text-right cursor-pointer select-none"
-                          onClick={() => handlePostSort("closed")}
-                        >
-                          Closed
-                          <SortIndicator field="closed" />
-                        </TableHead>
-                        <TableHead
-                          className="text-right cursor-pointer select-none"
-                          onClick={() => handlePostSort("book_rate")}
-                        >
-                          Book Rate
-                          <SortIndicator field="book_rate" />
-                        </TableHead>
-                        <TableHead
-                          className="text-right cursor-pointer select-none"
-                          onClick={() => handlePostSort("revenue")}
-                        >
-                          Revenue
-                          <SortIndicator field="revenue" />
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedPosts.map((p) => {
-                        const display = truncatePostUrl(p.post_url);
-                        return (
-                          <TableRow key={p.post_url}>
-                            <TableCell className="max-w-[280px]">
-                              {display ? (
-                                <a
-                                  href={p.post_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-500 hover:underline inline-flex items-center gap-1"
-                                >
-                                  {display}
-                                  <ExternalLink className="h-3 w-3 shrink-0" />
-                                </a>
-                              ) : (
-                                <span className="text-sm text-muted-foreground italic">
-                                  No post tracked
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {p.total}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {p.booked}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {p.closed}
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "text-right font-medium",
-                                rateColor(p.book_rate),
-                              )}
-                            >
-                              {fmtRate(p.book_rate)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              ${p.revenue.toLocaleString()}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Post</TableHead>
+                          <TableHead
+                            className="text-right cursor-pointer select-none"
+                            onClick={() => handlePostSort("total")}
+                          >
+                            Leads
+                            <SortIndicator field="total" />
+                          </TableHead>
+                          <TableHead
+                            className="text-right cursor-pointer select-none"
+                            onClick={() => handlePostSort("booked")}
+                          >
+                            Booked
+                            <SortIndicator field="booked" />
+                          </TableHead>
+                          <TableHead
+                            className="text-right cursor-pointer select-none"
+                            onClick={() => handlePostSort("closed")}
+                          >
+                            Closed
+                            <SortIndicator field="closed" />
+                          </TableHead>
+                          <TableHead
+                            className="text-right cursor-pointer select-none"
+                            onClick={() => handlePostSort("book_rate")}
+                          >
+                            Book Rate
+                            <SortIndicator field="book_rate" />
+                          </TableHead>
+                          <TableHead
+                            className="text-right cursor-pointer select-none"
+                            onClick={() => handlePostSort("revenue")}
+                          >
+                            Revenue
+                            <SortIndicator field="revenue" />
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {trackedPosts.map((p) => {
+                          const display = truncatePostUrl(p.post_url);
+                          return (
+                            <TableRow key={p.post_url}>
+                              <TableCell className="max-w-[280px]">
+                                {display ? (
+                                  <a
+                                    href={p.post_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-500 hover:underline inline-flex items-center gap-1"
+                                  >
+                                    {display}
+                                    <ExternalLink className="h-3 w-3 shrink-0" />
+                                  </a>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground italic">
+                                    Unknown
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {p.total}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {p.booked}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {p.closed}
+                              </TableCell>
+                              <TableCell
+                                className={cn(
+                                  "text-right font-medium",
+                                  rateColor(p.book_rate),
+                                )}
+                              >
+                                {fmtRate(p.book_rate)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                ${p.revenue.toLocaleString()}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                    {unknownPost && unknownPost.total > 0 && (
+                      <p className="text-xs text-muted-foreground/60 mt-3 text-center">
+                        + {unknownPost.total} lead
+                        {unknownPost.total !== 1 ? "s" : ""} with no post
+                        attributed
+                      </p>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -476,12 +558,14 @@ function KpiCard({
   sub,
   icon,
   highlight,
+  rateValue,
 }: {
   label: string;
   value: number | string;
   sub?: string;
   icon: React.ReactNode;
   highlight?: boolean;
+  rateValue?: number;
 }) {
   const isZero =
     (typeof value === "number" && value === 0) ||
@@ -490,27 +574,28 @@ function KpiCard({
   return (
     <Card
       className={cn(
-        "flex-1 min-w-0 transition-colors",
+        "transition-colors",
         highlight && "bg-[#F0FDF4] border-[#22C55E]/20",
       )}
     >
-      <CardContent className="py-2.5 px-3 flex items-center gap-2.5">
+      <CardContent className="py-3 px-4 flex items-center gap-3">
         {icon}
         <div className="min-w-0">
-          <p className="text-[10px] text-muted-foreground leading-tight">
+          <p className="text-[11px] text-muted-foreground leading-tight">
             {label}
           </p>
           <p
             className={cn(
-              "font-bold leading-tight",
-              highlight ? "text-xl" : "text-lg",
+              "text-lg font-bold leading-tight",
+              highlight && "text-xl",
               isZero && "text-[#A0AEC0]",
+              rateValue != null && rateColor(rateValue),
             )}
           >
             {value}
           </p>
           {sub && (
-            <p className="text-[10px] text-muted-foreground leading-tight">
+            <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
               {sub}
             </p>
           )}

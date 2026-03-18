@@ -910,3 +910,22 @@ Manage booked calls and appointments with status tracking, sync, search, creatio
 - **Model:** `quddify-crm/models/Booking.js`
 - **Routes:** `quddify-crm/routes/bookings.js`
 - **Wired in:** `quddify-crm/index.js`
+
+---
+
+## Inbound Analytics
+
+Dashboard page at `/analytics/inbound` showing inbound lead funnel metrics, source attribution, post performance, and daily volume trends.
+
+### Location
+
+- **Frontend page:** `src/pages/InboundAnalytics.tsx`
+- **Frontend hooks:** `src/hooks/useInboundAnalytics.ts` (`useInboundOverview`, `useInboundPosts`, `useInboundDaily`)
+- **Frontend route:** `src/App.tsx` (`/analytics/inbound`)
+- **Backend routes:** `quddify-crm/routes/analytics.js` (inbound section)
+
+### API Routes
+
+- **`GET /analytics/inbound`** — Overview KPIs + source breakdown. Query: `start_date`, `end_date`. Returns `{ total, booked, closed, book_rate, close_rate, revenue, cross_channel, cross_channel_rate, sources[] }`.
+- **`GET /analytics/inbound/posts`** — Post performance table. Same query params. Returns `{ posts[] }` with `post_url`, totals, rates, revenue.
+- **`GET /analytics/inbound/daily`** — Daily volume chart data. Same query params. Returns `{ days[] }` with date, created, booked, closed.
