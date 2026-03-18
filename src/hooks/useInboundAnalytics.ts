@@ -51,7 +51,9 @@ function buildUrl(path: string, params?: InboundParams) {
   const sp = new URLSearchParams();
   if (params?.start_date) sp.append("start_date", params.start_date);
   if (params?.end_date) sp.append("end_date", params.end_date);
-  return sp.toString() ? `${API_URL}${path}?${sp.toString()}` : `${API_URL}${path}`;
+  // Exclude leads linked to outbound to avoid double-counting
+  sp.append("exclude_linked", "true");
+  return `${API_URL}${path}?${sp.toString()}`;
 }
 
 // --- Hooks ---

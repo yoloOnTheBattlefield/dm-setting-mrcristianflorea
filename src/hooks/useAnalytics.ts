@@ -54,7 +54,10 @@ async function fetchAnalytics({
     params.append("account_id", accountId);
   }
 
-  const url = params.toString() ? `${API_URL}/analytics?${params.toString()}` : `${API_URL}/analytics`;
+  // Exclude leads linked to outbound to avoid double-counting inbound metrics
+  params.append("exclude_linked", "true");
+
+  const url = `${API_URL}/analytics?${params.toString()}`;
   const response = await fetchWithAuth(url);
 
   if (!response.ok) {
