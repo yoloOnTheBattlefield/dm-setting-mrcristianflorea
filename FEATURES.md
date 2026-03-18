@@ -564,6 +564,22 @@ Comprehensive UI improvements to the Research Posts Library page (`/research/pos
 
 ---
 
+## Admin Password Reset
+
+Allows role 0 (admin) users to reset any team member's password without knowing the current one. Non-admin users still need to provide their current password to change their own.
+
+### Location
+
+- **Frontend page:** `src/pages/TeamMembers.tsx` (Reset Password dialog with KeyRound icon button)
+- **Frontend hook:** `src/hooks/useTeamMembers.ts` (`useResetPassword` mutation)
+- **Backend route:** `quddify-crm/routes/accounts.js` (`POST /api/accounts/:id/password`)
+
+### API
+
+- **`POST /api/accounts/:id/password`** — Body: `{ new_password }` (admin) or `{ current_password, new_password }` (non-admin). Admin (role 0) skips current password verification. Password must be at least 6 characters.
+
+---
+
 ## Virality Score Algorithm
 
 Per-post virality score that measures how much a post outperforms its account's baseline engagement. Uses per-competitor averages as the baseline so a small account going viral is scored the same as a large account going viral.

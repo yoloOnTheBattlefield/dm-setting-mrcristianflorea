@@ -113,3 +113,22 @@ export function useDeleteTeamMember() {
     },
   });
 }
+
+async function resetPassword({ userId, new_password }: { userId: string; new_password: string }): Promise<void> {
+  const response = await fetchWithAuth(`${ACCOUNTS_URL}/${userId}/password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ new_password }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to reset password: ${response.status}`);
+  }
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: resetPassword,
+  });
+}

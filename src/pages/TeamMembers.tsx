@@ -41,8 +41,8 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTeamMembers, useAddTeamMember, useUpdateTeamMember, useDeleteTeamMember, checkTeamEmail } from "@/hooks/useTeamMembers";
-import { Plus, Trash2 } from "lucide-react";
+import { useTeamMembers, useAddTeamMember, useUpdateTeamMember, useDeleteTeamMember, useResetPassword, checkTeamEmail } from "@/hooks/useTeamMembers";
+import { Plus, Trash2, KeyRound } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 
 export default function TeamMembers() {
@@ -90,9 +90,13 @@ export default function TeamMembers() {
   }, [addDialogOpen]);
 
   const { data: teamMembers = [], isLoading } = useTeamMembers();
+  const [resetPasswordDialog, setResetPasswordDialog] = useState<{ open: boolean; userId: string; name: string }>({ open: false, userId: "", name: "" });
+  const [newPassword, setNewPassword] = useState("");
+
   const addMember = useAddTeamMember();
   const updateMember = useUpdateTeamMember();
   const deleteMember = useDeleteTeamMember();
+  const resetPassword = useResetPassword();
 
   const handleAddMember = async () => {
     try {
@@ -124,6 +128,21 @@ export default function TeamMembers() {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResetPassword = async () => {
+    try {
+      await resetPassword.mutateAsync({ userId: resetPasswordDialog.userId, new_password: newPassword });
+      toast({ title: "Success", description: `Password updated for ${resetPasswordDialog.name}` });
+      setResetPasswordDialog({ open: false, userId: "", name: "" });
+      setNewPassword("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reset password",
         variant: "destructive",
       });
     }
@@ -298,6 +317,17 @@ export default function TeamMembers() {
                     {canManage && (
                       <TableCell>
                         {member._id !== user?.id && (
+                          <div className="flex items-center gap-1">
+                          {user?.role === 0 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Reset password"
+                              onClick={() => setResetPasswordDialog({ open: true, userId: member.user_id, name: `${member.first_name} ${member.last_name}` })}
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
+                          )}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
@@ -322,6 +352,7 @@ export default function TeamMembers() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          </div>
                         )}
                       </TableCell>
                     )}
@@ -332,6 +363,34 @@ export default function TeamMembers() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={resetPasswordDialog.open} onOpenChange={(open) => { setResetPasswordDialog((prev) => ({ ...prev, open })); if (!open) setNewPassword(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {resetPasswordDialog.name}. They will need to use this new password to log in.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Label htmlFor="reset-password">New Password</Label>
+            <PasswordInput
+              id="reset-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Minimum 6 characters"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setResetPasswordDialog({ open: false, userId: "", name: "" }); setNewPassword(""); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleResetPassword} disabled={resetPassword.isPending || newPassword.length < 6}>
+              {resetPassword.isPending ? "Updating..." : "Update Password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
