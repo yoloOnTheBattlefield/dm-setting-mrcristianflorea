@@ -772,19 +772,23 @@ Redesigned the All Contacts list from a sparse 4-column table into a full CRM pi
 
 - **Status column with color-coded pipeline pills** — Each row shows its pipeline stage (New / Link Sent / Follow Up / Booked / Closed / Ghosted) as a colored pill with a dot indicator, matching the colors from Lead Detail.
 - **Avatar/initials column** — Colored initial circle before each name for visual scanability.
-- **Last Activity column** — Shows relative time since the lead's most recent status change (e.g. "2d ago").
+- **Last Activity column with icons** — Shows activity type icon + label + relative time (e.g. "Link sent · 1d ago", "Booked · 4h ago"). Icons are color-coded per activity type.
 - **Blank cells instead of dashes** — Empty dates render as blank space instead of a wall of `—` dashes.
 - **Null name guard** — Names with literal "null" values (e.g. "Divano null") are cleaned to show just the valid parts or "Unknown".
-- **Row hover state + chevron** — Rows highlight on hover with a right-chevron (always subtly visible, brighter on hover), signaling clickability.
+- **Row hover quick actions** — Each row reveals an "Open" button and a "..." dropdown on hover with actions: Mark Link Sent, Mark Booked, Mark Closed, Mark Ghosted, Clear Ghosted. Actions call `PATCH /leads/:id` directly.
 - **Green Add Lead button** — Changed from yellow to emerald green for brand consistency.
-- **Stats bar contrast** — Labels upgraded to uppercase tracking-wide with higher opacity, border separator before rates, and color-coded rate values (green/amber/red based on thresholds).
-- **Leaner columns** — Removed Score and Converted columns (mostly empty data) to reduce sparsity. Table now shows: Name, Status, Created, Link Sent, Last Activity.
-- **Bulk selection** — Checkbox column with select-all, "Select all N" for cross-page selection, and a bulk action bar showing count + clear button. Uses existing `useLeadSelection` hook.
-- **Expanded status filter** — Filter popover now includes all 6 pipeline stages (New, Link Sent, Follow Up, Booked, Closed, Ghosted) with colored dots, up from 2.
+- **Stats bar** — Labels upgraded to uppercase tracking-wide. Rate values color-coded green/amber/red. Stats are clickable: clicking "Link Sent 108" filters the table to only Link Sent leads; clicking "Total Leads" clears the filter.
+- **Leaner columns** — Removed Score and Converted columns (mostly empty data) to reduce sparsity.
+- **Bulk action bar** — Blue-highlighted bar appears when leads are selected. Actions: Change Status (dropdown with Link Sent, Booked, Closed, Ghosted), Export as CSV, Clear selection. Uses sequential `PATCH /leads/:id` calls.
+- **CSV export** — Exports selected leads as CSV with Name, Email, Status, Created, Link Sent, Booked, Closed columns.
+- **Expanded status filter** — Filter popover now includes all 6 pipeline stages with colored dots.
+- **Kanban/Board view** — Toggle between List and Board views (persisted to localStorage). Board view renders 6 draggable columns (New → Link Sent → Follow Up → Booked → Closed → Ghosted) using `@dnd-kit/core`. Dragging a card between columns calls `PATCH /leads/:id` to update the stage. Each card shows avatar, name, email, score, and time since last activity.
+- **View toggle** — Pill-shaped List/Board toggle next to the Add Lead button.
 
 ### Location
 
 - **Contacts table:** `src/components/contacts-table.tsx`
+- **Kanban board:** `src/components/contacts-kanban.tsx`
 - **All Contacts page:** `src/pages/AllContacts.tsx`
 - **Selection hook:** `src/hooks/useLeadSelection.ts` (pre-existing)
 

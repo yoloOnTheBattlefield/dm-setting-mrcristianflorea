@@ -1,6 +1,7 @@
 "use client";
 
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -9,10 +10,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { ApiLead } from "@/lib/types";
-import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight } from "lucide-react";
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ChevronRight,
+  MessageCircle,
+  Send,
+  Link2,
+  CalendarCheck,
+  Ghost,
+  CheckCircle2,
+  MoreHorizontal,
+  ExternalLink,
+} from "lucide-react";
 import type { LeadSortField, SortOrder } from "@/hooks/useRawLeads";
 
 interface ContactsTableProps {
@@ -21,12 +43,17 @@ interface ContactsTableProps {
   sortBy?: LeadSortField;
   sortOrder?: SortOrder;
   onSort?: (field: LeadSortField) => void;
+  onQuickAction?: (leadId: string, action: QuickAction) => void;
   // Selection
   isSelected?: (id: string) => boolean;
   onToggle?: (id: string) => void;
   onToggleAll?: (ids: string[]) => void;
   allSelected?: boolean;
 }
+
+export type QuickAction =
+  | { type: "set_stage"; stage: "link_sent" | "booked" | "closed" | "ghosted" }
+  | { type: "clear_ghosted" };
 
 // Pipeline stages matching LeadDetail.tsx
 const PIPELINE_STAGES = [
@@ -39,12 +66,12 @@ const PIPELINE_STAGES = [
 ] as const;
 
 function getLeadStage(lead: ApiLead) {
-  if (lead.ghosted_at) return PIPELINE_STAGES[5]; // Ghosted
-  if (lead.closed_at) return PIPELINE_STAGES[4];   // Closed
-  if (lead.booked_at) return PIPELINE_STAGES[3];   // Booked
-  if (lead.follow_up_at) return PIPELINE_STAGES[2]; // Follow Up
-  if (lead.link_sent_at) return PIPELINE_STAGES[1]; // Link Sent
-  return PIPELINE_STAGES[0]; // New
+  if (lead.ghosted_at) return PIPELINE_STAGES[5];
+  if (lead.closed_at) return PIPELINE_STAGES[4];
+  if (lead.booked_at) return PIPELINE_STAGES[3];
+  if (lead.follow_up_at) return PIPELINE_STAGES[2];
+  if (lead.link_sent_at) return PIPELINE_STAGES[1];
+  return PIPELINE_STAGES[0];
 }
 
 function safeName(first: string | null | undefined, last: string | null | undefined): string {
@@ -69,8 +96,7 @@ function formatDate(dateString: string | null): string {
   });
 }
 
-function timeAgo(dateString: string | null): string {
-  if (!dateString) return "";
+function timeAgo(dateString: string): string {
   const now = Date.now();
   const then = new Date(dateString).getTime();
   const diffMs = now - then;
@@ -85,19 +111,33 @@ function timeAgo(dateString: string | null): string {
   return `${months}mo ago`;
 }
 
-function getLastActivity(lead: ApiLead): string {
-  const dates = [
-    lead.closed_at,
-    lead.booked_at,
-    lead.ghosted_at,
-    lead.follow_up_at,
-    lead.link_sent_at,
-    lead.date_created,
-  ].filter(Boolean) as string[];
+// Activity type icons + labels based on which field was most recently updated
+interface ActivityInfo {
+  icon: React.ReactNode;
+  label: string;
+  time: string;
+  color: string;
+}
 
-  if (dates.length === 0) return "";
-  const latest = dates.reduce((a, b) => (new Date(a) > new Date(b) ? a : b));
-  return timeAgo(latest);
+function getLastActivity(lead: ApiLead): ActivityInfo | null {
+  const entries: { date: string; label: string; icon: React.ReactNode; color: string }[] = [];
+
+  if (lead.closed_at) entries.push({ date: lead.closed_at, label: "Closed", icon: <CheckCircle2 className="h-3 w-3" />, color: "text-emerald-400" });
+  if (lead.booked_at) entries.push({ date: lead.booked_at, label: "Booked", icon: <CalendarCheck className="h-3 w-3" />, color: "text-emerald-400" });
+  if (lead.ghosted_at) entries.push({ date: lead.ghosted_at, label: "Ghosted", icon: <Ghost className="h-3 w-3" />, color: "text-red-400" });
+  if (lead.follow_up_at) entries.push({ date: lead.follow_up_at, label: "Follow up", icon: <MessageCircle className="h-3 w-3" />, color: "text-amber-400" });
+  if (lead.link_sent_at) entries.push({ date: lead.link_sent_at, label: "Link sent", icon: <Link2 className="h-3 w-3" />, color: "text-blue-400" });
+  if (lead.date_created) entries.push({ date: lead.date_created, label: "Created", icon: <Send className="h-3 w-3" />, color: "text-slate-400" });
+
+  if (entries.length === 0) return null;
+
+  const latest = entries.reduce((a, b) => (new Date(a.date) > new Date(b.date) ? a : b));
+  return {
+    icon: latest.icon,
+    label: latest.label,
+    time: timeAgo(latest.date),
+    color: latest.color,
+  };
 }
 
 // Initials avatar color based on name hash
@@ -123,12 +163,98 @@ function SortIcon({ field, sortBy, sortOrder }: { field: LeadSortField; sortBy?:
     : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
 }
 
+// Row-level quick action menu
+function RowActions({
+  lead,
+  onAction,
+}: {
+  lead: ApiLead;
+  onAction?: (leadId: string, action: QuickAction) => void;
+}) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const isGhosted = !!lead.ghosted_at;
+
+  return (
+    <div className="flex items-center gap-1">
+      {/* Quick action buttons visible on hover */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Open lead"
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/lead/${lead._id}`);
+        }}
+      >
+        <ExternalLink className="h-3.5 w-3.5" />
+      </Button>
+
+      {/* More actions dropdown */}
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={() => navigate(`/lead/${lead._id}`)}>
+            <ExternalLink className="h-3.5 w-3.5 mr-2" />
+            Open Lead
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {!lead.link_sent_at && (
+            <DropdownMenuItem onClick={() => onAction?.(lead._id, { type: "set_stage", stage: "link_sent" })}>
+              <Link2 className="h-3.5 w-3.5 mr-2 text-blue-400" />
+              Mark Link Sent
+            </DropdownMenuItem>
+          )}
+          {!lead.booked_at && (
+            <DropdownMenuItem onClick={() => onAction?.(lead._id, { type: "set_stage", stage: "booked" })}>
+              <CalendarCheck className="h-3.5 w-3.5 mr-2 text-emerald-400" />
+              Mark Booked
+            </DropdownMenuItem>
+          )}
+          {!lead.closed_at && lead.booked_at && (
+            <DropdownMenuItem onClick={() => onAction?.(lead._id, { type: "set_stage", stage: "closed" })}>
+              <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-300" />
+              Mark Closed
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          {isGhosted ? (
+            <DropdownMenuItem onClick={() => onAction?.(lead._id, { type: "clear_ghosted" })}>
+              <Ghost className="h-3.5 w-3.5 mr-2" />
+              Clear Ghosted
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              onClick={() => onAction?.(lead._id, { type: "set_stage", stage: "ghosted" })}
+              className="text-red-400 focus:text-red-400"
+            >
+              <Ghost className="h-3.5 w-3.5 mr-2" />
+              Mark Ghosted
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 export function ContactsTable({
   contacts,
   isLoading,
   sortBy,
   sortOrder,
   onSort,
+  onQuickAction,
   isSelected,
   onToggle,
   onToggleAll,
@@ -136,7 +262,7 @@ export function ContactsTable({
 }: ContactsTableProps) {
   const sortable = !!onSort;
   const selectable = !!onToggle;
-  const colCount = selectable ? 7 : 6;
+  const colCount = (selectable ? 1 : 0) + 6;
 
   return (
     <div className="rounded-lg border bg-card">
@@ -182,7 +308,7 @@ export function ContactsTable({
               )}
             </TableHead>
             <TableHead>Last Activity</TableHead>
-            <TableHead className="w-8" />
+            <TableHead className="w-20" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -201,7 +327,7 @@ export function ContactsTable({
                 <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-14" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 <TableCell />
               </TableRow>
             ))
@@ -217,6 +343,7 @@ export function ContactsTable({
               const fullName = safeName(contact.first_name, contact.last_name);
               const initials = getInitials(contact.first_name, contact.last_name);
               const avatarColor = getAvatarColor(fullName);
+              const activity = getLastActivity(contact);
 
               return (
                 <TableRow
@@ -261,13 +388,22 @@ export function ContactsTable({
                   <TableCell className="text-sm text-muted-foreground">
                     {formatDate(contact.link_sent_at)}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {getLastActivity(contact)}
+                  <TableCell>
+                    {activity && (
+                      <span className={`inline-flex items-center gap-1.5 text-xs ${activity.color}`}>
+                        {activity.icon}
+                        <span>{activity.label}</span>
+                        <span className="text-muted-foreground">· {activity.time}</span>
+                      </span>
+                    )}
                   </TableCell>
-                  <TableCell className="pr-4">
-                    <Link to={`/lead/${contact._id}`} tabIndex={-1}>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
-                    </Link>
+                  <TableCell className="pr-2">
+                    <div className="flex items-center justify-end">
+                      <RowActions lead={contact} onAction={onQuickAction} />
+                      <Link to={`/lead/${contact._id}`} tabIndex={-1}>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
+                      </Link>
+                    </div>
                   </TableCell>
                 </TableRow>
               );

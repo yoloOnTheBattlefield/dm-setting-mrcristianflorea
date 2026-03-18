@@ -1,18 +1,21 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRawLeads, type LeadSortField, type SortOrder } from "@/hooks/useRawLeads";
 import { useAccounts } from "@/hooks/useAccounts";
-import { ContactsTable } from "@/components/contacts-table";
-import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { ContactsTable, type QuickAction } from "@/components/contacts-table";
+import { ContactsKanban } from "@/components/contacts-kanban";
 import { readPersisted, writePersisted } from "@/hooks/usePersistedState";
 import { useLeadSelection } from "@/hooks/useLeadSelection";
-import { AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import {
+  AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight, Plus, X,
+  List, Columns3, Download, Ghost, CalendarCheck, Link2, CheckCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DateFilter } from "@/components/dashboard/DateFilter";
-import { DateRangeFilter } from "@/lib/types";
+import { DateRangeFilter, ApiLead } from "@/lib/types";
 import {
   Select,
   SelectContent,
@@ -32,6 +35,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -58,12 +68,18 @@ const LEAD_STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
   { value: "closed", label: "Closed" },
 ];
 
+type ViewMode = "list" | "kanban";
+
 export default function AllContacts() {
   const { user } = useAuth();
   const { viewAll } = useAdminView();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const selection = useLeadSelection();
+
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    readPersisted<ViewMode>("contacts-viewMode", "list")
+  );
 
   // Add Lead modal state
   const [addLeadOpen, setAddLeadOpen] = useState(false);
@@ -212,6 +228,11 @@ export default function AllContacts() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentPage]);
 
+  // Persist view mode
+  useEffect(() => {
+    writePersisted("contacts-viewMode", viewMode);
+  }, [viewMode]);
+
   // Update URL params when state changes
   useEffect(() => {
     const params = new URLSearchParams();
@@ -250,6 +271,9 @@ export default function AllContacts() {
     writePersisted("contacts-sortOrder", sortOrder);
   }, [selectedAccount, selectedStatuses, dateRange, debouncedSearchQuery, currentPage, itemsPerPage, setSearchParams, sortBy, sortOrder]);
 
+  // For kanban, we need all leads (no pagination limit)
+  const kanbanLimit = viewMode === "kanban" ? 500 : itemsPerPage;
+
   const {
     data,
     isLoading,
@@ -261,8 +285,8 @@ export default function AllContacts() {
     startDate,
     endDate,
     search: debouncedSearchQuery || undefined,
-    page: currentPage,
-    limit: itemsPerPage,
+    page: viewMode === "kanban" ? 1 : currentPage,
+    limit: kanbanLimit,
     accountId: user?.role === 0
       ? (viewAll
           ? (selectedAccount !== "all" ? selectedAccount : "all")
@@ -320,11 +344,154 @@ export default function AllContacts() {
     );
   };
 
+  // --- Quick actions (single lead) ---
+  const patchLead = useCallback(async (leadId: string, body: Record<string, unknown>, successMsg: string) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/leads/${leadId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (response.ok) {
+        await queryClient.invalidateQueries({ queryKey: ["rawLeads"] });
+        toast({ title: "Success", description: successMsg });
+      } else {
+        const d = await response.json().catch(() => ({}));
+        toast({ title: "Error", description: d.error || "Failed to update", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect", variant: "destructive" });
+    }
+  }, [queryClient, toast]);
+
+  const handleQuickAction = useCallback((leadId: string, action: QuickAction) => {
+    const now = new Date().toISOString();
+    if (action.type === "clear_ghosted") {
+      patchLead(leadId, { ghosted_at: null }, "Ghosted cleared");
+    } else if (action.type === "set_stage") {
+      const stageFields: Record<string, Record<string, unknown>> = {
+        link_sent: { link_sent_at: now },
+        booked: { link_sent_at: now, booked_at: now },
+        closed: { link_sent_at: now, booked_at: now, closed_at: now },
+        ghosted: { ghosted_at: now },
+      };
+      const labels: Record<string, string> = {
+        link_sent: "Marked as Link Sent",
+        booked: "Marked as Booked",
+        closed: "Marked as Closed",
+        ghosted: "Marked as Ghosted",
+      };
+      patchLead(leadId, stageFields[action.stage], labels[action.stage]);
+    }
+  }, [patchLead]);
+
+  // --- Bulk actions ---
+  const [bulkActing, setBulkActing] = useState(false);
+
+  const getSelectedIds = useCallback((): string[] => {
+    if (selection.mode === "manual") return Array.from(selection.selectedIds);
+    // For select-all mode, use current page contacts minus excluded
+    return contacts.filter((c) => !selection.excludedIds.has(c._id)).map((c) => c._id);
+  }, [selection, contacts]);
+
+  const handleBulkStatusChange = useCallback(async (stage: string) => {
+    const ids = getSelectedIds();
+    if (ids.length === 0) return;
+    setBulkActing(true);
+    const now = new Date().toISOString();
+    const stageFields: Record<string, Record<string, unknown>> = {
+      link_sent: { link_sent_at: now },
+      booked: { link_sent_at: now, booked_at: now },
+      closed: { link_sent_at: now, booked_at: now, closed_at: now },
+      ghosted: { ghosted_at: now },
+    };
+    const body = stageFields[stage];
+    if (!body) return;
+
+    let success = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        const res = await fetchWithAuth(`${API_URL}/leads/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) success++;
+        else failed++;
+      } catch {
+        failed++;
+      }
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ["rawLeads"] });
+    selection.clearSelection();
+    setBulkActing(false);
+    toast({
+      title: "Bulk Update",
+      description: `${success} updated${failed > 0 ? `, ${failed} failed` : ""}`,
+    });
+  }, [getSelectedIds, queryClient, selection, toast]);
+
+  const handleExportSelected = useCallback(() => {
+    const ids = new Set(getSelectedIds());
+    const selected = contacts.filter((c) => ids.has(c._id));
+    const rows = [
+      ["Name", "Email", "Status", "Created", "Link Sent", "Booked", "Closed"].join(","),
+      ...selected.map((c) => {
+        const stage = c.ghosted_at ? "Ghosted" : c.closed_at ? "Closed" : c.booked_at ? "Booked" : c.follow_up_at ? "Follow Up" : c.link_sent_at ? "Link Sent" : "New";
+        return [
+          `"${(c.first_name || "")} ${(c.last_name || "")}"`.replace(/null/g, "").trim(),
+          c.email || "",
+          stage,
+          c.date_created?.split("T")[0] || "",
+          c.link_sent_at?.split("T")[0] || "",
+          c.booked_at?.split("T")[0] || "",
+          c.closed_at?.split("T")[0] || "",
+        ].join(",");
+      }),
+    ];
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads-export-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Exported", description: `${selected.length} leads exported as CSV` });
+  }, [getSelectedIds, contacts, toast]);
+
+  // --- Clickable stat filter ---
+  const handleStatClick = useCallback((filter: string) => {
+    setSelectedStatuses((prev) => {
+      if (prev.length === 1 && prev[0] === filter) return [];
+      return [filter];
+    });
+  }, []);
+
+  // --- Kanban stage move ---
+  const handleKanbanMove = useCallback((leadId: string, toStage: string) => {
+    const now = new Date().toISOString();
+    const stageFields: Record<string, Record<string, unknown>> = {
+      new: { link_sent_at: null, booked_at: null, closed_at: null, ghosted_at: null, follow_up_at: null },
+      link_sent: { link_sent_at: now, booked_at: null, closed_at: null, ghosted_at: null },
+      follow_up: { follow_up_at: now, ghosted_at: null },
+      booked: { link_sent_at: now, booked_at: now, closed_at: null, ghosted_at: null },
+      closed: { link_sent_at: now, booked_at: now, closed_at: now, ghosted_at: null },
+      ghosted: { ghosted_at: now },
+    };
+    const body = stageFields[toStage];
+    if (!body) return;
+    patchLead(leadId, body, `Moved to ${toStage.replace("_", " ")}`);
+  }, [patchLead]);
+
+  const selectionCount = selection.getCount(pagination?.total || 0);
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4 flex items-end justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Button
               onClick={() => setAddLeadOpen(true)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
@@ -332,6 +499,28 @@ export default function AllContacts() {
               <Plus className="h-4 w-4 mr-1" />
               Add Lead
             </Button>
+
+            {/* View toggle */}
+            <div className="flex items-center rounded-lg border bg-muted/50 p-0.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn("h-7 px-2.5", viewMode === "list" && "bg-background shadow-sm")}
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-3.5 w-3.5 mr-1" />
+                List
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn("h-7 px-2.5", viewMode === "kanban" && "bg-background shadow-sm")}
+                onClick={() => setViewMode("kanban")}
+              >
+                <Columns3 className="h-3.5 w-3.5 mr-1" />
+                Board
+              </Button>
+            </div>
           </div>
 
           <div className="flex gap-4 items-end">
@@ -465,22 +654,22 @@ export default function AllContacts() {
           ) : stats && stats.total > 0 ? (
             <div className="mb-4 rounded-lg border bg-card px-5 py-4">
               <div className="flex gap-8 flex-wrap">
-                <div>
+                <button className="text-left hover:opacity-80 transition-opacity" onClick={() => setSelectedStatuses([])}>
                   <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Total Leads</p>
                   <p className="text-xl font-bold tabular-nums">{stats.total}</p>
-                </div>
-                <div>
+                </button>
+                <button className="text-left hover:opacity-80 transition-opacity" onClick={() => handleStatClick("link_sent")}>
                   <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Link Sent</p>
                   <p className="text-xl font-bold tabular-nums">{stats.linkSent}</p>
-                </div>
-                <div>
+                </button>
+                <button className="text-left hover:opacity-80 transition-opacity" onClick={() => handleStatClick("booked")}>
                   <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Booked</p>
                   <p className="text-xl font-bold tabular-nums">{stats.booked}</p>
-                </div>
-                <div>
+                </button>
+                <button className="text-left hover:opacity-80 transition-opacity" onClick={() => handleStatClick("closed")}>
                   <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Closed</p>
                   <p className="text-xl font-bold tabular-nums">{stats.closed}</p>
-                </div>
+                </button>
                 <div className="border-l pl-8">
                   <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Book Rate</p>
                   <p className={`text-xl font-bold tabular-nums ${Number(stats.bookRate) >= 5 ? "text-emerald-400" : Number(stats.bookRate) >= 2 ? "text-amber-400" : "text-red-400"}`}>{stats.bookRate}%</p>
@@ -494,10 +683,10 @@ export default function AllContacts() {
           ) : null}
 
           {/* Bulk Action Bar */}
-          {selection.getCount(pagination?.total || 0) > 0 && (
-            <div className="mb-3 flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2.5">
+          {selectionCount > 0 && (
+            <div className="mb-3 flex items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-2.5">
               <span className="text-sm font-medium">
-                {selection.getCount(pagination?.total || 0)} selected
+                {selectionCount} selected
               </span>
               {selection.mode === "manual" && pagination && pagination.total > contacts.length && (
                 <Button
@@ -510,6 +699,45 @@ export default function AllContacts() {
                 </Button>
               )}
               <div className="ml-auto flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={bulkActing}>
+                      Change Status
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onClick={() => handleBulkStatusChange("link_sent")}>
+                      <Link2 className="h-3.5 w-3.5 mr-2 text-blue-400" />
+                      Link Sent
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleBulkStatusChange("booked")}>
+                      <CalendarCheck className="h-3.5 w-3.5 mr-2 text-emerald-400" />
+                      Booked
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleBulkStatusChange("closed")}>
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-300" />
+                      Closed
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleBulkStatusChange("ghosted")}
+                      className="text-red-400 focus:text-red-400"
+                    >
+                      <Ghost className="h-3.5 w-3.5 mr-2" />
+                      Ghosted
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportSelected}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1" />
+                  Export
+                </Button>
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -522,79 +750,90 @@ export default function AllContacts() {
             </div>
           )}
 
-          <ContactsTable
-            contacts={contacts}
-            isLoading={isLoading}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            isSelected={selection.isSelected}
-            onToggle={selection.toggle}
-            onToggleAll={selection.toggleAll}
-            allSelected={
-              contacts.length > 0 &&
-              contacts.every((c) => selection.isSelected(c._id))
-            }
-          />
+          {viewMode === "list" ? (
+            <>
+              <ContactsTable
+                contacts={contacts}
+                isLoading={isLoading}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                onQuickAction={handleQuickAction}
+                isSelected={selection.isSelected}
+                onToggle={selection.toggle}
+                onToggleAll={selection.toggleAll}
+                allSelected={
+                  contacts.length > 0 &&
+                  contacts.every((c) => selection.isSelected(c._id))
+                }
+              />
 
-          {/* Pagination Controls */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t pt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-                {pagination.total} contacts
-              </div>
+              {/* Pagination Controls */}
+              {pagination && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between border-t pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
+                    {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+                    {pagination.total} contacts
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={pagination.page === 1}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={pagination.page === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
 
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (pagination.totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (pagination.page <= 3) {
-                      pageNum = i + 1;
-                    } else if (pagination.page >= pagination.totalPages - 2) {
-                      pageNum = pagination.totalPages - 4 + i;
-                    } else {
-                      pageNum = pagination.page - 2 + i;
-                    }
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (pagination.totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (pagination.page <= 3) {
+                          pageNum = i + 1;
+                        } else if (pagination.page >= pagination.totalPages - 2) {
+                          pageNum = pagination.totalPages - 4 + i;
+                        } else {
+                          pageNum = pagination.page - 2 + i;
+                        }
 
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={pagination.page === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(pageNum)}
-                        className="w-10"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={pagination.page === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(pageNum)}
+                            className="w-10"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                      disabled={pagination.page === pagination.totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
                 </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
-                  disabled={pagination.page === pagination.totalPages}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            </div>
+              )}
+            </>
+          ) : (
+            <ContactsKanban
+              contacts={contacts}
+              isLoading={isLoading}
+              onMove={handleKanbanMove}
+            />
           )}
         </>
       )}
