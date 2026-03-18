@@ -6,7 +6,8 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { ContactsTable } from "@/components/contacts-table";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { readPersisted, writePersisted } from "@/hooks/usePersistedState";
-import { AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { useLeadSelection } from "@/hooks/useLeadSelection";
+import { AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,8 +41,12 @@ import { API_URL, fetchWithAuth } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const STATUS_OPTIONS = [
-  { value: "link_sent", label: "Link Sent" },
-  { value: "booked", label: "Converted" },
+  { value: "new", label: "New", dot: "bg-slate-400" },
+  { value: "link_sent", label: "Link Sent", dot: "bg-blue-400" },
+  { value: "follow_up", label: "Follow Up", dot: "bg-amber-400" },
+  { value: "booked", label: "Booked", dot: "bg-emerald-400" },
+  { value: "closed", label: "Closed", dot: "bg-emerald-600" },
+  { value: "ghosted", label: "Ghosted", dot: "bg-red-400" },
 ];
 
 type LeadStatus = "new" | "link_sent" | "booked" | "closed";
@@ -58,6 +63,7 @@ export default function AllContacts() {
   const { viewAll } = useAdminView();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const selection = useLeadSelection();
 
   // Add Lead modal state
   const [addLeadOpen, setAddLeadOpen] = useState(false);
@@ -321,7 +327,7 @@ export default function AllContacts() {
           <div className="flex items-center gap-4">
             <Button
               onClick={() => setAddLeadOpen(true)}
-              className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Lead
@@ -368,20 +374,22 @@ export default function AllContacts() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-64" align="start">
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {STATUS_OPTIONS.map((option) => (
                     <div
                       key={option.value}
-                      className="flex items-center space-x-2"
+                      className="flex items-center space-x-2 rounded-md px-2 py-1.5 hover:bg-muted/50 cursor-pointer"
+                      onClick={() => toggleStatus(option.value)}
                     >
                       <Checkbox
-                        id={option.value}
+                        id={`status-${option.value}`}
                         checked={selectedStatuses.includes(option.value)}
                         onCheckedChange={() => toggleStatus(option.value)}
                       />
+                      <span className={`h-2 w-2 rounded-full ${option.dot}`} />
                       <label
-                        htmlFor={option.value}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        htmlFor={`status-${option.value}`}
+                        className="text-sm font-medium leading-none cursor-pointer"
                       >
                         {option.label}
                       </label>
@@ -455,35 +463,64 @@ export default function AllContacts() {
               </div>
             </div>
           ) : stats && stats.total > 0 ? (
-            <div className="mb-4 rounded-lg border bg-card p-4">
-              <div className="flex gap-6 flex-wrap">
+            <div className="mb-4 rounded-lg border bg-card px-5 py-4">
+              <div className="flex gap-8 flex-wrap">
                 <div>
-                  <p className="text-xs text-muted-foreground">Total Leads</p>
-                  <p className="text-lg font-bold">{stats.total}</p>
+                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Total Leads</p>
+                  <p className="text-xl font-bold tabular-nums">{stats.total}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Link Sent</p>
-                  <p className="text-lg font-bold">{stats.linkSent}</p>
+                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Link Sent</p>
+                  <p className="text-xl font-bold tabular-nums">{stats.linkSent}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Booked</p>
-                  <p className="text-lg font-bold">{stats.booked}</p>
+                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Booked</p>
+                  <p className="text-xl font-bold tabular-nums">{stats.booked}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Closed</p>
-                  <p className="text-lg font-bold">{stats.closed}</p>
+                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Closed</p>
+                  <p className="text-xl font-bold tabular-nums">{stats.closed}</p>
+                </div>
+                <div className="border-l pl-8">
+                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Book Rate</p>
+                  <p className="text-xl font-bold tabular-nums">{stats.bookRate}%</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Book Rate</p>
-                  <p className="text-lg font-bold">{stats.bookRate}%</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Close Rate</p>
-                  <p className="text-lg font-bold">{stats.closeRate}%</p>
+                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Close Rate</p>
+                  <p className="text-xl font-bold tabular-nums">{stats.closeRate}%</p>
                 </div>
               </div>
             </div>
           ) : null}
+
+          {/* Bulk Action Bar */}
+          {selection.getCount(pagination?.total || 0) > 0 && (
+            <div className="mb-3 flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2.5">
+              <span className="text-sm font-medium">
+                {selection.getCount(pagination?.total || 0)} selected
+              </span>
+              {selection.mode === "manual" && pagination && pagination.total > contacts.length && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="text-xs h-auto p-0"
+                  onClick={selection.selectAllMatching}
+                >
+                  Select all {pagination.total}
+                </Button>
+              )}
+              <div className="ml-auto flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={selection.clearSelection}
+                >
+                  <X className="h-3.5 w-3.5 mr-1" />
+                  Clear
+                </Button>
+              </div>
+            </div>
+          )}
 
           <ContactsTable
             contacts={contacts}
@@ -491,6 +528,13 @@ export default function AllContacts() {
             sortBy={sortBy}
             sortOrder={sortOrder}
             onSort={handleSort}
+            isSelected={selection.isSelected}
+            onToggle={selection.toggle}
+            onToggleAll={selection.toggleAll}
+            allSelected={
+              contacts.length > 0 &&
+              contacts.every((c) => selection.isSelected(c._id))
+            }
           />
 
           {/* Pagination Controls */}
@@ -667,7 +711,7 @@ export default function AllContacts() {
             <Button
               onClick={handleAddLead}
               disabled={!leadForm.first_name.trim() || addLeadSubmitting}
-              className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
             >
               {addLeadSubmitting ? "Creating..." : "Create Lead"}
             </Button>

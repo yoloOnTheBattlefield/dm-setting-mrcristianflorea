@@ -1,5 +1,48 @@
 # Features
 
+## Email Invitation Flow
+
+Invite new clients or team members via email. Recipients click a link to set their own password and join the platform — no admin-set passwords needed.
+
+### How It Works
+
+1. **Admin sends invite** from `/clients/new` (Invite via Email tab) or from a client's detail page (Invite via Email button)
+2. **Email delivered** via Resend with a 7-day expiry link
+3. **Recipient clicks link** → `/invite/:token` page loads with pre-filled name fields
+4. **Recipient sets password** → account/membership created, auto-logged in
+
+### Invite Types
+
+- **Client invite**: Creates a new Account + User + AccountUser (owner role). GHL ID is optional.
+- **Team member invite**: Creates a User and links them to an existing account with configurable outbound access.
+
+### Location
+
+- **Frontend pages:** `src/pages/NewClient.tsx` (Invite via Email tab), `src/pages/ClientDetail.tsx` (Invite via Email button), `src/pages/AcceptInvite.tsx` (public accept page)
+- **Frontend hook:** `src/hooks/useInvitations.ts` (`useInviteClient`, `useInviteTeamMember`)
+- **Frontend route:** `src/App.tsx` (`/invite/:token`)
+- **Backend model:** `quddify-crm/models/Invitation.js`
+- **Backend route:** `quddify-crm/routes/invitations.js`
+- **Backend wiring:** `quddify-crm/index.js` (registered before auth middleware for public endpoints)
+
+### API Routes
+
+- **`POST /api/invitations`** (auth, admin only) — Body: `{ email, first_name?, last_name?, type: "client"|"team_member", ghl?, account_id?, has_outbound?, has_research? }`. Creates invitation, sends email via Resend. Returns `{ _id, email, type, status }`.
+- **`GET /api/invitations/:token`** (public) — Validates token, returns `{ email, first_name, last_name, type }`.
+- **`POST /api/invitations/:token/accept`** (public) — Body: `{ password, first_name?, last_name? }`. Creates user/account, marks invitation accepted, returns JWT token for auto-login.
+
+### Environment Variables
+
+- `RESEND_API_KEY` — Resend API key for sending emails
+- `FRONTEND_URL` — Base URL for invite links (e.g., `https://quddify-app.app`)
+
+### Tests
+
+- `src/pages/AcceptInvite.test.tsx` — 4 tests: loading state, error state, pre-filled form, form fields
+- `quddify-crm/routes/invitations.test.js` — 12 tests: create client/team invites, duplicate detection, token validation, accept flow, expiry, password validation
+
+---
+
 ## Move Pending Leads Between Campaigns
 
 Select pending leads in a campaign and move them to another campaign in bulk. Only leads with `status: "pending"` are eligible to move. Stats are updated on both the source and target campaigns. Duplicate leads already in the target campaign are skipped.
@@ -718,3 +761,28 @@ Client management and session tracking for advisory/coaching clients. Includes a
 - `src/components/advisory/ClientHealthBadge.test.tsx` — Renders correct text and color for each health value
 - `src/components/advisory/ActionItemList.test.tsx` — Renders items, strikethrough on completed, empty state, overdue styling
 - `src/pages/AdvisoryDashboard.test.tsx` — Renders stat cards, client list, search input, New Client button
+
+---
+
+## Contacts List View Redesign
+
+Redesigned the All Contacts list from a sparse 4-column table into a full CRM pipeline view with rich data density, bulk selection, and visual polish.
+
+### Changes
+
+- **Status column with color-coded pipeline pills** — Each row shows its pipeline stage (New / Link Sent / Follow Up / Booked / Closed / Ghosted) as a colored pill with a dot indicator, matching the colors from Lead Detail.
+- **Avatar/initials column** — Colored initial circle before each name for visual scanability.
+- **Score column** — Inline score display (e.g. "7/10") in the table.
+- **Last Activity column** — Shows relative time since the lead's most recent status change (e.g. "2d ago").
+- **Blank cells instead of dashes** — Empty dates render as blank space instead of a wall of `—` dashes.
+- **Row hover state + chevron** — Rows highlight on hover with a right-chevron that fades in, signaling clickability.
+- **Green Add Lead button** — Changed from yellow to emerald green for brand consistency.
+- **Stats bar contrast** — Labels upgraded from `text-xs text-muted-foreground` to uppercase tracking-wide with higher opacity, plus a border separator before rate metrics.
+- **Bulk selection** — Checkbox column with select-all, "Select all N" for cross-page selection, and a bulk action bar showing count + clear button. Uses existing `useLeadSelection` hook.
+- **Expanded status filter** — Filter popover now includes all 6 pipeline stages (New, Link Sent, Follow Up, Booked, Closed, Ghosted) with colored dots, up from 2.
+
+### Location
+
+- **Contacts table:** `src/components/contacts-table.tsx`
+- **All Contacts page:** `src/pages/AllContacts.tsx`
+- **Selection hook:** `src/hooks/useLeadSelection.ts` (pre-existing)
