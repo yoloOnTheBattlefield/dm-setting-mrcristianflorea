@@ -26,9 +26,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             )}
           </div>
         </header>
-        <div className="flex flex-1 flex-col min-w-0">
+        <main className="flex flex-1 flex-col min-w-0">
           {children}
-        </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   )

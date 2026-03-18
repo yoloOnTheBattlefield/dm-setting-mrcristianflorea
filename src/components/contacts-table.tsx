@@ -182,7 +182,7 @@ function RowActions({
         variant="ghost"
         size="icon"
         className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-        title="Open lead"
+        aria-label="Open lead"
         onClick={(e) => {
           e.stopPropagation();
           navigate(`/lead/${lead._id}`);
@@ -198,6 +198,7 @@ function RowActions({
             variant="ghost"
             size="icon"
             className="h-7 w-7 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+            aria-label="More actions"
             onClick={(e) => e.stopPropagation()}
           >
             <MoreHorizontal className="h-3.5 w-3.5" />
@@ -273,6 +274,7 @@ export function ContactsTable({
               <TableHead className="w-10 pl-4">
                 <Checkbox
                   checked={allSelected}
+                  aria-label="Select all contacts"
                   onCheckedChange={() =>
                     onToggleAll?.(contacts.map((c) => c._id))
                   }
@@ -286,6 +288,7 @@ export function ContactsTable({
                 <button
                   className="flex items-center hover:text-foreground transition-colors"
                   onClick={() => onSort?.("date_created")}
+                  aria-label={`Sort by created date${sortBy === "date_created" ? (sortOrder === "asc" ? ", ascending" : ", descending") : ""}`}
                 >
                   Created
                   <SortIcon field="date_created" sortBy={sortBy} sortOrder={sortOrder} />
@@ -299,6 +302,7 @@ export function ContactsTable({
                 <button
                   className="flex items-center hover:text-foreground transition-colors"
                   onClick={() => onSort?.("link_sent_at")}
+                  aria-label={`Sort by link sent date${sortBy === "link_sent_at" ? (sortOrder === "asc" ? ", ascending" : ", descending") : ""}`}
                 >
                   Link Sent
                   <SortIcon field="link_sent_at" sortBy={sortBy} sortOrder={sortOrder} />
@@ -357,6 +361,7 @@ export function ContactsTable({
                     >
                       <Checkbox
                         checked={isSelected?.(contact._id)}
+                        aria-label={`Select ${safeName(contact.first_name, contact.last_name)}`}
                         onCheckedChange={() => onToggle?.(contact._id)}
                       />
                     </TableCell>

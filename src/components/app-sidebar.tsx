@@ -63,7 +63,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const sections = useNavSections()
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" aria-label="Main navigation" {...props}>
       {showSwitcher && (
         <SidebarHeader>
           <SidebarMenu>
