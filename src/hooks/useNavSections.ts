@@ -103,13 +103,6 @@ export function useNavSections(): NavSection[] {
     }
 
     sections.push({
-      label: "Advisory",
-      items: [
-        { title: "Clients", url: "/advisory", icon: Users, description: "Manage advisory clients" },
-      ],
-    })
-
-    sections.push({
       label: "Workspace",
       items: [
         { title: "Settings", url: "/settings", icon: Settings2, description: "Manage your account settings" },
