@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { API_URL, fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth, apiPost, apiPatch, apiDelete, apiGet } from "@/lib/api";
 
 export interface CampaignSchedule {
   active_hours_start: number;
@@ -253,25 +253,14 @@ export function useCampaignSenders(campaignId: string | null, enabled = false) {
 export function useCreateCampaign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: {
+    mutationFn: (body: {
       name: string;
       mode?: "auto" | "manual";
       messages?: string[];
       outbound_account_ids?: string[];
       schedule?: Partial<CampaignSchedule>;
       daily_limit_per_sender?: number;
-    }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    }) => apiPost(`${API_URL}/api/campaigns`, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["campaigns"] }),
   });
 }
@@ -279,7 +268,7 @@ export function useCreateCampaign() {
 export function useUpdateCampaign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, body }: {
+    mutationFn: ({ id, body }: {
       id: string;
       body: {
         name?: string;
@@ -289,18 +278,7 @@ export function useUpdateCampaign() {
         schedule?: Partial<CampaignSchedule>;
         daily_limit_per_sender?: number;
       };
-    }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    }) => apiPatch(`${API_URL}/api/campaigns/${id}`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
@@ -311,17 +289,7 @@ export function useUpdateCampaign() {
 export function useRecalcCampaignStats() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${id}/recalc-stats`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/campaigns/${id}/recalc-stats`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
@@ -333,16 +301,7 @@ export function useRecalcCampaignStats() {
 export function useDeleteCampaign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiDelete(`${API_URL}/api/campaigns/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["campaigns"] }),
   });
 }
@@ -350,17 +309,7 @@ export function useDeleteCampaign() {
 export function useStartCampaign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${id}/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/campaigns/${id}/start`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
@@ -371,17 +320,7 @@ export function useStartCampaign() {
 export function usePauseCampaign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${id}/pause`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/campaigns/${id}/pause`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
@@ -392,18 +331,8 @@ export function usePauseCampaign() {
 export function useRetryCampaignLeads() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, lead_ids }: { campaignId: string; lead_ids: string[] }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/retry`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lead_ids }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ campaignId, lead_ids }: { campaignId: string; lead_ids: string[] }) =>
+      apiPost(`${API_URL}/api/campaigns/${campaignId}/leads/retry`, { lead_ids }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
@@ -416,18 +345,8 @@ export function useRetryCampaignLeads() {
 export function useUpdateCampaignLeadStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, leadId, status }: { campaignId: string; leadId: string; status: string }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/${leadId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ campaignId, leadId, status }: { campaignId: string; leadId: string; status: string }) =>
+      apiPatch(`${API_URL}/api/campaigns/${campaignId}/leads/${leadId}/status`, { status }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
@@ -440,18 +359,8 @@ export function useUpdateCampaignLeadStatus() {
 export function useAddCampaignLeads() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, lead_ids }: { campaignId: string; lead_ids: string[] }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lead_ids }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ campaignId, lead_ids }: { campaignId: string; lead_ids: string[] }) =>
+      apiPost(`${API_URL}/api/campaigns/${campaignId}/leads`, { lead_ids }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
@@ -464,18 +373,8 @@ export function useAddCampaignLeads() {
 export function useDuplicateCampaign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, lead_filter }: { campaignId: string; lead_filter: string }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/duplicate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lead_filter }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ campaignId, lead_filter }: { campaignId: string; lead_filter: string }) =>
+      apiPost(`${API_URL}/api/campaigns/${campaignId}/duplicate`, { lead_filter }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
     },
@@ -485,18 +384,8 @@ export function useDuplicateCampaign() {
 export function useMoveLeads() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, lead_ids, target_campaign_id, keep_in_source }: { campaignId: string; lead_ids: string[]; target_campaign_id: string; keep_in_source?: boolean }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/move`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lead_ids, target_campaign_id, keep_in_source }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ campaignId, lead_ids, target_campaign_id, keep_in_source }: { campaignId: string; lead_ids: string[]; target_campaign_id: string; keep_in_source?: boolean }) =>
+      apiPost(`${API_URL}/api/campaigns/${campaignId}/leads/move`, { lead_ids, target_campaign_id, keep_in_source }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
@@ -509,18 +398,8 @@ export function useMoveLeads() {
 export function useRemoveSelectedCampaignLeads() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, lead_ids }: { campaignId: string; lead_ids: string[] }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/remove`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lead_ids }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ campaignId, lead_ids }: { campaignId: string; lead_ids: string[] }) =>
+      apiPost(`${API_URL}/api/campaigns/${campaignId}/leads/remove`, { lead_ids }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
@@ -533,16 +412,7 @@ export function useRemoveSelectedCampaignLeads() {
 export function useRemoveCampaignLeads() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (campaignId: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (campaignId: string) => apiDelete(`${API_URL}/api/campaigns/${campaignId}/leads`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
@@ -555,18 +425,8 @@ export function useRemoveCampaignLeads() {
 export function useSaveAIPrompt() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, prompt }: { campaignId: string; prompt: string }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/ai-prompt`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ campaignId, prompt }: { campaignId: string; prompt: string }) =>
+      apiPatch(`${API_URL}/api/campaigns/${campaignId}/ai-prompt`, { prompt }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaign"] });
     },
@@ -576,18 +436,8 @@ export function useSaveAIPrompt() {
 export function useGenerateMessages() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, prompt, scope, provider }: { campaignId: string; prompt: string; scope: string; provider?: string }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/generate-messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, scope, provider }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ campaignId, prompt, scope, provider }: { campaignId: string; prompt: string; scope: string; provider?: string }) =>
+      apiPost(`${API_URL}/api/campaigns/${campaignId}/generate-messages`, { prompt, scope, provider }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaign"] });
     },
@@ -596,41 +446,21 @@ export function useGenerateMessages() {
 
 export function usePreviewMessage() {
   return useMutation({
-    mutationFn: async ({ campaignId, prompt, provider }: { campaignId: string; prompt: string; provider?: string }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/preview-message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, provider }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json() as Promise<{
+    mutationFn: ({ campaignId, prompt, provider }: { campaignId: string; prompt: string; provider?: string }) =>
+      apiPost<{
         lead_name: string;
         lead_username: string | null;
         lead_bio: string | null;
         generated_message: string | null;
-      }>;
-    },
+      }>(`${API_URL}/api/campaigns/${campaignId}/preview-message`, { prompt, provider }),
   });
 }
 
 export function useRegenerateLeadMessage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, leadId, prompt, provider }: { campaignId: string; leadId: string; prompt?: string; provider?: string }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/${leadId}/regenerate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, provider }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ campaignId, leadId, prompt, provider }: { campaignId: string; leadId: string; prompt?: string; provider?: string }) =>
+      apiPost(`${API_URL}/api/campaigns/${campaignId}/leads/${leadId}/regenerate`, { prompt, provider }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaign-leads"] });
     },
@@ -640,18 +470,8 @@ export function useRegenerateLeadMessage() {
 export function useEditLeadMessage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ campaignId, leadId, custom_message }: { campaignId: string; leadId: string; custom_message: string }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/leads/${leadId}/message`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ custom_message }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ campaignId, leadId, custom_message }: { campaignId: string; leadId: string; custom_message: string }) =>
+      apiPatch(`${API_URL}/api/campaigns/${campaignId}/leads/${leadId}/message`, { custom_message }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaign-leads"] });
     },
@@ -661,17 +481,7 @@ export function useEditLeadMessage() {
 export function useClearMessages() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (campaignId: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/campaigns/${campaignId}/clear-messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (campaignId: string) => apiPost(`${API_URL}/api/campaigns/${campaignId}/clear-messages`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaign"] });
       qc.invalidateQueries({ queryKey: ["campaign-leads"] });

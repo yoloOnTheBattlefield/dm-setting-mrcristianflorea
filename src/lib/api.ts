@@ -92,3 +92,45 @@ export async function extractErrorMessage(
     return fallback;
   }
 }
+
+export async function apiRequest<T = unknown>(
+  url: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const res = await fetchWithAuth(url, options);
+  if (!res.ok) {
+    const msg = await extractErrorMessage(res, `Request failed: ${res.status}`);
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+export async function apiGet<T = unknown>(url: string): Promise<T> {
+  return apiRequest<T>(url);
+}
+
+export async function apiPost<T = unknown>(
+  url: string,
+  body?: unknown
+): Promise<T> {
+  return apiRequest<T>(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+}
+
+export async function apiPatch<T = unknown>(
+  url: string,
+  body: unknown
+): Promise<T> {
+  return apiRequest<T>(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiDelete<T = unknown>(url: string): Promise<T> {
+  return apiRequest<T>(url, { method: "DELETE" });
+}
