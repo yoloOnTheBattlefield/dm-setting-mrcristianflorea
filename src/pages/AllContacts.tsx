@@ -323,13 +323,26 @@ export default function AllContacts() {
     const linkSent = leads.filter((l) => l.link_sent_at).length;
     const booked = leads.filter((l) => l.booked_at).length;
     const closed = leads.filter((l) => l.closed_at).length;
+    const ghosted = leads.filter((l) => l.ghosted_at).length;
+    const followUp = leads.filter((l) => l.follow_up_at && !l.booked_at && !l.ghosted_at).length;
+
+    // Avg days from created to booked
+    const bookedLeads = leads.filter((l) => l.booked_at && l.date_created);
+    const avgDaysToBook = bookedLeads.length > 0
+      ? (bookedLeads.reduce((sum, l) => sum + (new Date(l.booked_at!).getTime() - new Date(l.date_created).getTime()) / (1000 * 60 * 60 * 24), 0) / bookedLeads.length).toFixed(1)
+      : null;
+
     return {
       total,
       linkSent,
       booked,
       closed,
+      ghosted,
+      followUp,
+      avgDaysToBook,
       bookRate: total > 0 ? ((booked / total) * 100).toFixed(1) : "0.0",
       closeRate: total > 0 ? ((closed / total) * 100).toFixed(1) : "0.0",
+      ghostRate: total > 0 ? ((ghosted / total) * 100).toFixed(1) : "0.0",
     };
   }, [statsData]);
 
@@ -653,31 +666,49 @@ export default function AllContacts() {
             </div>
           ) : stats && stats.total > 0 ? (
             <div className="mb-4 rounded-lg border bg-card px-5 py-4">
-              <div className="flex gap-8 flex-wrap">
+              <div className="flex gap-6 flex-wrap items-end">
                 <button className="text-left hover:opacity-80 transition-opacity" onClick={() => setSelectedStatuses([])}>
-                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Total Leads</p>
+                  <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Total</p>
                   <p className="text-xl font-bold tabular-nums">{stats.total}</p>
                 </button>
                 <button className="text-left hover:opacity-80 transition-opacity" onClick={() => handleStatClick("link_sent")}>
-                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Link Sent</p>
+                  <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Link Sent</p>
                   <p className="text-xl font-bold tabular-nums">{stats.linkSent}</p>
                 </button>
+                <button className="text-left hover:opacity-80 transition-opacity" onClick={() => handleStatClick("follow_up")}>
+                  <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Follow Up</p>
+                  <p className="text-xl font-bold tabular-nums">{stats.followUp}</p>
+                </button>
                 <button className="text-left hover:opacity-80 transition-opacity" onClick={() => handleStatClick("booked")}>
-                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Booked</p>
+                  <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Booked</p>
                   <p className="text-xl font-bold tabular-nums">{stats.booked}</p>
                 </button>
                 <button className="text-left hover:opacity-80 transition-opacity" onClick={() => handleStatClick("closed")}>
-                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Closed</p>
+                  <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Closed</p>
                   <p className="text-xl font-bold tabular-nums">{stats.closed}</p>
                 </button>
-                <div className="border-l pl-8">
-                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Book Rate</p>
+                <button className="text-left hover:opacity-80 transition-opacity" onClick={() => handleStatClick("ghosted")}>
+                  <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Ghosted</p>
+                  <p className="text-xl font-bold tabular-nums text-red-400/80">{stats.ghosted}</p>
+                </button>
+                <div className="border-l pl-6">
+                  <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Book Rate</p>
                   <p className={`text-xl font-bold tabular-nums ${Number(stats.bookRate) >= 5 ? "text-emerald-400" : Number(stats.bookRate) >= 2 ? "text-amber-400" : "text-red-400"}`}>{stats.bookRate}%</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Close Rate</p>
+                  <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Close Rate</p>
                   <p className={`text-xl font-bold tabular-nums ${Number(stats.closeRate) >= 3 ? "text-emerald-400" : Number(stats.closeRate) >= 1 ? "text-amber-400" : "text-red-400"}`}>{stats.closeRate}%</p>
                 </div>
+                <div>
+                  <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Ghost Rate</p>
+                  <p className={`text-xl font-bold tabular-nums ${Number(stats.ghostRate) <= 10 ? "text-emerald-400" : Number(stats.ghostRate) <= 25 ? "text-amber-400" : "text-red-400"}`}>{stats.ghostRate}%</p>
+                </div>
+                {stats.avgDaysToBook && (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide">Avg Days to Book</p>
+                    <p className="text-xl font-bold tabular-nums">{stats.avgDaysToBook}</p>
+                  </div>
+                )}
               </div>
             </div>
           ) : null}
