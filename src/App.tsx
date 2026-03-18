@@ -50,6 +50,8 @@ const LeadMagnetTracker = lazy(() => import("./pages/research/LeadMagnetTracker"
 const IdeasBank = lazy(() => import("./pages/research/IdeasBank"));
 const ResearchAlerts = lazy(() => import("./pages/research/Alerts"));
 const ResearchReports = lazy(() => import("./pages/research/Reports"));
+const AdvisoryDashboard = lazy(() => import("./pages/AdvisoryDashboard"));
+const AdvisoryClientDetail = lazy(() => import("./pages/AdvisoryClientDetail"));
 const Landing = lazy(() => import("./pages/Landing"));
 
 const queryClient = new QueryClient();
@@ -253,6 +255,8 @@ const App = () => (
               <Route path="/research/alerts" element={<ProtectedRoute><DashboardLayout><ResearchAlerts /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/reports" element={<ProtectedRoute><DashboardLayout><ResearchReports /></DashboardLayout></ProtectedRoute>} />
               <Route path="/comment-post" element={<ProtectedRoute><RequireOutbound><DashboardLayout><CommentPost /></DashboardLayout></RequireOutbound></ProtectedRoute>} />
+              <Route path="/advisory" element={<ProtectedRoute><DashboardLayout><AdvisoryDashboard /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/advisory/clients/:id" element={<ProtectedRoute><DashboardLayout><AdvisoryClientDetail /></DashboardLayout></ProtectedRoute>} />
               <Route path="/data-migration" element={<ProtectedRoute><DashboardLayout><DataMigration /></DashboardLayout></ProtectedRoute>} />
               <Route path="/landing" element={<Landing />} />
               <Route path="/login" element={
