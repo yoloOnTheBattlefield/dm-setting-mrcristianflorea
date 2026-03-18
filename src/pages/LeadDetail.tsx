@@ -407,10 +407,29 @@ export default function LeadDetail() {
     }
   };
 
-  const handleAdvanceStage = (stageIndex: number) => {
-    const stage = PIPELINE_STAGES[stageIndex];
-    if (!stage.field) return;
-    patchLead({ [stage.field]: new Date().toISOString() }, `Stage set to ${stage.label}`);
+  const handleSetStage = (stageIndex: number) => {
+    if (stageIndex === currentStageIndex) return;
+
+    const body: Record<string, unknown> = {};
+
+    if (stageIndex === 0) {
+      // Going back to "New" — clear all stage dates
+      for (const s of PIPELINE_STAGES) {
+        if (s.field) body[s.field] = null;
+      }
+    } else if (stageIndex > currentStageIndex) {
+      // Advancing forward — set the target stage date
+      const stage = PIPELINE_STAGES[stageIndex];
+      if (stage.field) body[stage.field] = new Date().toISOString();
+    } else {
+      // Going backward — clear dates for all stages after the target
+      for (let i = stageIndex + 1; i < PIPELINE_STAGES.length; i++) {
+        const s = PIPELINE_STAGES[i];
+        if (s.field) body[s.field] = null;
+      }
+    }
+
+    patchLead(body, `Stage set to ${PIPELINE_STAGES[stageIndex].label}`);
   };
 
   const handleAddNote = () => {
@@ -580,15 +599,15 @@ export default function LeadDetail() {
             return (
               <div key={stage.key} className="flex items-center">
                 <button
-                  onClick={() => { if (isFuture) handleAdvanceStage(i); }}
-                  disabled={isSaving || !isFuture}
+                  onClick={() => handleSetStage(i)}
+                  disabled={isSaving || isCurrent}
                   className={cn(
-                    "relative px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
+                    "relative px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap cursor-pointer",
                     i === 0 && "rounded-l-full",
                     i === PIPELINE_STAGES.length - 1 && "rounded-r-full",
-                    isCompleted && `${stage.bg} text-white`,
+                    isCompleted && `${stage.bg} text-white hover:opacity-80`,
                     isCurrent && `${stage.bg} text-white ring-2 ${stage.ring} ring-offset-2 ring-offset-background rounded-full z-10 scale-110`,
-                    isFuture && "bg-muted/60 text-muted-foreground hover:bg-muted cursor-pointer",
+                    isFuture && "bg-muted/60 text-muted-foreground hover:bg-muted",
                   )}
                 >
                   {isCompleted ? (
