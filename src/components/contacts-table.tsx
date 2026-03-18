@@ -47,10 +47,16 @@ function getLeadStage(lead: ApiLead) {
   return PIPELINE_STAGES[0]; // New
 }
 
-function getInitials(first: string, last: string): string {
-  return (
-    `${(first || "")[0] || ""}${(last || "")[0] || ""}`.toUpperCase() || "?"
-  );
+function safeName(first: string | null | undefined, last: string | null | undefined): string {
+  const f = (first && first !== "null") ? first.trim() : "";
+  const l = (last && last !== "null") ? last.trim() : "";
+  return `${f} ${l}`.trim() || "Unknown";
+}
+
+function getInitials(first: string | null | undefined, last: string | null | undefined): string {
+  const f = (first && first !== "null") ? first[0] : "";
+  const l = (last && last !== "null") ? last[0] : "";
+  return `${f}${l}`.toUpperCase() || "?";
 }
 
 function formatDate(dateString: string | null): string {
@@ -94,13 +100,6 @@ function getLastActivity(lead: ApiLead): string {
   return timeAgo(latest);
 }
 
-function renderScore(score: number | null | undefined) {
-  if (!score) return "";
-  return (
-    <span className="text-sm tabular-nums text-muted-foreground">{score}/10</span>
-  );
-}
-
 // Initials avatar color based on name hash
 const AVATAR_COLORS = [
   "bg-blue-600", "bg-emerald-600", "bg-violet-600", "bg-amber-600",
@@ -137,6 +136,7 @@ export function ContactsTable({
 }: ContactsTableProps) {
   const sortable = !!onSort;
   const selectable = !!onToggle;
+  const colCount = selectable ? 7 : 6;
 
   return (
     <div className="rounded-lg border bg-card">
@@ -153,9 +153,8 @@ export function ContactsTable({
                 />
               </TableHead>
             )}
-            <TableHead className="w-[280px]">Name</TableHead>
+            <TableHead>Name</TableHead>
             <TableHead className="w-[130px]">Status</TableHead>
-            <TableHead className="w-[60px] text-center">Score</TableHead>
             <TableHead>
               {sortable ? (
                 <button
@@ -182,19 +181,6 @@ export function ContactsTable({
                 "Link Sent"
               )}
             </TableHead>
-            <TableHead>
-              {sortable ? (
-                <button
-                  className="flex items-center hover:text-foreground transition-colors"
-                  onClick={() => onSort?.("booked_at")}
-                >
-                  Converted
-                  <SortIcon field="booked_at" sortBy={sortBy} sortOrder={sortOrder} />
-                </button>
-              ) : (
-                "Converted"
-              )}
-            </TableHead>
             <TableHead>Last Activity</TableHead>
             <TableHead className="w-8" />
           </TableRow>
@@ -213,8 +199,6 @@ export function ContactsTable({
                   </div>
                 </TableCell>
                 <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-14" /></TableCell>
@@ -223,21 +207,21 @@ export function ContactsTable({
             ))
           ) : contacts.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={selectable ? 9 : 8} className="h-24 text-center">
+              <TableCell colSpan={colCount + 1} className="h-24 text-center">
                 No contacts found.
               </TableCell>
             </TableRow>
           ) : (
             contacts.map((contact) => {
               const stage = getLeadStage(contact);
-              const fullName = `${contact.first_name} ${contact.last_name}`.trim();
+              const fullName = safeName(contact.first_name, contact.last_name);
               const initials = getInitials(contact.first_name, contact.last_name);
               const avatarColor = getAvatarColor(fullName);
 
               return (
                 <TableRow
                   key={contact._id}
-                  className="group hover:bg-muted/50 transition-colors cursor-pointer"
+                  className="group cursor-pointer"
                 >
                   {selectable && (
                     <TableCell
@@ -260,7 +244,7 @@ export function ContactsTable({
                       >
                         {initials}
                       </div>
-                      <span className="truncate">{fullName || "Unknown"}</span>
+                      <span className="truncate">{fullName}</span>
                     </Link>
                   </TableCell>
                   <TableCell>
@@ -271,9 +255,6 @@ export function ContactsTable({
                       {stage.label}
                     </span>
                   </TableCell>
-                  <TableCell className="text-center">
-                    {renderScore(contact.score)}
-                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {formatDate(contact.date_created)}
                   </TableCell>
@@ -281,14 +262,11 @@ export function ContactsTable({
                     {formatDate(contact.link_sent_at)}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(contact.booked_at)}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
                     {getLastActivity(contact)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="pr-4">
                     <Link to={`/lead/${contact._id}`} tabIndex={-1}>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground transition-colors" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
                     </Link>
                   </TableCell>
                 </TableRow>

@@ -483,11 +483,11 @@ export default function AllContacts() {
                 </div>
                 <div className="border-l pl-8">
                   <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Book Rate</p>
-                  <p className="text-xl font-bold tabular-nums">{stats.bookRate}%</p>
+                  <p className={`text-xl font-bold tabular-nums ${Number(stats.bookRate) >= 5 ? "text-emerald-400" : Number(stats.bookRate) >= 2 ? "text-amber-400" : "text-red-400"}`}>{stats.bookRate}%</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">Close Rate</p>
-                  <p className="text-xl font-bold tabular-nums">{stats.closeRate}%</p>
+                  <p className={`text-xl font-bold tabular-nums ${Number(stats.closeRate) >= 3 ? "text-emerald-400" : Number(stats.closeRate) >= 1 ? "text-amber-400" : "text-red-400"}`}>{stats.closeRate}%</p>
                 </div>
               </div>
             </div>

@@ -772,12 +772,13 @@ Redesigned the All Contacts list from a sparse 4-column table into a full CRM pi
 
 - **Status column with color-coded pipeline pills** — Each row shows its pipeline stage (New / Link Sent / Follow Up / Booked / Closed / Ghosted) as a colored pill with a dot indicator, matching the colors from Lead Detail.
 - **Avatar/initials column** — Colored initial circle before each name for visual scanability.
-- **Score column** — Inline score display (e.g. "7/10") in the table.
 - **Last Activity column** — Shows relative time since the lead's most recent status change (e.g. "2d ago").
 - **Blank cells instead of dashes** — Empty dates render as blank space instead of a wall of `—` dashes.
-- **Row hover state + chevron** — Rows highlight on hover with a right-chevron that fades in, signaling clickability.
+- **Null name guard** — Names with literal "null" values (e.g. "Divano null") are cleaned to show just the valid parts or "Unknown".
+- **Row hover state + chevron** — Rows highlight on hover with a right-chevron (always subtly visible, brighter on hover), signaling clickability.
 - **Green Add Lead button** — Changed from yellow to emerald green for brand consistency.
-- **Stats bar contrast** — Labels upgraded from `text-xs text-muted-foreground` to uppercase tracking-wide with higher opacity, plus a border separator before rate metrics.
+- **Stats bar contrast** — Labels upgraded to uppercase tracking-wide with higher opacity, border separator before rates, and color-coded rate values (green/amber/red based on thresholds).
+- **Leaner columns** — Removed Score and Converted columns (mostly empty data) to reduce sparsity. Table now shows: Name, Status, Created, Link Sent, Last Activity.
 - **Bulk selection** — Checkbox column with select-all, "Select all N" for cross-page selection, and a bulk action bar showing count + clear button. Uses existing `useLeadSelection` hook.
 - **Expanded status filter** — Filter popover now includes all 6 pipeline stages (New, Link Sent, Follow Up, Booked, Closed, Ghosted) with colored dots, up from 2.
 
