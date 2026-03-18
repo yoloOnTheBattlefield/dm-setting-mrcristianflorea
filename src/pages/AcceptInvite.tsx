@@ -51,8 +51,8 @@ export default function AcceptInvite() {
         setFirstName(data.first_name || "");
         setLastName(data.last_name || "");
         setState("form");
-      } catch (err: any) {
-        setErrorMessage(err.message || "Invitation not found or has expired");
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : "Invitation not found or has expired");
         setState("error");
       }
     }
@@ -106,11 +106,11 @@ export default function AcceptInvite() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("isAuthenticated", "true");
       navigate("/");
-    } catch (err: any) {
+    } catch (err) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: err.message || "Failed to create account",
+        description: err instanceof Error ? err.message : "Failed to create account",
       });
       setState("form");
     }

@@ -18,6 +18,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { AccountMembership } from "@/contexts/AuthContext";
 import { ArrowLeft, Check } from "lucide-react";
 
+interface LoginResponse {
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  _id?: string;
+  account_id?: string;
+  ghl?: string;
+  role?: number;
+  api_key?: string;
+  has_outbound?: boolean;
+  token?: string;
+  has_research?: boolean;
+  accounts?: AccountMembership[];
+  needs_account_selection?: boolean;
+  selection_token?: string;
+  user?: { _id: string; first_name: string; last_name: string; email: string };
+  error?: string;
+  message?: string;
+}
+
 interface AccountSelectionState {
   selectionToken: string;
   accounts: (AccountMembership & { disabled?: boolean })[];
@@ -36,7 +56,7 @@ export function LoginForm({
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const handleLoginSuccess = (data: any) => {
+  const handleLoginSuccess = (data: LoginResponse) => {
     login(
       data.email,
       data.first_name,
@@ -69,7 +89,7 @@ export function LoginForm({
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const data: LoginResponse = await response.json();
 
       if (response.ok) {
         if (data.needs_account_selection) {

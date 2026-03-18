@@ -794,8 +794,8 @@ export default function DeepScraper() {
       });
       setAddToCampaignJobId(null);
       setSelectedCampaignId("");
-    } catch (err: any) {
-      toast({ title: "Failed to add leads", description: err.message, variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Failed to add leads", description: err instanceof Error ? err.message : "Failed to add leads", variant: "destructive" });
     }
   };
 
