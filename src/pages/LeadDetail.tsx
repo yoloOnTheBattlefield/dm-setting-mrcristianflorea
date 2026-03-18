@@ -5,7 +5,6 @@ import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import {
   AlertCircle,
   RefreshCw,
-  CalendarCheck,
   DollarSign,
   Star,
   CheckCircle,
@@ -17,14 +16,23 @@ import {
   Mail,
   Clock,
   FileText,
-  User,
   MessageSquare,
+  StickyNote,
+  CalendarClock,
+  SquareCheckBig,
+  Plus,
+  Trash2,
+  ChevronRight,
+  Ghost,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -46,6 +54,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import {
+  useLeadNotes,
+  useCreateLeadNote,
+  useDeleteLeadNote,
+} from "@/hooks/useLeadNotes";
+import {
+  useLeadTasks,
+  useCreateLeadTask,
+  useUpdateLeadTask,
+  useDeleteLeadTask,
+} from "@/hooks/useLeadTasks";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -54,17 +73,10 @@ import { Input } from "@/components/ui/input";
 function parseBoldSectionsToObject(str: string) {
   const regex = /<b>(.*?)<\/b>\s*([\s\S]*?)(?=<b>|$)/g;
   const obj: Record<string, string> = {};
-
   let match;
   while ((match = regex.exec(str)) !== null) {
-    const key = match[1].trim();
-    const value = match[2]
-      .replace(/\n+/g, "\n")
-      .trim();
-
-    obj[key] = value;
+    obj[match[1].trim()] = match[2].replace(/\n+/g, "\n").trim();
   }
-
   return obj;
 }
 
@@ -82,12 +94,9 @@ function SummarySections({ html }: { html: string }) {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2">
       {entries.map(([title, content]) => (
-        <div
-          key={title}
-          className="rounded-lg border bg-muted/30 p-4 space-y-1"
-        >
+        <div key={title} className="rounded-lg border bg-muted/30 p-3 space-y-1">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {title}
           </h4>
@@ -102,79 +111,58 @@ function SummarySections({ html }: { html: string }) {
 
 async function fetchLead(contactId: string): Promise<ApiLead> {
   const response = await fetchWithAuth(`${API_URL}/leads/${contactId}`);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch lead: ${response.status}`);
-  }
-
-  const data: ApiLead = await response.json();
-  return data;
-}
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return "Not set";
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  if (!response.ok) throw new Error(`Failed to fetch lead: ${response.status}`);
+  return response.json();
 }
 
 function formatShortDate(dateString: string | null): string {
   if (!dateString) return "—";
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
+  return new Date(dateString).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
 }
 
-function getLeadStatus(lead: ApiLead): {
-  label: string;
-  variant: "default" | "secondary" | "destructive" | "outline";
-  color: string;
-} {
-  if (lead.booked_at)
-    return {
-      label: "Converted",
-      variant: "default",
-      color: "bg-emerald-500 text-white hover:bg-emerald-500",
-    };
-  if (lead.ghosted_at)
-    return {
-      label: "Ghosted",
-      variant: "destructive",
-      color: "bg-red-500 text-white hover:bg-red-500",
-    };
-  if (lead.follow_up_at)
-    return {
-      label: "Follow Up",
-      variant: "secondary",
-      color: "bg-amber-500 text-white hover:bg-amber-500",
-    };
-  if (lead.link_sent_at)
-    return {
-      label: "Link Sent",
-      variant: "secondary",
-      color: "bg-blue-500 text-white hover:bg-blue-500",
-    };
-  return {
-    label: "New",
-    variant: "outline",
-    color: "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600",
-  };
+function timeAgo(dateString: string): string {
+  const seconds = Math.floor(
+    (Date.now() - new Date(dateString).getTime()) / 1000
+  );
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return formatShortDate(dateString);
+}
+
+// Pipeline stages in order
+const PIPELINE_STAGES = [
+  { key: "new", label: "New", field: null, color: "bg-slate-400" },
+  { key: "link_sent", label: "Link Sent", field: "link_sent_at", color: "bg-blue-500" },
+  { key: "follow_up", label: "Follow Up", field: "follow_up_at", color: "bg-amber-500" },
+  { key: "booked", label: "Booked", field: "booked_at", color: "bg-emerald-500" },
+  { key: "closed", label: "Closed", field: "closed_at", color: "bg-emerald-700" },
+] as const;
+
+function getCurrentStageIndex(lead: ApiLead): number {
+  if (lead.closed_at) return 4;
+  if (lead.booked_at) return 3;
+  if (lead.follow_up_at) return 2;
+  if (lead.link_sent_at) return 1;
+  return 0;
 }
 
 function getInitials(first: string, last: string): string {
-  return `${(first || "")[0] || ""}${(last || "")[0] || ""}`.toUpperCase() || "?";
+  return (
+    `${(first || "")[0] || ""}${(last || "")[0] || ""}`.toUpperCase() || "?"
+  );
 }
 
 // ---------------------------------------------------------------------------
-// OutboundLeadLinker
+// OutboundLeadLinker (compact version for sidebar)
 // ---------------------------------------------------------------------------
 
 interface OutboundLeadResult {
@@ -201,78 +189,46 @@ function OutboundLeadLinker({
   const [autoResults, setAutoResults] = useState<OutboundLeadResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
-  const [linkedLead, setLinkedLead] = useState<OutboundLeadResult | null>(
-    null
-  );
+  const [linkedLead, setLinkedLead] = useState<OutboundLeadResult | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [autoSearched, setAutoSearched] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Fetch linked outbound lead details
   useEffect(() => {
-    if (!outboundLeadId) {
-      setLinkedLead(null);
-      return;
-    }
+    if (!outboundLeadId) { setLinkedLead(null); return; }
     fetchWithAuth(`${API_URL}/outbound-leads/${outboundLeadId}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data) setLinkedLead(data);
-      });
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setLinkedLead(d); });
   }, [outboundLeadId]);
 
-  // Auto-search by lead name on mount when not already linked
   useEffect(() => {
     if (outboundLeadId || autoSearched || leadName.trim().length < 2) return;
     setAutoSearched(true);
-    const sp = new URLSearchParams({
-      search: leadName.trim(),
-      limit: "5",
-      page: "1",
-    });
+    const sp = new URLSearchParams({ search: leadName.trim(), limit: "5", page: "1" });
     fetchWithAuth(`${API_URL}/outbound-leads?${sp}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.leads?.length) setAutoResults(data.leads);
-      });
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.leads?.length) setAutoResults(d.leads); });
   }, [outboundLeadId, leadName, autoSearched]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(e.target as Node)
-      ) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node))
         setShowResults(false);
-      }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   const searchOutbound = useCallback(async (q: string) => {
-    if (q.trim().length < 2) {
-      setResults([]);
-      return;
-    }
+    if (q.trim().length < 2) { setResults([]); return; }
     setIsSearching(true);
     try {
-      const sp = new URLSearchParams({
-        search: q.trim(),
-        limit: "10",
-        page: "1",
-      });
+      const sp = new URLSearchParams({ search: q.trim(), limit: "10", page: "1" });
       const res = await fetchWithAuth(`${API_URL}/outbound-leads?${sp}`);
-      if (res.ok) {
-        const data = await res.json();
-        setResults(data.leads || []);
-      }
-    } finally {
-      setIsSearching(false);
-    }
+      if (res.ok) setResults((await res.json()).leads || []);
+    } finally { setIsSearching(false); }
   }, []);
 
   const handleSearchChange = (val: string) => {
@@ -291,25 +247,13 @@ function OutboundLeadLinker({
         body: JSON.stringify({ outbound_lead_id: outboundId }),
       });
       if (res.ok) {
-        toast({
-          title: "Linked",
-          description: "Inbound lead linked to outbound lead.",
-        });
-        setSearch("");
-        setResults([]);
-        setAutoResults([]);
-        setShowResults(false);
+        toast({ title: "Linked", description: "Outbound lead linked." });
+        setSearch(""); setResults([]); setAutoResults([]); setShowResults(false);
         onLinked();
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to link leads",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Failed to link", variant: "destructive" });
       }
-    } finally {
-      setIsLinking(false);
-    }
+    } finally { setIsLinking(false); }
   };
 
   const unlinkOutbound = async () => {
@@ -325,148 +269,81 @@ function OutboundLeadLinker({
         setLinkedLead(null);
         onLinked();
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to unlink",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Failed to unlink", variant: "destructive" });
       }
-    } finally {
-      setIsLinking(false);
-    }
+    } finally { setIsLinking(false); }
   };
 
   if (outboundLeadId && linkedLead) {
     return (
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link2 className="h-4 w-4 text-green-500" />
-          <div>
-            <p className="text-sm font-medium">@{linkedLead.username}</p>
-            <p className="text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 min-w-0">
+          <Link2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium truncate">@{linkedLead.username}</p>
+            <p className="text-xs text-muted-foreground truncate">
               {linkedLead.fullName}
-              {linkedLead.followersCount != null &&
-                ` · ${linkedLead.followersCount.toLocaleString()} followers`}
+              {linkedLead.followersCount != null && ` · ${linkedLead.followersCount.toLocaleString()}`}
             </p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={unlinkOutbound}
-          disabled={isLinking}
-        >
-          <Unlink className="h-3.5 w-3.5 mr-1.5" />
-          Unlink
+        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={unlinkOutbound} disabled={isLinking}>
+          <Unlink className="h-3 w-3" />
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {/* Auto-matched suggestions */}
+    <div className="space-y-2">
       {autoResults.length > 0 && !dismissed && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30 p-3 space-y-2">
+        <div className="rounded-md border border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30 p-2 space-y-1.5">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-              Possible match{autoResults.length > 1 ? "es" : ""} found for "
-              {leadName}"
+            <p className="text-xs font-medium text-blue-700 dark:text-blue-300">
+              Match{autoResults.length > 1 ? "es" : ""} for "{leadName}"
             </p>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-xs text-muted-foreground"
-              onClick={() => setDismissed(true)}
-            >
-              Dismiss
+            <Button variant="ghost" size="sm" className="h-5 px-1 text-xs" onClick={() => setDismissed(true)}>
+              <X className="h-3 w-3" />
             </Button>
           </div>
-          <div className="space-y-1">
-            {autoResults.map((ob) => (
-              <div
-                key={ob._id}
-                className="flex items-center justify-between rounded-md bg-white dark:bg-background border px-3 py-2"
-              >
-                <div>
-                  <p className="text-sm font-medium">@{ob.username}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {ob.fullName}
-                    {ob.followersCount != null &&
-                      ` · ${ob.followersCount.toLocaleString()} followers`}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => linkOutbound(ob._id)}
-                  disabled={isLinking}
-                >
-                  <Link2 className="h-3.5 w-3.5 mr-1.5" />
-                  Link
-                </Button>
-              </div>
-            ))}
-          </div>
+          {autoResults.map((ob) => (
+            <button key={ob._id} className="flex w-full items-center justify-between rounded bg-white dark:bg-background border px-2 py-1.5 text-left hover:bg-accent transition-colors" onClick={() => linkOutbound(ob._id)} disabled={isLinking}>
+              <span className="text-xs font-medium truncate">@{ob.username}</span>
+              <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
+            </button>
+          ))}
         </div>
       )}
-
-      {/* Empty state when no auto-results and no search */}
-      {autoResults.length === 0 && !search && (
-        <div className="flex items-center gap-3 rounded-lg border border-dashed p-4 text-muted-foreground">
-          <Link2 className="h-5 w-5 shrink-0" />
-          <p className="text-sm">
-            No outbound lead linked — search below to connect one.
-          </p>
-        </div>
-      )}
-
-      {/* Manual search */}
       <div ref={wrapperRef} className="relative">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search outbound leads by username or name..."
+            placeholder="Search outbound leads..."
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            onFocus={() =>
-              search.trim().length >= 2 && setShowResults(true)
-            }
-            className="pl-9"
+            onFocus={() => search.trim().length >= 2 && setShowResults(true)}
+            className="pl-7 h-8 text-sm"
           />
-          {isSearching && (
-            <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
-          )}
+          {isSearching && <Loader2 className="absolute right-2 top-2 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
         </div>
         {showResults && results.length > 0 && (
-          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-48 overflow-y-auto">
             {results.map((ob) => (
-              <button
-                key={ob._id}
-                className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-accent transition-colors"
-                onClick={() => linkOutbound(ob._id)}
-                disabled={isLinking}
-              >
-                <div>
-                  <p className="text-sm font-medium">@{ob.username}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {ob.fullName}
-                    {ob.followersCount != null &&
-                      ` · ${ob.followersCount.toLocaleString()} followers`}
-                  </p>
+              <button key={ob._id} className="flex w-full items-center justify-between px-2 py-1.5 text-left hover:bg-accent transition-colors" onClick={() => linkOutbound(ob._id)} disabled={isLinking}>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium truncate">@{ob.username}</p>
+                  <p className="text-xs text-muted-foreground truncate">{ob.fullName}</p>
                 </div>
-                <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+                <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
               </button>
             ))}
           </div>
         )}
-        {showResults &&
-          search.trim().length >= 2 &&
-          !isSearching &&
-          results.length === 0 && (
-            <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg px-3 py-4 text-center text-sm text-muted-foreground">
-              No outbound leads found
-            </div>
-          )}
+        {showResults && search.trim().length >= 2 && !isSearching && results.length === 0 && (
+          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg px-2 py-3 text-center text-xs text-muted-foreground">
+            No outbound leads found
+          </div>
+        )}
       </div>
     </div>
   );
@@ -481,9 +358,15 @@ export default function LeadDetail() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [isBooking, setIsBooking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [contractInput, setContractInput] = useState("");
+  const [noteText, setNoteText] = useState("");
+  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [showTaskInput, setShowTaskInput] = useState(false);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDueDate, setTaskDueDate] = useState("");
+  const [showFollowUpInput, setShowFollowUpInput] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState("");
 
   const {
     data: lead,
@@ -499,43 +382,15 @@ export default function LeadDetail() {
     refetchOnWindowFocus: false,
   });
 
-  const handleMarkAsBooked = async () => {
-    if (!contactId) return;
+  const { data: notes = [] } = useLeadNotes(lead?._id);
+  const { data: tasks = [] } = useLeadTasks(lead?._id);
+  const createNote = useCreateLeadNote();
+  const deleteNote = useDeleteLeadNote();
+  const createTask = useCreateLeadTask();
+  const updateTask = useUpdateLeadTask();
+  const deleteTask = useDeleteLeadTask();
 
-    setIsBooking(true);
-    try {
-      const response = await fetchWithAuth(`${API_URL}/leads/${contactId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ booked_at: new Date().toISOString() }),
-      });
-
-      if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ["lead", contactId] });
-        toast({ title: "Success", description: "Lead marked as converted." });
-      } else {
-        const data = await response.json().catch(() => ({}));
-        toast({
-          title: "Error",
-          description: data.error || "Failed to update lead",
-          variant: "destructive",
-        });
-      }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to connect to the server",
-        variant: "destructive",
-      });
-    } finally {
-      setIsBooking(false);
-    }
-  };
-
-  const patchLead = async (
-    body: Record<string, unknown>,
-    successMsg: string
-  ) => {
+  const patchLead = async (body: Record<string, unknown>, successMsg: string) => {
     if (!contactId) return;
     setIsSaving(true);
     try {
@@ -549,31 +404,46 @@ export default function LeadDetail() {
         toast({ title: "Success", description: successMsg });
       } else {
         const data = await response.json().catch(() => ({}));
-        toast({
-          title: "Error",
-          description: data.error || "Failed to update lead",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: data.error || "Failed to update", variant: "destructive" });
       }
     } catch {
-      toast({
-        title: "Error",
-        description: "Failed to connect to the server",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to connect", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Loading / Error / Not Found states
-  if (isLoading) {
-    return (
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <DashboardSkeleton />
-      </div>
+  const handleAdvanceStage = (stageIndex: number) => {
+    const stage = PIPELINE_STAGES[stageIndex];
+    if (!stage.field) return; // "new" has no field
+    patchLead({ [stage.field]: new Date().toISOString() }, `Stage set to ${stage.label}`);
+  };
+
+  const handleAddNote = () => {
+    if (!noteText.trim() || !lead) return;
+    createNote.mutate(
+      { lead_id: lead._id, content: noteText.trim() },
+      { onSuccess: () => { setNoteText(""); setShowNoteInput(false); } }
     );
-  }
+  };
+
+  const handleAddTask = () => {
+    if (!taskTitle.trim() || !lead) return;
+    createTask.mutate(
+      { lead_id: lead._id, title: taskTitle.trim(), due_date: taskDueDate || null },
+      { onSuccess: () => { setTaskTitle(""); setTaskDueDate(""); setShowTaskInput(false); } }
+    );
+  };
+
+  const handleScheduleFollowUp = () => {
+    if (!followUpDate) return;
+    patchLead({ follow_up_at: new Date(followUpDate).toISOString() }, "Follow-up scheduled");
+    setFollowUpDate("");
+    setShowFollowUpInput(false);
+  };
+
+  // Loading / Error / Not Found
+  if (isLoading) return <div className="flex flex-1 flex-col gap-4 p-4"><DashboardSkeleton /></div>;
 
   if (isError) {
     return (
@@ -581,15 +451,8 @@ export default function LeadDetail() {
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
           <h2 className="text-lg font-semibold mb-2">Failed to load lead</h2>
-          <p className="text-muted-foreground mb-4">
-            {error instanceof Error
-              ? error.message
-              : "An unknown error occurred"}
-          </p>
-          <Button onClick={() => refetch()} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
+          <p className="text-muted-foreground mb-4">{error instanceof Error ? error.message : "An unknown error occurred"}</p>
+          <Button onClick={() => refetch()} variant="outline"><RefreshCw className="h-4 w-4 mr-2" />Try Again</Button>
         </div>
       </div>
     );
@@ -601,415 +464,562 @@ export default function LeadDetail() {
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
           <h2 className="text-lg font-semibold mb-2">Lead not found</h2>
-          <p className="text-muted-foreground">
-            The lead you're looking for doesn't exist.
-          </p>
         </div>
       </div>
     );
   }
 
-  const status = getLeadStatus(lead);
   const leadName = `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim() || "Unknown";
+  const currentStageIndex = getCurrentStageIndex(lead);
+  const isGhosted = !!lead.ghosted_at;
+  const openTasks = tasks.filter((t) => !t.completed_at);
+  const completedTasks = tasks.filter((t) => t.completed_at);
+
+  // Build unified activity feed
+  const activityItems: {
+    type: "note" | "stage" | "task_completed";
+    date: string;
+    id: string;
+    data: Record<string, unknown>;
+  }[] = [];
+
+  // Notes
+  for (const n of notes) {
+    activityItems.push({
+      type: "note",
+      date: n.createdAt,
+      id: `note-${n._id}`,
+      data: { content: n.content, author: n.author_name, noteId: n._id, leadId: n.lead_id },
+    });
+  }
+
+  // Stage transitions from dates
+  const stageEvents = [
+    { label: "Created", date: lead.date_created, icon: "created" },
+    { label: "Link Sent", date: lead.link_sent_at, icon: "link_sent" },
+    { label: "Follow Up", date: lead.follow_up_at, icon: "follow_up" },
+    { label: "Booked", date: lead.booked_at, icon: "booked" },
+    { label: "Ghosted", date: lead.ghosted_at, icon: "ghosted" },
+    { label: "Closed", date: lead.closed_at, icon: "closed" },
+  ];
+  for (const ev of stageEvents) {
+    if (ev.date) {
+      activityItems.push({
+        type: "stage",
+        date: ev.date,
+        id: `stage-${ev.icon}`,
+        data: { label: ev.label, icon: ev.icon },
+      });
+    }
+  }
+
+  // Completed tasks
+  for (const t of completedTasks) {
+    activityItems.push({
+      type: "task_completed",
+      date: t.completed_at!,
+      id: `task-${t._id}`,
+      data: { title: t.title },
+    });
+  }
+
+  activityItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
       {/* Breadcrumb */}
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/contacts/all">Leads</Link>
-            </BreadcrumbLink>
+            <BreadcrumbLink asChild><Link to="/contacts/all">Leads</Link></BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{leadName}</BreadcrumbPage>
-          </BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbPage>{leadName}</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* ── Profile Header Card ── */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-            {/* Avatar */}
-            <Avatar className="h-14 w-14 text-lg">
+      {/* ── Header ── */}
+      <div className="space-y-3">
+        {/* Row 1: Avatar + Name + Pipeline */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar className="h-12 w-12 text-base shrink-0">
               <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                 {getInitials(lead.first_name, lead.last_name)}
               </AvatarFallback>
             </Avatar>
-
-            {/* Info */}
-            <div className="flex-1 min-w-0 space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight">
-                  {leadName}
-                </h1>
-                <Badge className={cn("text-xs", status.color)}>
-                  {status.label}
-                </Badge>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                {lead.email && (
-                  <span className="flex items-center gap-1.5">
-                    <Mail className="h-3.5 w-3.5" />
-                    {lead.email}
-                  </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight truncate">{leadName}</h1>
+                {isGhosted && (
+                  <Badge variant="destructive" className="shrink-0">
+                    <Ghost className="h-3 w-3 mr-1" />Ghosted
+                  </Badge>
                 )}
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
                 {lead.ig_username && (
-                  <a
-                    href={`https://instagram.com/${lead.ig_username.replace(/^@/, "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 hover:text-foreground transition-colors"
-                  >
-                    <Instagram className="h-3.5 w-3.5" />
-                    @{lead.ig_username.replace(/^@/, "")}
+                  <a href={`https://instagram.com/${lead.ig_username.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-foreground transition-colors">
+                    <Instagram className="h-3 w-3" />@{lead.ig_username.replace(/^@/, "")}
                   </a>
                 )}
-                {lead.source && (
-                  <span className="flex items-center gap-1.5">
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    {lead.source}
-                  </span>
+                {lead.email && (
+                  <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{lead.email}</span>
                 )}
-                <span className="flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5" />
-                  Created {formatShortDate(lead.date_created)}
-                </span>
+                {lead.source && (
+                  <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{lead.source}</span>
+                )}
+                <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatShortDate(lead.date_created)}</span>
               </div>
             </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-2 shrink-0">
-              {!lead.booked_at && (
-                <Button
-                  onClick={handleMarkAsBooked}
-                  disabled={isBooking}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
-                  <CalendarCheck className="h-4 w-4 mr-1.5" />
-                  {isBooking ? "Converting..." : "Mark as Converted"}
-                </Button>
-              )}
-            </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* ── Two-Column Layout ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2/3) */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          {/* Outbound Lead Link — only for accounts with outbound features */}
-          {user?.has_outbound && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Link2 className="h-4 w-4" />
-                  Outbound Lead
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <OutboundLeadLinker
-                  leadId={lead._id}
-                  outboundLeadId={lead.outbound_lead_id}
-                  leadName={leadName}
-                  onLinked={() =>
-                    queryClient.invalidateQueries({
-                      queryKey: ["lead", contactId],
-                    })
-                  }
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Summary Section */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {lead.summary ? (
-                <SummarySections html={lead.summary} />
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <div className="rounded-full bg-muted p-3 mb-3">
-                    <FileText className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    No summary available
-                  </p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">
-                    A summary will appear here once the lead books a call.
-                  </p>
+          {/* Pipeline Stepper */}
+          <div className="flex items-center gap-1 sm:ml-auto shrink-0">
+            {PIPELINE_STAGES.map((stage, i) => {
+              const isCompleted = i <= currentStageIndex;
+              const isCurrent = i === currentStageIndex;
+              return (
+                <div key={stage.key} className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      if (i > currentStageIndex) handleAdvanceStage(i);
+                    }}
+                    disabled={isSaving || i <= currentStageIndex}
+                    className={cn(
+                      "px-2.5 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap",
+                      isCompleted
+                        ? `${stage.color} text-white`
+                        : "bg-muted text-muted-foreground hover:bg-muted/80",
+                      isCurrent && "ring-2 ring-offset-2 ring-offset-background",
+                      isCurrent && stage.key === "new" && "ring-slate-400",
+                      isCurrent && stage.key === "link_sent" && "ring-blue-500",
+                      isCurrent && stage.key === "follow_up" && "ring-amber-500",
+                      isCurrent && stage.key === "booked" && "ring-emerald-500",
+                      isCurrent && stage.key === "closed" && "ring-emerald-700",
+                      i > currentStageIndex && "cursor-pointer",
+                    )}
+                  >
+                    {stage.label}
+                  </button>
+                  {i < PIPELINE_STAGES.length - 1 && (
+                    <ChevronRight className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Q&A Section */}
-          {lead.questions_and_answers &&
-            lead.questions_and_answers.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4" />
-                    Questions & Answers
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {lead.questions_and_answers
-                      .sort((a, b) => a.position - b.position)
-                      .map((qa, i) => (
-                        <div key={i}>
-                          <p className="text-sm font-medium">{qa.question}</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {qa.answer}
-                          </p>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+              );
+            })}
+          </div>
         </div>
 
-        {/* Right Column (1/3) */}
-        <div className="flex flex-col gap-6">
-          {/* Sales Tracking */}
+        {/* Row 2: Action Bar */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setShowNoteInput(true); setShowTaskInput(false); setShowFollowUpInput(false); }}
+            className="h-8"
+          >
+            <StickyNote className="h-3.5 w-3.5 mr-1.5" />Note
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setShowFollowUpInput(true); setShowNoteInput(false); setShowTaskInput(false); }}
+            className="h-8"
+          >
+            <CalendarClock className="h-3.5 w-3.5 mr-1.5" />Follow-Up
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setShowTaskInput(true); setShowNoteInput(false); setShowFollowUpInput(false); }}
+            className="h-8"
+          >
+            <SquareCheckBig className="h-3.5 w-3.5 mr-1.5" />Task
+          </Button>
+
+          {/* Ghosted toggle */}
+          {!isGhosted ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-muted-foreground ml-auto"
+              onClick={() => patchLead({ ghosted_at: new Date().toISOString() }, "Marked as ghosted")}
+              disabled={isSaving}
+            >
+              <Ghost className="h-3.5 w-3.5 mr-1.5" />Mark Ghosted
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-muted-foreground ml-auto"
+              onClick={() => patchLead({ ghosted_at: null }, "Ghosted cleared")}
+              disabled={isSaving}
+            >
+              <Ghost className="h-3.5 w-3.5 mr-1.5" />Clear Ghosted
+            </Button>
+          )}
+        </div>
+
+        {/* Inline quick-action forms */}
+        {showNoteInput && (
+          <div className="flex gap-2 items-start">
+            <Textarea
+              placeholder="Write a note..."
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              className="min-h-[60px] text-sm flex-1"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleAddNote(); }}
+            />
+            <div className="flex flex-col gap-1">
+              <Button size="sm" onClick={handleAddNote} disabled={createNote.isPending || !noteText.trim()} className="h-8">
+                {createNote.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setShowNoteInput(false); setNoteText(""); }} className="h-8">Cancel</Button>
+            </div>
+          </div>
+        )}
+        {showFollowUpInput && (
+          <div className="flex gap-2 items-center">
+            <Input
+              type="datetime-local"
+              value={followUpDate}
+              onChange={(e) => setFollowUpDate(e.target.value)}
+              className="h-8 text-sm w-auto"
+              autoFocus
+            />
+            <Button size="sm" onClick={handleScheduleFollowUp} disabled={isSaving || !followUpDate} className="h-8">Schedule</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowFollowUpInput(false); setFollowUpDate(""); }} className="h-8">Cancel</Button>
+          </div>
+        )}
+        {showTaskInput && (
+          <div className="flex gap-2 items-center">
+            <Input
+              placeholder="Task title..."
+              value={taskTitle}
+              onChange={(e) => setTaskTitle(e.target.value)}
+              className="h-8 text-sm flex-1"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") handleAddTask(); }}
+            />
+            <Input
+              type="date"
+              value={taskDueDate}
+              onChange={(e) => setTaskDueDate(e.target.value)}
+              className="h-8 text-sm w-auto"
+            />
+            <Button size="sm" onClick={handleAddTask} disabled={createTask.isPending || !taskTitle.trim()} className="h-8">
+              {createTask.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Add"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowTaskInput(false); setTaskTitle(""); setTaskDueDate(""); }} className="h-8">Cancel</Button>
+          </div>
+        )}
+      </div>
+
+      <Separator />
+
+      {/* ── Two-Panel Layout ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+        {/* Left Sidebar */}
+        <div className="flex flex-col gap-4">
+          {/* Details */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                Sales Tracking
-              </CardTitle>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Details</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="px-4 pb-4 space-y-3">
+              <DetailRow label="Source" value={lead.source || "—"} />
+              <DetailRow label="Email" value={lead.email || "—"} />
+              <DetailRow label="Instagram" value={lead.ig_username ? `@${lead.ig_username.replace(/^@/, "")}` : "—"} />
+
+              <Separator />
+
               {/* Score */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium flex items-center gap-1.5">
-                  <Star className="h-3.5 w-3.5 text-amber-500" />
-                  Score
-                </label>
-                <Select
-                  value={lead.score != null ? String(lead.score) : "none"}
-                  onValueChange={(val) =>
-                    patchLead(
-                      { score: val === "none" ? null : Number(val) },
-                      val === "none"
-                        ? "Score cleared"
-                        : `Score set to ${val}`
-                    )
-                  }
-                  disabled={isSaving}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Not scored" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Not scored</SelectItem>
-                    {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n} / 10
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Score</p>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => {
+                        const newScore = lead.score === n * 2 ? null : n * 2;
+                        patchLead({ score: newScore }, newScore ? `Score set to ${newScore}/10` : "Score cleared");
+                      }}
+                      disabled={isSaving}
+                      className="p-0.5"
+                    >
+                      <Star
+                        className={cn(
+                          "h-4 w-4 transition-colors",
+                          lead.score != null && n <= Math.ceil(lead.score / 2)
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-muted-foreground/30"
+                        )}
+                      />
+                    </button>
+                  ))}
+                  {lead.score != null && (
+                    <span className="text-xs text-muted-foreground ml-1">{lead.score}/10</span>
+                  )}
+                </div>
               </div>
 
               <Separator />
 
               {/* Contract Value */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium flex items-center gap-1.5">
-                  <DollarSign className="h-3.5 w-3.5 text-green-600" />
-                  Contract Value
-                </label>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Contract Value</p>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                    $
-                  </span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
                   <Input
                     type="number"
-                    placeholder="0.00"
+                    placeholder="0"
                     value={contractInput}
                     onChange={(e) => setContractInput(e.target.value)}
-                    onFocus={() =>
-                      setContractInput(
-                        lead.contract_value != null
-                          ? String(lead.contract_value)
-                          : ""
-                      )
-                    }
+                    onFocus={() => setContractInput(lead.contract_value != null ? String(lead.contract_value) : "")}
                     onBlur={() => {
-                      const num =
-                        contractInput === "" ? null : Number(contractInput);
+                      const num = contractInput === "" ? null : Number(contractInput);
                       if (num !== lead.contract_value) {
-                        patchLead(
-                          { contract_value: num },
-                          num == null
-                            ? "Contract value cleared"
-                            : `Contract value set to $${num}`
-                        );
+                        patchLead({ contract_value: num }, num == null ? "Contract value cleared" : `Contract value set to $${num}`);
                       }
                       setContractInput("");
                     }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter")
-                        (e.target as HTMLInputElement).blur();
-                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                     disabled={isSaving}
-                    className="pl-7"
+                    className="pl-5 h-8 text-sm"
                   />
                 </div>
                 {lead.contract_value != null && !contractInput && (
-                  <p className="text-sm font-medium text-green-600">
-                    ${lead.contract_value.toLocaleString()}
-                  </p>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Closed */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium flex items-center gap-1.5">
-                  <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
-                  Closed
-                </label>
-                {lead.closed_at ? (
-                  <div className="space-y-2">
-                    <Badge
-                      variant="default"
-                      className="bg-emerald-500 text-white hover:bg-emerald-500"
-                    >
-                      Closed {formatShortDate(lead.closed_at)}
-                    </Badge>
-                    <div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() =>
-                          patchLead(
-                            { closed_at: null },
-                            "Closed date cleared"
-                          )
-                        }
-                        disabled={isSaving}
-                      >
-                        Clear date
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() =>
-                      patchLead(
-                        { closed_at: new Date().toISOString() },
-                        "Lead marked as closed"
-                      )
-                    }
-                    disabled={isSaving}
-                  >
-                    <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                    Mark as Closed
-                  </Button>
+                  <p className="text-sm font-medium text-green-600">${lead.contract_value.toLocaleString()}</p>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Timeline / Key Dates */}
+          {/* Outbound Lead (if has_outbound) */}
+          {user?.has_outbound && (
+            <Card>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Outbound Lead</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <OutboundLeadLinker
+                  leadId={lead._id}
+                  outboundLeadId={lead.outbound_lead_id}
+                  leadName={leadName}
+                  onLinked={() => queryClient.invalidateQueries({ queryKey: ["lead", contactId] })}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Tasks */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Timeline
-              </CardTitle>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Tasks {openTasks.length > 0 && <span className="text-primary">({openTasks.length})</span>}
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-1.5"
+                  onClick={() => { setShowTaskInput(true); setShowNoteInput(false); setShowFollowUpInput(false); }}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {[
-                  {
-                    label: "Created",
-                    date: lead.date_created,
-                    color: "bg-slate-400",
-                  },
-                  {
-                    label: "Link Sent",
-                    date: lead.link_sent_at,
-                    color: "bg-blue-500",
-                  },
-                  {
-                    label: "Follow Up",
-                    date: lead.follow_up_at,
-                    color: "bg-amber-500",
-                  },
-                  {
-                    label: "Booked",
-                    date: lead.booked_at,
-                    color: "bg-emerald-500",
-                  },
-                  {
-                    label: "Ghosted",
-                    date: lead.ghosted_at,
-                    color: "bg-red-500",
-                  },
-                  {
-                    label: "Closed",
-                    date: lead.closed_at,
-                    color: "bg-emerald-600",
-                  },
-                ]
-                  .filter((item) => item.date)
-                  .map((item) => (
-                    <div
-                      key={item.label}
-                      className="flex items-center gap-3"
-                    >
-                      <div
-                        className={cn(
-                          "h-2 w-2 rounded-full shrink-0",
-                          item.color
-                        )}
+            <CardContent className="px-4 pb-4">
+              {openTasks.length === 0 && completedTasks.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-3">No tasks yet</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {openTasks.map((t) => (
+                    <div key={t._id} className="flex items-start gap-2 group">
+                      <Checkbox
+                        checked={false}
+                        onCheckedChange={() =>
+                          updateTask.mutate({ id: t._id, lead_id: t.lead_id, completed_at: new Date().toISOString() })
+                        }
+                        className="mt-0.5"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{item.label}</p>
+                        <p className="text-sm leading-tight">{t.title}</p>
+                        {t.due_date && (
+                          <p className={cn("text-xs", new Date(t.due_date) < new Date() ? "text-red-500" : "text-muted-foreground")}>
+                            Due {formatShortDate(t.due_date)}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground shrink-0">
-                        {formatShortDate(item.date)}
-                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
+                        onClick={() => deleteTask.mutate({ id: t._id, lead_id: t.lead_id })}
+                      >
+                        <Trash2 className="h-3 w-3 text-muted-foreground" />
+                      </Button>
                     </div>
                   ))}
-                {![
-                  lead.date_created,
-                  lead.link_sent_at,
-                  lead.follow_up_at,
-                  lead.booked_at,
-                  lead.ghosted_at,
-                  lead.closed_at,
-                ].some(Boolean) && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No activity yet
-                  </p>
+                  {completedTasks.length > 0 && (
+                    <details className="mt-2">
+                      <summary className="text-xs text-muted-foreground cursor-pointer">
+                        {completedTasks.length} completed
+                      </summary>
+                      <div className="space-y-1.5 mt-1.5">
+                        {completedTasks.map((t) => (
+                          <div key={t._id} className="flex items-start gap-2 group">
+                            <Checkbox
+                              checked={true}
+                              onCheckedChange={() =>
+                                updateTask.mutate({ id: t._id, lead_id: t.lead_id, completed_at: null })
+                              }
+                              className="mt-0.5"
+                            />
+                            <p className="text-sm leading-tight text-muted-foreground line-through flex-1">{t.title}</p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
+                              onClick={() => deleteTask.mutate({ id: t._id, lead_id: t.lead_id })}
+                            >
+                              <Trash2 className="h-3 w-3 text-muted-foreground" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right: Activity Feed */}
+        <div className="flex flex-col gap-4">
+          {/* Summary (collapsible if present) */}
+          {(lead.summary || (lead.questions_and_answers && lead.questions_and_answers.length > 0)) && (
+            <Card>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {lead.summary ? "Summary" : "Q&A"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                {lead.summary && <SummarySections html={lead.summary} />}
+                {lead.questions_and_answers && lead.questions_and_answers.length > 0 && (
+                  <div className={cn("space-y-3", lead.summary && "mt-4")}>
+                    {lead.summary && <Separator />}
+                    {lead.questions_and_answers
+                      .sort((a, b) => a.position - b.position)
+                      .map((qa, i) => (
+                        <div key={i}>
+                          <p className="text-sm font-medium">{qa.question}</p>
+                          <p className="text-sm text-muted-foreground mt-0.5">{qa.answer}</p>
+                        </div>
+                      ))}
+                  </div>
                 )}
-              </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Activity Feed */}
+          <Card className="flex-1">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Activity</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {activityItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="rounded-full bg-muted p-3 mb-3">
+                    <Clock className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">No activity yet</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Add a note or advance the pipeline to see activity here.</p>
+                </div>
+              ) : (
+                <div className="relative space-y-0">
+                  {/* Vertical line */}
+                  <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
+
+                  {activityItems.map((item) => (
+                    <div key={item.id} className="relative flex gap-3 py-3 first:pt-0 last:pb-0">
+                      {/* Dot */}
+                      <div className={cn(
+                        "relative z-10 mt-1 h-[9px] w-[9px] rounded-full border-2 shrink-0",
+                        item.type === "note"
+                          ? "bg-blue-500 border-blue-500"
+                          : item.type === "task_completed"
+                          ? "bg-emerald-500 border-emerald-500"
+                          : item.data.icon === "ghosted"
+                          ? "bg-red-500 border-red-500"
+                          : item.data.icon === "booked" || item.data.icon === "closed"
+                          ? "bg-emerald-500 border-emerald-500"
+                          : item.data.icon === "follow_up"
+                          ? "bg-amber-500 border-amber-500"
+                          : item.data.icon === "link_sent"
+                          ? "bg-blue-500 border-blue-500"
+                          : "bg-muted-foreground/40 border-muted-foreground/40"
+                      )} />
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0 -mt-0.5">
+                        {item.type === "note" && (
+                          <div className="group">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium">{String(item.data.author)}</span>
+                              <span className="text-xs text-muted-foreground">{timeAgo(item.date)}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 ml-auto"
+                                onClick={() => deleteNote.mutate({ id: String(item.data.noteId), lead_id: String(item.data.leadId) })}
+                              >
+                                <Trash2 className="h-3 w-3 text-muted-foreground" />
+                              </Button>
+                            </div>
+                            <p className="text-sm mt-0.5 whitespace-pre-wrap">{String(item.data.content)}</p>
+                          </div>
+                        )}
+                        {item.type === "stage" && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{String(item.data.label)}</span>
+                            <span className="text-xs text-muted-foreground">{timeAgo(item.date)}</span>
+                          </div>
+                        )}
+                        {item.type === "task_completed" && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm"><CheckCircle className="h-3.5 w-3.5 inline mr-1 text-emerald-500" />Completed: {String(item.data.title)}</span>
+                            <span className="text-xs text-muted-foreground">{timeAgo(item.date)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Small helpers
+// ---------------------------------------------------------------------------
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium truncate ml-4 text-right">{value}</p>
     </div>
   );
 }

@@ -580,44 +580,71 @@ Allows role 0 (admin) users to reset any team member's password without knowing 
 
 ---
 
-## Lead Detail Page Redesign
+## Lead Detail Page — CRM Workspace Redesign
 
-Comprehensive UI overhaul of the `/lead/:id` page to improve usability, information density, and visual hierarchy.
+Complete redesign of the `/lead/:id` page from a passive data record into an active sales workspace, inspired by Close CRM.
 
 ### Changes
 
-**Header & Navigation:**
-- Layout header now shows "Lead Detail" instead of the raw MongoDB ID
-- Added breadcrumb navigation: Leads > Lead Name (clickable back to contacts list)
+**Header with Pipeline Stepper:**
+- Avatar + lead name + contact info (IG handle as clickable link, email, source, created date)
+- Horizontal pipeline stepper: New → Link Sent → Follow Up → Booked → Closed. Completed stages are color-filled, current stage has ring indicator. Reps can advance the stage by clicking a future stage.
+- Ghosted shown as a separate destructive badge (can be toggled on/off)
+- Removed duplicate "Mark as Converted" / "Mark as Closed" buttons — pipeline stepper handles all stage transitions
 
-**Profile Header Card:**
-- Avatar with initials, lead name, and color-coded status badge (emerald/Converted, red/Ghosted, amber/Follow Up, blue/Link Sent, slate/New)
-- Contact info row: email, Instagram handle (clickable link), source, creation date
-- "Mark as Converted" promoted to a filled emerald button in the header actions area
+**Quick-Action Bar:**
+- Always-visible buttons: `+ Note` · `Follow-Up` · `Task` · `Mark Ghosted`
+- Each button opens an inline form (note textarea, follow-up datetime picker, task title + due date) that submits without page navigation
 
-**Two-Column Layout:**
-- Left column (2/3 width): Outbound Lead, Summary, Q&A sections
-- Right column (1/3 width): Sales Tracking, Timeline
-- Responsive — stacks vertically on mobile
+**Two-Panel Layout (Close-style):**
+- **Left sidebar (280px):** Details card (source, email, IG, score as 5-star rating, contract value with `$` prefix), Outbound Lead linker (only if `has_outbound`), Tasks card with checkbox toggle + due dates + completed collapsible
+- **Right main area:** Summary/Q&A card (collapsed when empty), Activity Feed
 
-**Improved Empty States:**
-- Outbound Lead: shows dashed border prompt "No outbound lead linked — search below to connect one"
-- Summary: icon + descriptive text instead of plain "No summary"
+**Activity Feed:**
+- Chronological timeline combining: notes (with author + delete), stage transitions (from date fields), completed tasks
+- Vertical line connector with color-coded dots per event type
+- Relative timestamps ("2h ago", "3d ago")
+- Empty state prompts user to add a note or advance the pipeline
 
-**Sales Tracking:**
-- Vertical layout in sidebar card with separators between fields
-- Contract Value input has `$` prefix
-- Score dropdown shows "X / 10" labels
-- Mark as Closed button spans full width
+**Notes System (new):**
+- Backend model `LeadNote` (lead_id, account_id, author_id, author_name, content, timestamps)
+- CRUD routes: `GET /api/lead-notes?lead_id=`, `POST /api/lead-notes`, `DELETE /api/lead-notes/:id`
+- Frontend hook: `useLeadNotes`, `useCreateLeadNote`, `useDeleteLeadNote`
 
-**New Timeline Card:**
-- Displays all key dates (Created, Link Sent, Follow Up, Booked, Ghosted, Closed) with color-coded dots
-- Only shows dates that have values
+**Tasks System (new):**
+- Backend model `LeadTask` (lead_id, account_id, author_id, author_name, title, due_date, completed_at, timestamps)
+- CRUD routes: `GET /api/lead-tasks?lead_id=`, `POST /api/lead-tasks`, `PATCH /api/lead-tasks/:id`, `DELETE /api/lead-tasks/:id`
+- Frontend hook: `useLeadTasks`, `useCreateLeadTask`, `useUpdateLeadTask`, `useDeleteLeadTask`
+- Overdue tasks highlighted in red
+
+**Score as Visual Element:**
+- Replaced dropdown with 5-star rating (maps to 1–10 scale: each star = 2 points)
+- Filled amber stars for scored, muted for unscored
+- Click to set/clear
 
 ### Location
 
 - **Frontend page:** `src/pages/LeadDetail.tsx`
-- **Nav hook:** `src/hooks/useNavSections.ts` (`usePageInfo` updated for `/lead/` routes)
+- **Frontend hooks:** `src/hooks/useLeadNotes.ts`, `src/hooks/useLeadTasks.ts`
+- **Frontend tests:** `src/pages/LeadDetail.test.tsx`
+- **Nav hook:** `src/hooks/useNavSections.ts`
+- **Backend models:** `quddify-crm/models/LeadNote.js`, `quddify-crm/models/LeadTask.js`
+- **Backend routes:** `quddify-crm/routes/lead-notes.js`, `quddify-crm/routes/lead-tasks.js`
+- **Backend wiring:** `quddify-crm/index.js`
+
+### API
+
+- **`GET /api/lead-notes?lead_id=`** — List notes for a lead (newest first)
+- **`POST /api/lead-notes`** — Body: `{ lead_id, content }`. Creates a note with author from JWT.
+- **`DELETE /api/lead-notes/:id`** — Delete a note (tenant-isolated)
+- **`GET /api/lead-tasks?lead_id=`** — List tasks for a lead (open first, then by due date)
+- **`POST /api/lead-tasks`** — Body: `{ lead_id, title, due_date? }`. Creates a task.
+- **`PATCH /api/lead-tasks/:id`** — Body: `{ title?, due_date?, completed_at? }`. Toggle completion or edit.
+- **`DELETE /api/lead-tasks/:id`** — Delete a task (tenant-isolated)
+
+### Tests
+
+- `src/pages/LeadDetail.test.tsx` — 7 tests: header/pipeline rendering, action bar, contact info, outbound linking, note input, task input
 
 ---
 

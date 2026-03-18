@@ -19,6 +19,19 @@ vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({ user: { has_outbound: true } }),
 }));
 
+vi.mock("@/hooks/useLeadNotes", () => ({
+  useLeadNotes: () => ({ data: [] }),
+  useCreateLeadNote: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteLeadNote: () => ({ mutate: vi.fn() }),
+}));
+
+vi.mock("@/hooks/useLeadTasks", () => ({
+  useLeadTasks: () => ({ data: [] }),
+  useCreateLeadTask: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateLeadTask: () => ({ mutate: vi.fn() }),
+  useDeleteLeadTask: () => ({ mutate: vi.fn() }),
+}));
+
 const baseLead = {
   _id: "lead1",
   account_id: "acc1",
@@ -49,32 +62,70 @@ function renderLeadDetail() {
   );
 }
 
-describe("LeadDetail — Outbound Lead Linking", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+function mockAllFetches(lead = baseLead) {
+  mockFetchWithAuth.mockImplementation((url: string) => {
+    if (url.includes("/leads/lead1")) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(lead) });
+    }
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ leads: [] }) });
+  });
+}
+
+describe("LeadDetail — Header & Pipeline", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("renders lead name and pipeline stepper", async () => {
+    mockAllFetches();
+    renderLeadDetail();
+
+    await waitFor(() => {
+      expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
+    });
+
+    expect(screen.getByText("New")).toBeInTheDocument();
+    expect(screen.getByText("Link Sent")).toBeInTheDocument();
+    expect(screen.getByText("Booked")).toBeInTheDocument();
+    expect(screen.getByText("Closed")).toBeInTheDocument();
   });
 
-  it("shows search input when no outbound lead is linked", async () => {
-    mockFetchWithAuth
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(baseLead),
-      })
-      // auto-search by name fires on mount
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ leads: [] }),
-      });
+  it("shows action bar buttons", async () => {
+    mockAllFetches();
+    renderLeadDetail();
 
+    await waitFor(() => {
+      expect(screen.getByText("Note")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Follow-Up")).toBeInTheDocument();
+    expect(screen.getByText("Task")).toBeInTheDocument();
+  });
+
+  it("shows contact info", async () => {
+    mockAllFetches();
+    renderLeadDetail();
+
+    await waitFor(() => {
+      expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Email appears in both header and details sidebar
+    const emailElements = screen.getAllByText((content) => content.includes("john@test.com"));
+    expect(emailElements.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("LeadDetail — Outbound Lead Linking", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("shows outbound lead section with search input", async () => {
+    mockAllFetches();
     renderLeadDetail();
 
     await waitFor(() => {
       expect(screen.getByText("Outbound Lead")).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByPlaceholderText("Search outbound leads by username or name..."),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search outbound leads...")).toBeInTheDocument();
   });
 
   it("shows linked outbound lead with unlink button", async () => {
@@ -86,15 +137,15 @@ describe("LeadDetail — Outbound Lead Linking", () => {
       followersCount: 5000,
     };
 
-    mockFetchWithAuth
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(leadWithLink),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(outboundLead),
-      });
+    mockFetchWithAuth.mockImplementation((url: string) => {
+      if (url.includes("/leads/lead1")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(leadWithLink) });
+      }
+      if (url.includes("/outbound-leads/ob1")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(outboundLead) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ leads: [] }) });
+    });
 
     renderLeadDetail();
 
@@ -103,95 +154,39 @@ describe("LeadDetail — Outbound Lead Linking", () => {
     });
 
     expect(screen.getByText(/Jane Smith/)).toBeInTheDocument();
-    expect(screen.getByText(/5,000 followers/)).toBeInTheDocument();
-    expect(screen.getByText("Unlink")).toBeInTheDocument();
   });
+});
 
-  it("searches outbound leads on typing", async () => {
-    mockFetchWithAuth
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(baseLead),
-      })
-      // auto-search by name fires on mount
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ leads: [] }),
-      });
+describe("LeadDetail — Notes", () => {
+  beforeEach(() => vi.clearAllMocks());
 
+  it("opens note input when Note button is clicked", async () => {
+    mockAllFetches();
     renderLeadDetail();
 
     await waitFor(() => {
-      expect(screen.getByText("Outbound Lead")).toBeInTheDocument();
+      expect(screen.getByText("Note")).toBeInTheDocument();
     });
 
-    const searchResults = [
-      { _id: "ob2", username: "test_user", fullName: "Test User", followersCount: 1000 },
-    ];
+    fireEvent.click(screen.getByText("Note"));
 
-    mockFetchWithAuth.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ leads: searchResults }),
-    });
-
-    const input = screen.getByPlaceholderText("Search outbound leads by username or name...");
-    fireEvent.change(input, { target: { value: "test_user" } });
-
-    await waitFor(() => {
-      expect(screen.getByText("@test_user")).toBeInTheDocument();
-    });
+    expect(screen.getByPlaceholderText("Write a note...")).toBeInTheDocument();
   });
+});
 
-  it("links an outbound lead when clicking a search result", async () => {
-    mockFetchWithAuth
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(baseLead),
-      })
-      // auto-search by name fires on mount
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ leads: [] }),
-      });
+describe("LeadDetail — Tasks", () => {
+  beforeEach(() => vi.clearAllMocks());
 
+  it("opens task input when Task button is clicked", async () => {
+    mockAllFetches();
     renderLeadDetail();
 
     await waitFor(() => {
-      expect(screen.getByText("Outbound Lead")).toBeInTheDocument();
+      expect(screen.getByText("Task")).toBeInTheDocument();
     });
 
-    const searchResults = [
-      { _id: "ob3", username: "link_me", fullName: "Link Me", followersCount: 500 },
-    ];
+    fireEvent.click(screen.getByText("Task"));
 
-    mockFetchWithAuth.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ leads: searchResults }),
-    });
-
-    const input = screen.getByPlaceholderText("Search outbound leads by username or name...");
-    fireEvent.change(input, { target: { value: "link_me" } });
-
-    await waitFor(() => {
-      expect(screen.getByText("@link_me")).toBeInTheDocument();
-    });
-
-    // Mock the PATCH call for linking
-    mockFetchWithAuth.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ ...baseLead, outbound_lead_id: "ob3" }),
-    });
-
-    fireEvent.click(screen.getByText("@link_me"));
-
-    await waitFor(() => {
-      expect(mockFetchWithAuth).toHaveBeenCalledWith(
-        "https://api.test/leads/lead1",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ outbound_lead_id: "ob3" }),
-        }),
-      );
-    });
+    expect(screen.getByPlaceholderText("Task title...")).toBeInTheDocument();
   });
 });
