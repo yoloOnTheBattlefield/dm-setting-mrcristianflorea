@@ -12,8 +12,10 @@ import type {
   FollowerTierData,
   PromptLabelData,
   QuestionTypeData,
+  ScoreTierData,
 } from "@/hooks/useOutboundAnalytics";
 import { cn } from "@/lib/utils";
+import { ScoreBreakdown } from "./ScoreBreakdown";
 
 function rateColor(rate: number): string {
   if (rate >= 10) return "text-[#22C55E]";
@@ -31,10 +33,11 @@ interface InsightsTabProps {
   tiers: FollowerTierData[];
   labels: PromptLabelData[];
   questionTypes: QuestionTypeData[];
+  scoreTiers: ScoreTierData[];
   isLoading: boolean;
 }
 
-export function InsightsTab({ tiers, labels, questionTypes, isLoading }: InsightsTabProps) {
+export function InsightsTab({ tiers, labels, questionTypes, scoreTiers, isLoading }: InsightsTabProps) {
   if (isLoading) return <DashboardSkeleton />;
 
   const sortedTiers = [...tiers].sort(
@@ -43,6 +46,8 @@ export function InsightsTab({ tiers, labels, questionTypes, isLoading }: Insight
 
   return (
     <div className="space-y-6">
+      <ScoreBreakdown tiers={scoreTiers} isLoading={isLoading} />
+
       <Card>
         <CardContent className="py-4 px-6">
           <h3 className="text-sm font-medium mb-4">Reply Rate by Follower Tier</h3>

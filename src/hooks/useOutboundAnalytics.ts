@@ -394,3 +394,59 @@ export function useQuestionTypes(params?: AnalyticsParams) {
     refetchOnWindowFocus: false,
   });
 }
+
+// --- Score Breakdown ---
+
+export interface ScoreTierData {
+  tier: string;
+  stars: number;
+  sent: number;
+  replied: number;
+  booked: number;
+  contracts: number;
+  total_revenue: number;
+  reply_rate: number;
+  book_rate: number;
+  close_rate: number;
+  avg_revenue: number;
+}
+
+export function useScoreBreakdown(params?: AnalyticsParams) {
+  return useQuery({
+    queryKey: ["analytics-score-breakdown", params?.start_date, params?.end_date, params?.campaign_id],
+    queryFn: async (): Promise<{ tiers: ScoreTierData[] }> => {
+      const res = await fetchWithAuth(buildUrl("/analytics/outbound/score-breakdown", params));
+      if (!res.ok) throw new Error(`Failed to fetch score breakdown: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  });
+}
+
+// --- Weekly Heatmap ---
+
+export interface WeeklyHeatmapCell {
+  day: number; // 0=Sun, 1=Mon...6=Sat
+  hour: number; // 0-23
+  count: number;
+}
+
+export function useWeeklyHeatmap(params?: AnalyticsParams & { metric?: string }) {
+  return useQuery({
+    queryKey: ["analytics-weekly-heatmap", params?.start_date, params?.end_date, params?.campaign_id, params?.metric],
+    queryFn: async (): Promise<{ cells: WeeklyHeatmapCell[] }> => {
+      const sp = new URLSearchParams();
+      if (params?.start_date) sp.append("start_date", params.start_date);
+      if (params?.end_date) sp.append("end_date", params.end_date);
+      if (params?.campaign_id) sp.append("campaign_id", params.campaign_id);
+      if (params?.metric) sp.append("metric", params.metric);
+      const url = sp.toString() ? `${API_URL}/analytics/outbound/weekly-heatmap?${sp.toString()}` : `${API_URL}/analytics/outbound/weekly-heatmap`;
+      const res = await fetchWithAuth(url);
+      if (!res.ok) throw new Error(`Failed to fetch weekly heatmap: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  });
+}

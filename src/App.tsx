@@ -50,6 +50,9 @@ const LeadMagnetTracker = lazy(() => import("./pages/research/LeadMagnetTracker"
 const IdeasBank = lazy(() => import("./pages/research/IdeasBank"));
 const ResearchAlerts = lazy(() => import("./pages/research/Alerts"));
 const ResearchReports = lazy(() => import("./pages/research/Reports"));
+const Bookings = lazy(() => import("./pages/Bookings"));
+const BookingAnalytics = lazy(() => import("./pages/BookingAnalytics"));
+const EodReport = lazy(() => import("./pages/EodReport"));
 const Landing = lazy(() => import("./pages/Landing"));
 const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
 
@@ -253,6 +256,9 @@ const App = () => (
               <Route path="/research/ideas" element={<ProtectedRoute><DashboardLayout><IdeasBank /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/alerts" element={<ProtectedRoute><DashboardLayout><ResearchAlerts /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/reports" element={<ProtectedRoute><DashboardLayout><ResearchReports /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/bookings" element={<ProtectedRoute><DashboardLayout><Bookings /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/analytics/bookings" element={<ProtectedRoute><DashboardLayout><BookingAnalytics /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/eod-report" element={<ProtectedRoute><DashboardLayout><EodReport /></DashboardLayout></ProtectedRoute>} />
               <Route path="/comment-post" element={<ProtectedRoute><RequireOutbound><DashboardLayout><CommentPost /></DashboardLayout></RequireOutbound></ProtectedRoute>} />
               <Route path="/data-migration" element={<ProtectedRoute><DashboardLayout><DataMigration /></DashboardLayout></ProtectedRoute>} />
               <Route path="/landing" element={<Landing />} />

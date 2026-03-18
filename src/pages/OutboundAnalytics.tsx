@@ -16,6 +16,8 @@ import {
   useFollowerTiers,
   usePromptLabels,
   useQuestionTypes,
+  useScoreBreakdown,
+  useWeeklyHeatmap,
   OutboundFunnelData,
 } from "@/hooks/useOutboundAnalytics";
 import { useCampaigns } from "@/hooks/useCampaigns";
@@ -80,6 +82,7 @@ import { TimeOfDayHeatmap } from "@/components/outbound-analytics/TimeOfDayHeatm
 import { EffortOutcomePanel } from "@/components/outbound-analytics/EffortOutcomePanel";
 import { TrendOverTime } from "@/components/outbound-analytics/TrendOverTime";
 import { InsightsTab } from "@/components/outbound-analytics/InsightsTab";
+import { WeeklyHeatmap } from "@/components/outbound-analytics/WeeklyHeatmap";
 import { AIReportTab } from "@/components/outbound-analytics/AIReportTab";
 import { useAIReports } from "@/hooks/useAIReports";
 
@@ -292,6 +295,11 @@ export default function OutboundAnalytics() {
     usePromptLabels(filterParams);
   const { data: questionTypesData, isLoading: questionTypesLoading } =
     useQuestionTypes(filterParams);
+  const { data: scoreData, isLoading: scoreLoading } =
+    useScoreBreakdown(filterParams);
+  const [weeklyHeatmapMetric, setWeeklyHeatmapMetric] = useState("sent");
+  const { data: weeklyHeatmapData, isLoading: weeklyHeatmapLoading } =
+    useWeeklyHeatmap({ ...filterParams, metric: weeklyHeatmapMetric });
   const { data: aiReports } = useAIReports(1);
 
   const messages = messagesData?.messages || [];
@@ -304,7 +312,8 @@ export default function OutboundAnalytics() {
   const followerTiers = followerTiersData?.tiers || [];
   const promptLabels = promptLabelsData?.labels || [];
   const questionTypes = questionTypesData?.types || [];
-  const insightsLoading = tiersLoading || labelsLoading || questionTypesLoading;
+  const scoreTiers = scoreData?.tiers || [];
+  const insightsLoading = tiersLoading || labelsLoading || questionTypesLoading || scoreLoading;
 
   const latestAIHealth = aiReports?.[0]?.report?.overall_health;
 
@@ -590,6 +599,13 @@ export default function OutboundAnalytics() {
                 >
                   <ActivityHeatmap data={dailyDays} />
                 </CollapsibleSection>
+
+                <WeeklyHeatmap
+                  cells={weeklyHeatmapData?.cells ?? []}
+                  isLoading={weeklyHeatmapLoading}
+                  onMetricChange={setWeeklyHeatmapMetric}
+                  metric={weeklyHeatmapMetric}
+                />
 
                 <CollapsibleSection
                   title="Daily Performance"
@@ -936,6 +952,7 @@ export default function OutboundAnalytics() {
               tiers={followerTiers}
               labels={promptLabels}
               questionTypes={questionTypes}
+              scoreTiers={scoreTiers}
               isLoading={insightsLoading}
             />
           </TabsContent>

@@ -787,3 +787,122 @@ Redesigned the All Contacts list from a sparse 4-column table into a full CRM pi
 - **Contacts table:** `src/components/contacts-table.tsx`
 - **All Contacts page:** `src/pages/AllContacts.tsx`
 - **Selection hook:** `src/hooks/useLeadSelection.ts` (pre-existing)
+
+---
+
+## Quick Note Dialog
+
+Add and view notes on outbound leads directly from the Follow-Ups kanban board and Outbound Leads table without navigating to a detail page. Opens a dialog showing the lead's full note history with author, timestamp, and delete. Extends the existing LeadNote system to support `outbound_lead_id` as an alternative to `lead_id`.
+
+### Location
+
+- **Frontend component:** `src/components/QuickNoteDialog.tsx`
+- **Frontend hook:** `src/hooks/useLeadNotes.ts` (`useOutboundLeadNotes`, `useCreateOutboundLeadNote`)
+- **Integrated in:** `src/pages/OutboundLeads.tsx` (StickyNote icon per row), `src/pages/FollowUps.tsx` (FileText icon per kanban card)
+- **Backend model:** `quddify-crm/models/LeadNote.js` (`outbound_lead_id` field added, `lead_id` made optional)
+- **Backend route:** `quddify-crm/routes/lead-notes.js` (GET/POST accept `outbound_lead_id`)
+
+### API
+
+- **`GET /api/lead-notes?outbound_lead_id=`** — List notes for an outbound lead
+- **`POST /api/lead-notes`** — Body: `{ outbound_lead_id, content }` (alternative to `lead_id`)
+
+---
+
+## End of Day Report
+
+Daily summary page where team members log their end-of-day checklist completion, mood, and reflection notes. Stats (DMs sent, replies, bookings, follow-ups closed) are pulled automatically from the backend. Admins can view all team members' reports in a Team tab.
+
+### Location
+
+- **Frontend page:** `src/pages/EodReport.tsx`
+- **Frontend hook:** `src/hooks/useEodReports.ts` (`useTodayReport`, `useTeamReports`, `useSubmitReport`, `useUpdateReport`)
+
+### API Routes
+
+- **`GET /api/eod-reports/today`** — Fetch the current user's report for today
+- **`GET /api/eod-reports/team`** — Query: `date` (optional). List all team reports for a given date (admin only)
+- **`POST /api/eod-reports`** — Body: `{ checklist?, notes?, mood? }`. Create or update today's report
+- **`PATCH /api/eod-reports/:id`** — Body: `{ checklist?, notes?, mood? }`. Update an existing report
+
+### Backend
+
+- **Model:** `quddify-crm/models/EodReport.js`
+- **Routes:** `quddify-crm/routes/eod-reports.js`
+- **Wired in:** `quddify-crm/index.js`
+
+---
+
+## Score-based Analytics (Outbound)
+
+Shows outbound lead performance broken down by lead score (1-5 stars). Displays sent, replied, booked, reply rate, book rate, close rate, and average revenue per score tier. Rendered as the first card in the Insights tab.
+
+### Location
+
+- **Frontend component:** `src/components/outbound-analytics/ScoreBreakdown.tsx`
+- **Frontend hook:** `src/hooks/useOutboundAnalytics.ts` (`useScoreBreakdown`, `ScoreTierData`)
+- **Integrated in:** `src/components/outbound-analytics/InsightsTab.tsx`, `src/pages/OutboundAnalytics.tsx`
+
+### API Routes
+
+- **`GET /api/analytics/outbound/score-breakdown`** — Query: `start_date`, `end_date`, `campaign_id` (all optional). Returns `{ tiers: ScoreTierData[] }`
+
+### Backend
+
+- **Model change:** `quddify-crm/models/OutboundLead.js` (`score` field added)
+- **Route:** `quddify-crm/routes/analytics.js` (new endpoint)
+
+---
+
+## Weekly Activity Heatmap (Analytics)
+
+A 7-day x 24-hour heatmap grid showing outbound activity patterns by day of week and hour. Supports switching between sent, replied, and booked metrics. Rendered in the funnel tab after the existing Activity Heatmap.
+
+### Location
+
+- **Frontend component:** `src/components/outbound-analytics/WeeklyHeatmap.tsx`
+- **Frontend hook:** `src/hooks/useOutboundAnalytics.ts` (`useWeeklyHeatmap`, `WeeklyHeatmapCell`)
+- **Integrated in:** `src/pages/OutboundAnalytics.tsx`
+
+### API Routes
+
+- **`GET /api/analytics/outbound/weekly-heatmap`** — Query: `start_date`, `end_date`, `campaign_id`, `metric` (all optional). Returns `{ cells: WeeklyHeatmapCell[] }`
+
+### Backend
+
+- **Route:** `quddify-crm/routes/analytics.js` (new endpoint)
+
+---
+
+## Bookings Module
+
+Manage booked calls and appointments with status tracking, sync, search, creation, and analytics. Includes a main bookings table page and a dedicated analytics page with close rate, show-up rate, and charts.
+
+### Routes
+
+- `/bookings` — Bookings list with status filter tabs, stat cards, search, create dialog, sync, and pagination
+- `/analytics/bookings` — Booking analytics with KPI cards (close rate, show-up rate, avg cash collected), bookings-over-time bar chart, and source distribution pie chart
+
+### API Endpoints Consumed
+
+- `GET /api/bookings` — Paginated list with status, search, sort, source, date range, and today filters
+- `GET /api/bookings/stats` — Count per status + today count
+- `GET /api/bookings/analytics` — Close rate, show-up rate, avg cash collected, over-time series, source distribution
+- `GET /api/bookings/:id` — Single booking
+- `POST /api/bookings` — Create a booking
+- `PATCH /api/bookings/:id` — Update a booking (status, cash_collected, etc.)
+- `DELETE /api/bookings/:id` — Delete a booking
+- `POST /api/bookings/sync` — Sync bookings from external sources
+
+### Location
+
+- **Hook:** `src/hooks/useBookings.ts`
+- **Pages:** `src/pages/Bookings.tsx`, `src/pages/BookingAnalytics.tsx`
+- **Routing:** `src/App.tsx` (lazy-loaded routes)
+- **Sidebar:** `src/hooks/useNavSections.ts` (Bookings item in Outbound section, EOD Report in Workspace section)
+
+### Backend
+
+- **Model:** `quddify-crm/models/Booking.js`
+- **Routes:** `quddify-crm/routes/bookings.js`
+- **Wired in:** `quddify-crm/index.js`

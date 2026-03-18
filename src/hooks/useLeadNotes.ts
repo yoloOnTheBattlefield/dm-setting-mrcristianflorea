@@ -3,7 +3,8 @@ import { API_URL, fetchWithAuth } from "@/lib/api";
 
 export interface LeadNote {
   _id: string;
-  lead_id: string;
+  lead_id: string | null;
+  outbound_lead_id: string | null;
   account_id: string;
   author_id: string;
   author_name: string;
@@ -69,6 +70,46 @@ export function useDeleteLeadNote() {
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["lead-notes", vars.lead_id] });
+      qc.invalidateQueries({ queryKey: ["lead-notes-outbound", vars.lead_id] });
+    },
+  });
+}
+
+export function useOutboundLeadNotes(outboundLeadId: string | undefined) {
+  return useQuery<LeadNote[]>({
+    queryKey: ["lead-notes-outbound", outboundLeadId],
+    queryFn: async () => {
+      const res = await fetchWithAuth(
+        `${API_URL}/api/lead-notes?outbound_lead_id=${outboundLeadId}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch notes");
+      return res.json();
+    },
+    enabled: !!outboundLeadId,
+    staleTime: 1000 * 60,
+  });
+}
+
+export function useCreateOutboundLeadNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      outbound_lead_id,
+      content,
+    }: {
+      outbound_lead_id: string;
+      content: string;
+    }) => {
+      const res = await fetchWithAuth(`${API_URL}/api/lead-notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outbound_lead_id, content }),
+      });
+      if (!res.ok) throw new Error("Failed to create note");
+      return res.json();
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["lead-notes-outbound", vars.outbound_lead_id] });
     },
   });
 }

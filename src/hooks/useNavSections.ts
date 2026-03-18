@@ -5,6 +5,8 @@ import {
   type LucideIcon,
   BarChart3,
   Building2,
+  CalendarCheck,
+  ClipboardCheck,
   Database,
   MessageSquareText,
   Plug,
@@ -73,6 +75,7 @@ export function useNavSections(): NavSection[] {
         items: [
           { title: "Leads", url: "/outbound-leads", icon: Users, description: "Manage your outbound leads pipeline" },
           { title: "Follow-Ups", url: "/follow-ups", icon: UserCheck, badge: followUpBadge || undefined, description: "Track and manage lead follow-ups" },
+          { title: "Bookings", url: "/bookings", icon: CalendarCheck, description: "Manage booked calls and appointments" },
           { title: "Campaigns", url: "/campaigns", icon: Send, description: "Manage your outbound campaigns" },
           { title: "Accounts", url: "/outbound-accounts", icon: Building2, description: "Manage outbound Instagram accounts, credentials, and proxies" },
           { title: "Analytics", url: "/analytics/outbound", icon: TrendingUp, description: "Performance metrics across your outbound pipeline" },
@@ -105,6 +108,7 @@ export function useNavSections(): NavSection[] {
     sections.push({
       label: "Workspace",
       items: [
+        { title: "EOD Report", url: "/eod-report", icon: ClipboardCheck, description: "Daily summary, checklist, and self-assessment" },
         { title: "Settings", url: "/settings", icon: Settings2, description: "Manage your account settings" },
         { title: "Team", url: "/settings/team", icon: UsersRound, description: "Manage your team members" },
         { title: "Integrations", url: "/settings/integrations", icon: Plug, description: "Connect and manage your third-party integrations" },

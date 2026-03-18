@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Copy,
   ChevronDown,
+  StickyNote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ import FunnelStatsBar from "@/components/outbound-leads/FunnelStatsBar";
 import SelectionActionBar from "@/components/outbound-leads/SelectionActionBar";
 import DmEditDialog from "@/components/outbound-leads/DmEditDialog";
 import OutboundLeadsPagination from "@/components/outbound-leads/OutboundLeadsPagination";
+import { QuickNoteDialog } from "@/components/QuickNoteDialog";
 
 interface OutboundLead {
   _id: string;
@@ -219,6 +221,9 @@ export default function OutboundLeads() {
     promptFilter,
     debouncedSearch,
   ]);
+
+  // Note dialog state
+  const [noteLead, setNoteLead] = useState<{ id: string; name: string } | null>(null);
 
   // DM dialog state
   const [editingLead, setEditingLead] = useState<OutboundLead | null>(null);
@@ -925,13 +930,23 @@ export default function OutboundLeads() {
                           />
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openDmDialog(lead)}
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setNoteLead({ id: lead._id, name: lead.fullName || lead.username })}
+                              title="Notes"
+                            >
+                              <StickyNote className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openDmDialog(lead)}
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -962,6 +977,16 @@ export default function OutboundLeads() {
         isSavingDm={isSavingDm}
         saveDm={saveDm}
       />
+
+      {/* Quick Note Dialog */}
+      {noteLead && (
+        <QuickNoteDialog
+          open={!!noteLead}
+          onOpenChange={(open) => !open && setNoteLead(null)}
+          outboundLeadId={noteLead.id}
+          contactName={noteLead.name}
+        />
+      )}
     </div>
   );
 }

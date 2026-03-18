@@ -44,7 +44,9 @@ import {
   CalendarCheck,
   XCircle,
   Clock,
+  FileText,
 } from "lucide-react";
+import { QuickNoteDialog } from "@/components/QuickNoteDialog";
 
 // ─── Status config ───
 
@@ -568,9 +570,34 @@ function KanbanCardContent({
           </button>
 
           <NotePopover followUp={followUp} />
+
+          <QuickNoteButton outboundLeadId={followUp.outbound_lead_id} contactName={lead?.fullName || lead?.username || "Unknown"} />
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Quick Note Button (opens full dialog) ───
+
+function QuickNoteButton({ outboundLeadId, contactName }: { outboundLeadId: string; contactName: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+        title="Full notes"
+        className="p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground"
+      >
+        <FileText className="h-3 w-3" />
+      </button>
+      <QuickNoteDialog
+        open={open}
+        onOpenChange={setOpen}
+        outboundLeadId={outboundLeadId}
+        contactName={contactName}
+      />
+    </>
   );
 }
 
