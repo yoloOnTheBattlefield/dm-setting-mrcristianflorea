@@ -9,6 +9,7 @@ export interface ApiLead {
   ig_username?: string | null;
   source?: string | null;
   outbound_lead_id?: string | null;
+  ig_thread_id?: string | null;
   date_created: string;
   qualified_at: string | null;
   link_sent_at: string | null;

@@ -22,9 +22,10 @@ import {
   SquareCheckBig,
   Plus,
   Trash2,
-  ChevronRight,
   Ghost,
   X,
+  Send,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,13 +47,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
   useLeadNotes,
@@ -140,11 +134,11 @@ function timeAgo(dateString: string): string {
 
 // Pipeline stages in order
 const PIPELINE_STAGES = [
-  { key: "new", label: "New", field: null, color: "bg-slate-400" },
-  { key: "link_sent", label: "Link Sent", field: "link_sent_at", color: "bg-blue-500" },
-  { key: "follow_up", label: "Follow Up", field: "follow_up_at", color: "bg-amber-500" },
-  { key: "booked", label: "Booked", field: "booked_at", color: "bg-emerald-500" },
-  { key: "closed", label: "Closed", field: "closed_at", color: "bg-emerald-700" },
+  { key: "new", label: "New", field: null, bg: "bg-slate-500", ring: "ring-slate-500" },
+  { key: "link_sent", label: "Link Sent", field: "link_sent_at", bg: "bg-blue-500", ring: "ring-blue-500" },
+  { key: "follow_up", label: "Follow Up", field: "follow_up_at", bg: "bg-amber-500", ring: "ring-amber-500" },
+  { key: "booked", label: "Booked", field: "booked_at", bg: "bg-emerald-500", ring: "ring-emerald-500" },
+  { key: "closed", label: "Closed", field: "closed_at", bg: "bg-emerald-700", ring: "ring-emerald-700" },
 ] as const;
 
 function getCurrentStageIndex(lead: ApiLead): number {
@@ -415,7 +409,7 @@ export default function LeadDetail() {
 
   const handleAdvanceStage = (stageIndex: number) => {
     const stage = PIPELINE_STAGES[stageIndex];
-    if (!stage.field) return; // "new" has no field
+    if (!stage.field) return;
     patchLead({ [stage.field]: new Date().toISOString() }, `Stage set to ${stage.label}`);
   };
 
@@ -474,6 +468,7 @@ export default function LeadDetail() {
   const isGhosted = !!lead.ghosted_at;
   const openTasks = tasks.filter((t) => !t.completed_at);
   const completedTasks = tasks.filter((t) => t.completed_at);
+  const igHandle = lead.ig_username?.replace(/^@/, "") || null;
 
   // Build unified activity feed
   const activityItems: {
@@ -483,7 +478,6 @@ export default function LeadDetail() {
     data: Record<string, unknown>;
   }[] = [];
 
-  // Notes
   for (const n of notes) {
     activityItems.push({
       type: "note",
@@ -493,7 +487,6 @@ export default function LeadDetail() {
     });
   }
 
-  // Stage transitions from dates
   const stageEvents = [
     { label: "Created", date: lead.date_created, icon: "created" },
     { label: "Link Sent", date: lead.link_sent_at, icon: "link_sent" },
@@ -513,7 +506,6 @@ export default function LeadDetail() {
     }
   }
 
-  // Completed tasks
   for (const t of completedTasks) {
     activityItems.push({
       type: "task_completed",
@@ -540,17 +532,28 @@ export default function LeadDetail() {
 
       {/* ── Header ── */}
       <div className="space-y-3">
-        {/* Row 1: Avatar + Name + Pipeline */}
+        {/* Row 1: Avatar + Name + IG handle + Pipeline */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <Avatar className="h-12 w-12 text-base shrink-0">
+            <Avatar className="h-14 w-14 text-lg shrink-0">
               <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                 {getInitials(lead.first_name, lead.last_name)}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl font-bold tracking-tight truncate">{leadName}</h1>
+                {igHandle && (
+                  <a
+                    href={`https://instagram.com/${igHandle}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Instagram className="h-3.5 w-3.5" />
+                    <span>@{igHandle}</span>
+                  </a>
+                )}
                 {isGhosted && (
                   <Badge variant="destructive" className="shrink-0">
                     <Ghost className="h-3 w-3 mr-1" />Ghosted
@@ -558,11 +561,6 @@ export default function LeadDetail() {
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
-                {lead.ig_username && (
-                  <a href={`https://instagram.com/${lead.ig_username.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-foreground transition-colors">
-                    <Instagram className="h-3 w-3" />@{lead.ig_username.replace(/^@/, "")}
-                  </a>
-                )}
                 {lead.email && (
                   <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{lead.email}</span>
                 )}
@@ -574,36 +572,44 @@ export default function LeadDetail() {
             </div>
           </div>
 
-          {/* Pipeline Stepper */}
-          <div className="flex items-center gap-1 sm:ml-auto shrink-0">
+          {/* Pipeline Stepper — improved active state */}
+          <div className="flex items-center gap-0.5 sm:ml-auto shrink-0">
             {PIPELINE_STAGES.map((stage, i) => {
-              const isCompleted = i <= currentStageIndex;
+              const isCompleted = i < currentStageIndex;
               const isCurrent = i === currentStageIndex;
+              const isFuture = i > currentStageIndex;
               return (
-                <div key={stage.key} className="flex items-center gap-1">
+                <div key={stage.key} className="flex items-center">
                   <button
-                    onClick={() => {
-                      if (i > currentStageIndex) handleAdvanceStage(i);
-                    }}
-                    disabled={isSaving || i <= currentStageIndex}
+                    onClick={() => { if (isFuture) handleAdvanceStage(i); }}
+                    disabled={isSaving || !isFuture}
                     className={cn(
-                      "px-2.5 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap",
-                      isCompleted
-                        ? `${stage.color} text-white`
-                        : "bg-muted text-muted-foreground hover:bg-muted/80",
-                      isCurrent && "ring-2 ring-offset-2 ring-offset-background",
-                      isCurrent && stage.key === "new" && "ring-slate-400",
-                      isCurrent && stage.key === "link_sent" && "ring-blue-500",
-                      isCurrent && stage.key === "follow_up" && "ring-amber-500",
-                      isCurrent && stage.key === "booked" && "ring-emerald-500",
-                      isCurrent && stage.key === "closed" && "ring-emerald-700",
-                      i > currentStageIndex && "cursor-pointer",
+                      "relative px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
+                      // Shape: first has left-rounded, last has right-rounded, middle square
+                      i === 0 && "rounded-l-full",
+                      i === PIPELINE_STAGES.length - 1 && "rounded-r-full",
+                      // Completed stages: solid colored bg
+                      isCompleted && `${stage.bg} text-white`,
+                      // Current stage: solid colored bg with ring + scale
+                      isCurrent && `${stage.bg} text-white ring-2 ${stage.ring} ring-offset-2 ring-offset-background rounded-full z-10 scale-110`,
+                      // Future stages: muted, clickable
+                      isFuture && "bg-muted/60 text-muted-foreground hover:bg-muted cursor-pointer",
                     )}
                   >
-                    {stage.label}
+                    {isCompleted ? (
+                      <span className="flex items-center gap-1">
+                        <Check className="h-3 w-3" />{stage.label}
+                      </span>
+                    ) : (
+                      stage.label
+                    )}
                   </button>
-                  {i < PIPELINE_STAGES.length - 1 && (
-                    <ChevronRight className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                  {/* Connector line between pills */}
+                  {i < PIPELINE_STAGES.length - 1 && !isCurrent && i + 1 !== currentStageIndex && (
+                    <div className={cn(
+                      "w-px h-4",
+                      i < currentStageIndex ? stage.bg : "bg-border",
+                    )} />
                   )}
                 </div>
               );
@@ -613,6 +619,22 @@ export default function LeadDetail() {
 
         {/* Row 2: Action Bar */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Send DM — primary action */}
+          {igHandle && (
+            <Button
+              size="sm"
+              className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+              asChild
+            >
+              <a
+                href={`https://instagram.com/direct/t/${lead.ig_thread_id || igHandle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Send className="h-3.5 w-3.5 mr-1.5" />Send DM
+              </a>
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -724,18 +746,29 @@ export default function LeadDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
         {/* Left Sidebar */}
         <div className="flex flex-col gap-4">
-          {/* Details */}
+          {/* Contact Details */}
           <Card>
             <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Details</CardTitle>
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contact</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-3">
-              <DetailRow label="Source" value={lead.source || "—"} />
-              <DetailRow label="Email" value={lead.email || "—"} />
-              <DetailRow label="Instagram" value={lead.ig_username ? `@${lead.ig_username.replace(/^@/, "")}` : "—"} />
+              <DetailRow label="Source" value={lead.source} placeholder="No source" />
+              <DetailRow label="Email" value={lead.email} placeholder="No email" />
+              <DetailRow
+                label="Instagram"
+                value={igHandle ? `@${igHandle}` : null}
+                placeholder="No handle"
+                href={igHandle ? `https://instagram.com/${igHandle}` : undefined}
+              />
+            </CardContent>
+          </Card>
 
-              <Separator />
-
+          {/* Deal — Score + Contract Value separated from contact info */}
+          <Card>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Deal</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 space-y-3">
               {/* Score */}
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Score</p>
@@ -755,7 +788,7 @@ export default function LeadDetail() {
                           "h-4 w-4 transition-colors",
                           lead.score != null && n <= Math.ceil(lead.score / 2)
                             ? "fill-amber-400 text-amber-400"
-                            : "text-muted-foreground/30"
+                            : "text-muted-foreground/30 hover:text-amber-300"
                         )}
                       />
                     </button>
@@ -937,10 +970,29 @@ export default function LeadDetail() {
               {activityItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
                   <div className="rounded-full bg-muted p-3 mb-3">
-                    <Clock className="h-6 w-6 text-muted-foreground" />
+                    <Send className="h-6 w-6 text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-muted-foreground">No activity yet</p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">Add a note or advance the pipeline to see activity here.</p>
+                  <p className="text-sm font-medium text-muted-foreground">No activity yet</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1 mb-3">
+                    Send a DM or add a note to get started.
+                  </p>
+                  <div className="flex gap-2">
+                    {igHandle && (
+                      <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                        <a href={`https://instagram.com/direct/t/${lead.ig_thread_id || igHandle}`} target="_blank" rel="noopener noreferrer">
+                          <Send className="h-3 w-3 mr-1" />Send DM
+                        </a>
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => { setShowNoteInput(true); setShowTaskInput(false); setShowFollowUpInput(false); }}
+                    >
+                      <StickyNote className="h-3 w-3 mr-1" />Add Note
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="relative space-y-0">
@@ -1015,11 +1067,40 @@ export default function LeadDetail() {
 // Small helpers
 // ---------------------------------------------------------------------------
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({
+  label,
+  value,
+  placeholder,
+  href,
+}: {
+  label: string;
+  value: string | null | undefined;
+  placeholder: string;
+  href?: string;
+}) {
+  const hasValue = !!value;
+  const display = hasValue ? value : placeholder;
+
   return (
     <div className="flex items-center justify-between">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium truncate ml-4 text-right">{value}</p>
+      {hasValue && href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-medium truncate ml-4 text-right hover:underline"
+        >
+          {display}
+        </a>
+      ) : (
+        <p className={cn(
+          "text-sm truncate ml-4 text-right",
+          hasValue ? "font-medium" : "text-muted-foreground/50 italic"
+        )}>
+          {display}
+        </p>
+      )}
     </div>
   );
 }
