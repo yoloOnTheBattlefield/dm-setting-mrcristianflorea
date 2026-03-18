@@ -15,6 +15,7 @@ interface FetchLeadsParams {
   accountId?: string;
   sortBy?: LeadSortField;
   sortOrder?: SortOrder;
+  excludeLinked?: boolean;
 }
 
 interface PaginationInfo {
@@ -39,6 +40,7 @@ async function fetchRawLeads({
   accountId,
   sortBy,
   sortOrder,
+  excludeLinked,
 }: FetchLeadsParams = {}): Promise<LeadsResponse> {
   const params = new URLSearchParams();
 
@@ -70,6 +72,10 @@ async function fetchRawLeads({
     params.append("sort_order", sortOrder);
   }
 
+  if (excludeLinked) {
+    params.append("exclude_linked", "true");
+  }
+
   params.append("page", page.toString());
   params.append("limit", limit.toString());
 
@@ -97,6 +103,7 @@ export function useRawLeads(params?: FetchLeadsParams) {
       params?.accountId,
       params?.sortBy,
       params?.sortOrder,
+      params?.excludeLinked,
     ],
     queryFn: () => fetchRawLeads(params),
     placeholderData: keepPreviousData,

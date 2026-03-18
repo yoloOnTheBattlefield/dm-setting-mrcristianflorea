@@ -185,6 +185,7 @@ export default function AllContacts() {
   );
   const [sortBy, setSortBy] = useState<LeadSortField>(readPersisted<LeadSortField>("contacts-sortBy", "date_created"));
   const [sortOrder, setSortOrder] = useState<SortOrder>(readPersisted<SortOrder>("contacts-sortOrder", "desc"));
+  const [hideLinked, setHideLinked] = useState<boolean>(readPersisted<boolean>("contacts-hideLinked", true));
 
   const handleSort = (field: LeadSortField) => {
     if (sortBy === field) {
@@ -221,7 +222,7 @@ export default function AllContacts() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedAccount, selectedStatuses, startDate, endDate, debouncedSearchQuery]);
+  }, [selectedAccount, selectedStatuses, startDate, endDate, debouncedSearchQuery, hideLinked]);
 
   // Scroll to top on page change
   useEffect(() => {
@@ -269,7 +270,8 @@ export default function AllContacts() {
     writePersisted("contacts-dateRange", dateRange);
     writePersisted("contacts-sortBy", sortBy);
     writePersisted("contacts-sortOrder", sortOrder);
-  }, [selectedAccount, selectedStatuses, dateRange, debouncedSearchQuery, currentPage, itemsPerPage, setSearchParams, sortBy, sortOrder]);
+    writePersisted("contacts-hideLinked", hideLinked);
+  }, [selectedAccount, selectedStatuses, dateRange, debouncedSearchQuery, currentPage, itemsPerPage, setSearchParams, sortBy, sortOrder, hideLinked]);
 
   // For kanban, we need all leads (no pagination limit)
   const kanbanLimit = viewMode === "kanban" ? 500 : itemsPerPage;
@@ -294,6 +296,7 @@ export default function AllContacts() {
       : undefined,
     sortBy,
     sortOrder,
+    excludeLinked: hideLinked || undefined,
   });
 
   const contacts = data?.leads || [];
@@ -314,6 +317,7 @@ export default function AllContacts() {
       : undefined,
     sortBy,
     sortOrder,
+    excludeLinked: hideLinked || undefined,
   });
 
   const stats = useMemo(() => {
@@ -630,6 +634,19 @@ export default function AllContacts() {
           <div className="flex flex-col gap-2">
             <Label>Date Range</Label>
             <DateFilter value={dateRange} onChange={setDateRange} />
+          </div>
+
+          <div className="flex flex-col gap-2 justify-end">
+            <div className="flex items-center gap-2 h-9">
+              <Checkbox
+                id="hide-linked"
+                checked={hideLinked}
+                onCheckedChange={(v) => setHideLinked(!!v)}
+              />
+              <Label htmlFor="hide-linked" className="text-sm font-normal cursor-pointer whitespace-nowrap">
+                Hide outbound-linked
+              </Label>
+            </div>
           </div>
         </div>
         </div>

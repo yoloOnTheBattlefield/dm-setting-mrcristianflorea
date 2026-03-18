@@ -371,11 +371,11 @@ export default function LeadDetail() {
   const [showFollowUpInput, setShowFollowUpInput] = useState(false);
   const [followUpDate, setFollowUpDate] = useState("");
 
-  // Fetch lead IDs for prev/next navigation
+  // Fetch lead IDs for prev/next navigation (exclude outbound-linked to match contacts list)
   const { data: leadIds = [] } = useQuery({
     queryKey: ["lead-ids"],
     queryFn: async () => {
-      const res = await fetchWithAuth(`${API_URL}/leads?limit=500&sort_by=date_created&sort_order=desc`);
+      const res = await fetchWithAuth(`${API_URL}/leads?limit=500&sort_by=date_created&sort_order=desc&exclude_linked=true`);
       if (!res.ok) return [];
       const data = await res.json();
       return (data.leads || data).map((l: { _id: string }) => l._id);
