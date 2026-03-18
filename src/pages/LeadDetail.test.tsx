@@ -15,6 +15,10 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: { has_outbound: true } }),
+}));
+
 const baseLead = {
   _id: "lead1",
   account_id: "acc1",

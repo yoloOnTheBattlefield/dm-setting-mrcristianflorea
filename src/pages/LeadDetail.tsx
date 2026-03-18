@@ -34,6 +34,7 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -478,6 +479,7 @@ function OutboundLeadLinker({
 export default function LeadDetail() {
   const { contactId } = useParams<{ contactId: string }>();
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isBooking, setIsBooking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -701,27 +703,29 @@ export default function LeadDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column (2/3) */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          {/* Outbound Lead Link */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Link2 className="h-4 w-4" />
-                Outbound Lead
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <OutboundLeadLinker
-                leadId={lead._id}
-                outboundLeadId={lead.outbound_lead_id}
-                leadName={leadName}
-                onLinked={() =>
-                  queryClient.invalidateQueries({
-                    queryKey: ["lead", contactId],
-                  })
-                }
-              />
-            </CardContent>
-          </Card>
+          {/* Outbound Lead Link — only for accounts with outbound features */}
+          {user?.has_outbound && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Link2 className="h-4 w-4" />
+                  Outbound Lead
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <OutboundLeadLinker
+                  leadId={lead._id}
+                  outboundLeadId={lead.outbound_lead_id}
+                  leadName={leadName}
+                  onLinked={() =>
+                    queryClient.invalidateQueries({
+                      queryKey: ["lead", contactId],
+                    })
+                  }
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Summary Section */}
           <Card>
