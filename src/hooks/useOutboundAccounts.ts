@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { API_URL, fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth, apiPost, apiPatch, apiDelete } from "@/lib/api";
 
 export interface OutboundAccount {
   _id: string;
@@ -88,7 +88,7 @@ export function useOutboundAccounts(params: {
 export function useCreateOutboundAccount() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: {
+    mutationFn: (body: {
       username: string;
       password?: string;
       email?: string;
@@ -101,18 +101,7 @@ export function useCreateOutboundAccount() {
       notes?: string;
       twoFA?: string;
       hidemyacc_profile_id?: string;
-    }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    }) => apiPost(`${API_URL}/api/outbound-accounts`, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
     },
@@ -122,24 +111,10 @@ export function useCreateOutboundAccount() {
 export function useUpdateOutboundAccount() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      id,
-      updates,
-    }: {
+    mutationFn: ({ id, updates }: {
       id: string;
       updates: Partial<Omit<OutboundAccount, "_id" | "account_id" | "createdAt" | "updatedAt">>;
-    }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    }) => apiPatch(`${API_URL}/api/outbound-accounts/${id}`, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
     },
@@ -149,16 +124,7 @@ export function useUpdateOutboundAccount() {
 export function useDeleteOutboundAccount() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiDelete(`${API_URL}/api/outbound-accounts/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
     },
@@ -168,16 +134,8 @@ export function useDeleteOutboundAccount() {
 export function useGenerateToken() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string): Promise<{ browser_token: string }> => {
-      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts/${id}/token`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string): Promise<{ browser_token: string }> =>
+      apiPost(`${API_URL}/api/outbound-accounts/${id}/token`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
     },
@@ -187,16 +145,7 @@ export function useGenerateToken() {
 export function useRevokeToken() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts/${id}/token`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiDelete(`${API_URL}/api/outbound-accounts/${id}/token`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
     },

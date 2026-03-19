@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
-import { API_URL, fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth, apiPost, apiDelete } from "@/lib/api";
 import { useSocket } from "@/contexts/SocketContext";
 import { throttle } from "@/lib/throttle";
 import type { ScrapeJob, ScrapeJobsResponse, ScrapeJobStatus } from "@/lib/types";
@@ -47,21 +47,8 @@ export function useScrapeJob(jobId: string | null) {
 export function useStartScrape() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: {
-      target_username: string;
-      ig_username: string;
-    }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/scrape/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (body: { target_username: string; ig_username: string }) =>
+      apiPost(`${API_URL}/api/scrape/start`, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["scrape-jobs"] }),
   });
 }
@@ -69,16 +56,7 @@ export function useStartScrape() {
 export function useCancelScrape() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/scrape/${id}/cancel`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/scrape/${id}/cancel`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["scrape-jobs"] });
       qc.invalidateQueries({ queryKey: ["scrape-job"] });
@@ -89,16 +67,7 @@ export function useCancelScrape() {
 export function usePauseScrape() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/scrape/${id}/pause`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/scrape/${id}/pause`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["scrape-jobs"] });
       qc.invalidateQueries({ queryKey: ["scrape-job"] });
@@ -109,16 +78,7 @@ export function usePauseScrape() {
 export function useDeleteScrape() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/scrape/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiDelete(`${API_URL}/api/scrape/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["scrape-jobs"] });
       qc.invalidateQueries({ queryKey: ["scrape-job"] });
@@ -129,16 +89,7 @@ export function useDeleteScrape() {
 export function useResumeScrape() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/scrape/${id}/resume`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/scrape/${id}/resume`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["scrape-jobs"] });
       qc.invalidateQueries({ queryKey: ["scrape-job"] });

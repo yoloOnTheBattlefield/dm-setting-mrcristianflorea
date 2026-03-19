@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { API_URL, fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth, apiPost, apiPatch } from "@/lib/api";
 
 export interface WarmupChecklistItem {
   key: string;
@@ -55,16 +55,8 @@ export function useWarmupStatus(outboundAccountId: string | null) {
 export function useStartWarmup() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (outboundAccountId: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/warmup/${outboundAccountId}/start`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (outboundAccountId: string) =>
+      apiPost(`${API_URL}/api/warmup/${outboundAccountId}/start`),
     onSuccess: (_data, outboundAccountId) => {
       queryClient.invalidateQueries({ queryKey: ["warmup", outboundAccountId] });
       queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
@@ -75,16 +67,8 @@ export function useStartWarmup() {
 export function useStopWarmup() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (outboundAccountId: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/warmup/${outboundAccountId}/stop`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (outboundAccountId: string) =>
+      apiPost(`${API_URL}/api/warmup/${outboundAccountId}/stop`),
     onSuccess: (_data, outboundAccountId) => {
       queryClient.invalidateQueries({ queryKey: ["warmup", outboundAccountId] });
       queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
@@ -95,23 +79,8 @@ export function useStopWarmup() {
 export function useToggleChecklistItem() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      outboundAccountId,
-      key,
-    }: {
-      outboundAccountId: string;
-      key: string;
-    }) => {
-      const res = await fetchWithAuth(
-        `${API_URL}/api/warmup/${outboundAccountId}/checklist/${key}`,
-        { method: "PATCH" },
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ outboundAccountId, key }: { outboundAccountId: string; key: string }) =>
+      apiPatch(`${API_URL}/api/warmup/${outboundAccountId}/checklist/${key}`, {}),
     onSuccess: (_data, { outboundAccountId }) => {
       queryClient.invalidateQueries({ queryKey: ["warmup", outboundAccountId] });
     },

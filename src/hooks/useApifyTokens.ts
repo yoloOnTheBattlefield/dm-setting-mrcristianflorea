@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { API_URL, fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth, apiPost, apiPatch, apiDelete } from "@/lib/api";
 import type { ApifyToken } from "@/lib/types";
 
 export interface ApifyTokenUsage {
@@ -40,18 +40,8 @@ export function useApifyTokens() {
 export function useAddApifyToken() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { label?: string; token: string }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/apify-tokens`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (body: { label?: string; token: string }) =>
+      apiPost(`${API_URL}/api/apify-tokens`, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["apify-tokens"] }),
   });
 }
@@ -59,26 +49,8 @@ export function useAddApifyToken() {
 export function useUpdateApifyToken() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      id,
-      ...body
-    }: {
-      id: string;
-      label?: string;
-      status?: string;
-      token?: string;
-    }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/apify-tokens/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ id, ...body }: { id: string; label?: string; status?: string; token?: string }) =>
+      apiPatch(`${API_URL}/api/apify-tokens/${id}`, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["apify-tokens"] }),
   });
 }
@@ -86,16 +58,7 @@ export function useUpdateApifyToken() {
 export function useDeleteApifyToken() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/apify-tokens/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiDelete(`${API_URL}/api/apify-tokens/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["apify-tokens"] }),
   });
 }
@@ -103,16 +66,7 @@ export function useDeleteApifyToken() {
 export function useResetApifyToken() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/apify-tokens/${id}/reset`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/apify-tokens/${id}/reset`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["apify-tokens"] }),
   });
 }

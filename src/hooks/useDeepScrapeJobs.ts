@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useCallback, useState } from "react";
-import { API_URL, fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth, apiPost, apiDelete, apiPatch } from "@/lib/api";
 import { useSocket } from "@/contexts/SocketContext";
 import { throttle } from "@/lib/throttle";
 import type {
@@ -75,7 +75,7 @@ export function useDeepScrapeTargetStats() {
 export function useStartDeepScrape() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: {
+    mutationFn: (body: {
       name?: string;
       mode?: "outbound" | "research";
       seed_usernames?: string[];
@@ -92,18 +92,7 @@ export function useStartDeepScrape() {
       prompt_id?: string;
       is_recurring?: boolean;
       repeat_interval_days?: number;
-    }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/deep-scrape/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    }) => apiPost(`${API_URL}/api/deep-scrape/start`, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["deep-scrape-jobs"] }),
   });
 }
@@ -111,17 +100,7 @@ export function useStartDeepScrape() {
 export function usePauseDeepScrape() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(
-        `${API_URL}/api/deep-scrape/${id}/pause`,
-        { method: "POST" },
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/deep-scrape/${id}/pause`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deep-scrape-jobs"] });
       qc.invalidateQueries({ queryKey: ["deep-scrape-job"] });
@@ -132,17 +111,7 @@ export function usePauseDeepScrape() {
 export function useCancelDeepScrape() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(
-        `${API_URL}/api/deep-scrape/${id}/cancel`,
-        { method: "POST" },
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/deep-scrape/${id}/cancel`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deep-scrape-jobs"] });
       qc.invalidateQueries({ queryKey: ["deep-scrape-job"] });
@@ -153,17 +122,7 @@ export function useCancelDeepScrape() {
 export function useResumeDeepScrape() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(
-        `${API_URL}/api/deep-scrape/${id}/resume`,
-        { method: "POST" },
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/deep-scrape/${id}/resume`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deep-scrape-jobs"] });
       qc.invalidateQueries({ queryKey: ["deep-scrape-job"] });
@@ -174,17 +133,7 @@ export function useResumeDeepScrape() {
 export function useSkipComments() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(
-        `${API_URL}/api/deep-scrape/${id}/skip-comments`,
-        { method: "POST" },
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/deep-scrape/${id}/skip-comments`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deep-scrape-jobs"] });
       qc.invalidateQueries({ queryKey: ["deep-scrape-job"] });
@@ -195,17 +144,7 @@ export function useSkipComments() {
 export function useResumeComments() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(
-        `${API_URL}/api/deep-scrape/${id}/resume-comments`,
-        { method: "POST" },
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/deep-scrape/${id}/resume-comments`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deep-scrape-jobs"] });
       qc.invalidateQueries({ queryKey: ["deep-scrape-job"] });
@@ -216,18 +155,11 @@ export function useResumeComments() {
 export function useAddDeepScrapeLeadsToCampaign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ jobId, campaign_id }: { jobId: string; campaign_id: string }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/deep-scrape/${jobId}/add-to-campaign`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaign_id }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json() as Promise<{ added: number; duplicates_skipped: number; total_qualified: number }>;
-    },
+    mutationFn: ({ jobId, campaign_id }: { jobId: string; campaign_id: string }) =>
+      apiPost<{ added: number; duplicates_skipped: number; total_qualified: number }>(
+        `${API_URL}/api/deep-scrape/${jobId}/add-to-campaign`,
+        { campaign_id },
+      ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
@@ -238,16 +170,7 @@ export function useAddDeepScrapeLeadsToCampaign() {
 export function useDeleteDeepScrape() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${API_URL}/api/deep-scrape/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (id: string) => apiDelete(`${API_URL}/api/deep-scrape/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deep-scrape-jobs"] });
       qc.invalidateQueries({ queryKey: ["deep-scrape-job"] });
@@ -258,18 +181,8 @@ export function useDeleteDeepScrape() {
 export function useUpdateDeepScrape() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, body }: { id: string; body: Record<string, unknown> }) => {
-      const res = await fetchWithAuth(`${API_URL}/api/deep-scrape/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
+      apiPatch(`${API_URL}/api/deep-scrape/${id}`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deep-scrape-jobs"] });
       qc.invalidateQueries({ queryKey: ["deep-scrape-job"] });

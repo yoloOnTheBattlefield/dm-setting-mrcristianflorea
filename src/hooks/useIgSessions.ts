@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { API_URL, fetchWithAuth } from "@/lib/api";
+import { API_URL, fetchWithAuth, apiPost, apiDelete } from "@/lib/api";
 
 export interface IgSessionProfile {
   ig_username: string;
@@ -23,18 +23,8 @@ export function useIgSessions() {
 export function useAddIgSession() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { ig_username: string; cookies: unknown[] }) => {
-      const res = await fetchWithAuth(`${API_URL}/accounts/ig-sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (body: { ig_username: string; cookies: unknown[] }) =>
+      apiPost(`${API_URL}/accounts/ig-sessions`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ig-sessions"] });
     },
@@ -44,17 +34,8 @@ export function useAddIgSession() {
 export function useRemoveIgSession() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (username: string) => {
-      const res = await fetchWithAuth(
-        `${API_URL}/accounts/ig-sessions/${encodeURIComponent(username)}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || `Failed: ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: (username: string) =>
+      apiDelete(`${API_URL}/accounts/ig-sessions/${encodeURIComponent(username)}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ig-sessions"] });
     },
