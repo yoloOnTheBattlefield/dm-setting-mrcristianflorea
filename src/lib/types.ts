@@ -1,3 +1,42 @@
+// --- Instagram DM Conversations ---
+
+export interface IgConversation {
+  _id: string;
+  instagram_thread_id: string;
+  account_id: string;
+  outbound_account_id?: string | null;
+  owner_ig_user_id?: string | null;
+  lead_id?: string | null;
+  outbound_lead_id?: string | null;
+  participant_ids: string[];
+  participant_usernames: Record<string, string>;
+  last_message_at?: string | null;
+  created_at: string;
+}
+
+export interface IgMessage {
+  _id: string;
+  conversation_id: string;
+  account_id: string;
+  outbound_account_id?: string | null;
+  direction: "inbound" | "outbound";
+  sender_id: string;
+  recipient_id: string;
+  message_text?: string | null;
+  message_id: string;
+  timestamp: string;
+  read_at?: string | null;
+  created_at: string;
+}
+
+export interface IgConversationResponse {
+  conversation: IgConversation;
+  messages: IgMessage[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 // API response type matching your server
 export interface ApiLead {
   _id: string;

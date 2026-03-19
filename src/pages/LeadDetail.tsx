@@ -61,6 +61,7 @@ import {
   useUpdateLeadTask,
   useDeleteLeadTask,
 } from "@/hooks/useLeadTasks";
+import { useLeadConversation } from "@/hooks/useLeadConversation";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -433,6 +434,7 @@ export default function LeadDetail() {
 
   const { data: notes = [] } = useLeadNotes(lead?._id);
   const { data: tasks = [] } = useLeadTasks(lead?._id);
+  const { data: conversationData } = useLeadConversation(lead?._id);
   const createNote = useCreateLeadNote();
   const deleteNote = useDeleteLeadNote();
   const createTask = useCreateLeadTask();
@@ -1071,6 +1073,58 @@ export default function LeadDetail() {
                         </div>
                       ))}
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* DM Conversation */}
+          {conversationData && conversationData.messages.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Instagram className="h-3.5 w-3.5" />
+                  DM Conversation
+                  <span className="ml-auto font-normal normal-case text-muted-foreground/60">
+                    {conversationData.total} message{conversationData.total !== 1 ? "s" : ""}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+                  {conversationData.messages.map((msg) => (
+                    <div
+                      key={msg._id}
+                      className={cn(
+                        "flex flex-col max-w-[80%]",
+                        msg.direction === "outbound" ? "ml-auto items-end" : "items-start"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "rounded-2xl px-3 py-2 text-sm",
+                          msg.direction === "outbound"
+                            ? "bg-primary text-primary-foreground rounded-tr-sm"
+                            : "bg-muted rounded-tl-sm"
+                        )}
+                      >
+                        {msg.message_text || <span className="italic opacity-60">Media</span>}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/60 mt-0.5 px-1">
+                        {new Date(msg.timestamp).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {conversationData.total > conversationData.messages.length && (
+                  <p className="text-xs text-muted-foreground/60 text-center mt-2">
+                    Showing {conversationData.messages.length} of {conversationData.total} messages
+                  </p>
                 )}
               </CardContent>
             </Card>

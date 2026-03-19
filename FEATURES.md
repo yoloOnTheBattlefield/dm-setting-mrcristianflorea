@@ -1,5 +1,21 @@
 # Features
 
+## Lead DM Conversation Panel
+
+Displays the stored Instagram DM conversation directly on the lead detail page. Fetches the conversation thread for the lead from the database and renders messages in a chat-bubble UI (outbound right, inbound left), ordered oldest to newest.
+
+### Location
+
+- **Hook:** `src/hooks/useLeadConversation.ts`
+- **Displayed in:** `src/pages/LeadDetail.tsx` (right panel, above Activity Feed)
+- **Types:** `src/lib/types.ts` (`IgConversation`, `IgMessage`, `IgConversationResponse`)
+
+### API Routes
+
+- `GET /api/ig-conversations/by-lead/:leadId` — returns conversation + messages for a given lead ID
+
+---
+
 ## useDebounce Hook
 
 Shared debounce hook that eliminates duplicated `useState + useEffect + setTimeout` patterns across pages.
