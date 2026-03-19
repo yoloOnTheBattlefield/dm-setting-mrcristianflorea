@@ -1018,3 +1018,51 @@ Dashboard page at `/analytics/inbound` showing inbound lead funnel metrics, sour
 - **`GET /analytics/inbound`** — Overview KPIs + source breakdown. Query: `start_date`, `end_date`. Returns `{ total, booked, closed, book_rate, close_rate, revenue, cross_channel, cross_channel_rate, sources[] }`.
 - **`GET /analytics/inbound/posts`** — Post performance table. Same query params. Returns `{ posts[] }` with `post_url`, totals, rates, revenue.
 - **`GET /analytics/inbound/daily`** — Daily volume chart data. Same query params. Returns `{ days[] }` with date, created, booked, closed.
+
+---
+
+## Lead Push Notifications
+
+Real-time push notifications when a new lead is created or an outbound lead replies via Instagram DM.
+
+### Description
+
+When the Instagram webhook receives an inbound DM:
+- If an **OutboundLead** replies for the first time → `lead_replied` notification
+- If a **Lead** (inbound pipeline) first contacts us → `new_lead` notification
+
+Both in-app (Socket.IO toast + notification bell) and browser push (works when tab is closed) are supported. The feature can be disabled per-account in Settings.
+
+### Location in codebase
+
+**Backend:**
+- `models/PushSubscription.js` — stores browser push subscriptions per account
+- `models/Account.js` — `push_notifications_enabled` field
+- `models/Notification.js` — added `new_lead`, `lead_replied` enum types
+- `services/pushNotifications.js` — VAPID web-push service
+- `routes/push-subscriptions.js` — save/delete subscriptions + serve VAPID public key
+- `routes/notifications.js` — `GET/PATCH /api/notifications/settings`
+- `routes/instagram-webhook.js` — fires `fireLeadNotification()` on reply/new lead events
+
+**Frontend:**
+- `public/sw.js` — service worker that shows browser push notifications
+- `hooks/usePushNotifications.ts` — subscribe/unsubscribe to browser push
+- `contexts/SocketContext.tsx` — listens for `notification:lead` Socket.IO events, shows toasts, tracks unread count
+- `components/NotificationBell.tsx` — bell icon with unread badge + popover in header
+- `components/DashboardLayout.tsx` — renders `<NotificationBell />`
+- `pages/UserSettings.tsx` — Notifications card with enable/disable toggles
+
+### API Routes
+
+- **`GET /api/push-subscriptions/vapid-public-key`** — returns VAPID public key
+- **`POST /api/push-subscriptions`** — save a browser push subscription
+- **`DELETE /api/push-subscriptions`** — remove a browser push subscription
+- **`GET /api/notifications/settings`** — get `push_notifications_enabled` for account
+- **`PATCH /api/notifications/settings`** — toggle `push_notifications_enabled`
+
+### Required env vars (backend)
+
+```
+VAPID_PUBLIC_KEY=BIpa0UnGrlsJ4s6Ueooa2OzFQlG2Cz1Dwczhly-mrPtC6Wj8rDERoPh5iKzV1lfX7xcVTKYOAT0ZObcqBEdB7y8
+VAPID_PRIVATE_KEY=2Ij7qLB2H8NJ1mn0ufryWrRUVbRxG3V81E2woAT9Gg4
+```

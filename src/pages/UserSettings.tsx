@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +22,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccounts } from "@/hooks/useAccounts";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 import { AppearanceCard } from "@/components/settings/appearance-card";
+import { Switch } from "@/components/ui/switch";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 const LEADS_API_URL = `${API_URL}/accounts/leads/generate`;
+const NOTIF_SETTINGS_URL = `${API_URL}/api/notifications/settings`;
 
 export default function UserSettings() {
   const { user, updateUser } = useAuth();
@@ -52,6 +55,47 @@ export default function UserSettings() {
     days_back: "30",
   });
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const { isSupported, isSubscribed, isLoading: isPushLoading, subscribe, unsubscribe } = usePushNotifications();
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [isSavingNotif, setIsSavingNotif] = useState(false);
+
+  useEffect(() => {
+    fetchWithAuth(NOTIF_SETTINGS_URL)
+      .then((r) => r.json())
+      .then((d) => setPushEnabled(d.push_notifications_enabled ?? true))
+      .catch(() => {});
+  }, []);
+
+  const handlePushToggle = async (enabled: boolean) => {
+    setPushEnabled(enabled);
+    setIsSavingNotif(true);
+    try {
+      await fetchWithAuth(NOTIF_SETTINGS_URL, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ push_notifications_enabled: enabled }),
+      });
+      if (!enabled) {
+        await unsubscribe();
+      } else if (isSupported && !isSubscribed) {
+        await subscribe();
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to update notification settings", variant: "destructive" });
+      setPushEnabled(!enabled);
+    } finally {
+      setIsSavingNotif(false);
+    }
+  };
+
+  const handleBrowserPushToggle = async (enabled: boolean) => {
+    if (enabled) {
+      await subscribe();
+    } else {
+      await unsubscribe();
+    }
+  };
 
   const handleGenerateLeads = async () => {
     if (!leadForm.ghl) {
@@ -185,6 +229,41 @@ export default function UserSettings() {
     <div className="flex flex-1 flex-col gap-4 p-4">
       <div className="grid gap-4">
         <AppearanceCard />
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Notifications</CardTitle>
+            <CardDescription>Get notified when a new lead is created or a lead replies via Instagram DM</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Lead notifications</p>
+                <p className="text-xs text-muted-foreground">New leads and DM replies</p>
+              </div>
+              <Switch
+                checked={pushEnabled}
+                onCheckedChange={handlePushToggle}
+                disabled={isSavingNotif}
+              />
+            </div>
+            {isSupported && pushEnabled && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Browser push notifications</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isSubscribed ? "Enabled — notified even when tab is closed" : "Enable to receive alerts when tab is closed"}
+                  </p>
+                </div>
+                <Switch
+                  checked={isSubscribed}
+                  onCheckedChange={handleBrowserPushToggle}
+                  disabled={isPushLoading}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
