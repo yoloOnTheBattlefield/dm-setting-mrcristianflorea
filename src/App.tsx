@@ -69,7 +69,22 @@ const EodReport = lazyRetry(() => import("./pages/EodReport"));
 const Landing = lazyRetry(() => import("./pages/Landing"));
 const AcceptInvite = lazyRetry(() => import("./pages/AcceptInvite"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        // Don't retry on 4xx client errors
+        if (error instanceof Error && /^(4\d\d):/.test(error.message)) return false;
+        return failureCount < 2;
+      },
+      staleTime: 1000 * 30,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
 
 function RequireOutbound({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
