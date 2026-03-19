@@ -61,7 +61,7 @@ describe("useLeadConversation", () => {
     vi.clearAllMocks();
   });
 
-  it("returns null when leadId is undefined", () => {
+  it("returns null when igThreadId is undefined", () => {
     const { result } = renderHook(() => useLeadConversation(undefined), { wrapper });
     expect(result.current.data).toBeUndefined();
     expect(result.current.fetchStatus).toBe("idle");
@@ -74,12 +74,12 @@ describe("useLeadConversation", () => {
       json: async () => mockConversationResponse,
     } as Response);
 
-    const { result } = renderHook(() => useLeadConversation("lead123"), { wrapper });
+    const { result } = renderHook(() => useLeadConversation("thread123"), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(fetchWithAuth).toHaveBeenCalledWith(
-      "http://localhost:3000/api/ig-conversations/by-lead/lead123"
+      "http://localhost:3000/api/ig-conversations/by-thread/thread123"
     );
     expect(result.current.data?.messages).toHaveLength(2);
     expect(result.current.data?.messages[0].direction).toBe("outbound");
@@ -93,7 +93,7 @@ describe("useLeadConversation", () => {
       json: async () => ({ error: "No conversation found for this lead" }),
     } as Response);
 
-    const { result } = renderHook(() => useLeadConversation("lead404"), { wrapper });
+    const { result } = renderHook(() => useLeadConversation("thread404"), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeNull();
@@ -106,7 +106,7 @@ describe("useLeadConversation", () => {
       json: async () => ({ error: "Server error" }),
     } as Response);
 
-    const { result } = renderHook(() => useLeadConversation("lead500"), { wrapper });
+    const { result } = renderHook(() => useLeadConversation("thread500"), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error).toBeInstanceOf(Error);
