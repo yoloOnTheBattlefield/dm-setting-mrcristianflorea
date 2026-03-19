@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,16 +107,10 @@ export default function OutboundAccounts() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debouncedSearch = useDebounce(searchQuery);
   const [statusFilter, setStatusFilter] = useState("");
   const [blacklistedFilter, setBlacklistedFilter] = useState("");
   const [connectedFilter, setConnectedFilter] = useState("");
-
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   // Reset page on filter change
   useEffect(() => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { readPersisted, writePersisted } from "@/hooks/usePersistedState";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
@@ -371,9 +372,7 @@ export default function OutboundLeads() {
   const [searchQuery, setSearchQuery] = useState(
     searchParams.get("search") || "",
   );
-  const [debouncedSearch, setDebouncedSearch] = useState(
-    searchParams.get("search") || "",
-  );
+  const debouncedSearch = useDebounce(searchQuery.trim());
   const [currentPage, setCurrentPage] = useState(
     parseInt(searchParams.get("page") || "1", 10),
   );
@@ -419,12 +418,6 @@ export default function OutboundLeads() {
       return next;
     });
   }, []);
-
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   // Reset page on filter change
   useEffect(() => {

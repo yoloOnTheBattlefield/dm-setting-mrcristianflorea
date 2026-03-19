@@ -1,5 +1,17 @@
 # Features
 
+## useDebounce Hook
+
+Shared debounce hook that eliminates duplicated `useState + useEffect + setTimeout` patterns across pages.
+
+### Location
+
+- **Hook:** `src/hooks/useDebounce.ts`
+- **Tests:** `src/hooks/useDebounce.test.ts`
+- **Used in:** `src/pages/OutboundAccounts.tsx`, `src/pages/AllContacts.tsx`, `src/pages/OutboundLeads.tsx`
+
+---
+
 ## Shimmer Loading Screens
 
 Polished shimmer loading skeletons for every page. Uses a gradient shimmer animation instead of plain gray pulse, with staggered animation delays and layouts that mirror the actual page content.

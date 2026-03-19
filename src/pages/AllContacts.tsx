@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRawLeads, type LeadSortField, type SortOrder } from "@/hooks/useRawLeads";
@@ -175,9 +176,7 @@ export default function AllContacts() {
   const [searchQuery, setSearchQuery] = useState<string>(
     searchParams.get("search") || ""
   );
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>(
-    searchParams.get("search") || ""
-  );
+  const debouncedSearchQuery = useDebounce(searchQuery);
   const [currentPage, setCurrentPage] = useState<number>(
     parseInt(searchParams.get("page") || "1", 10)
   );
@@ -197,15 +196,6 @@ export default function AllContacts() {
     }
     setCurrentPage(1);
   };
-
-  // Debounce search query
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   // Calculate start and end dates based on dateRange
   const endDate = useMemo(() => {
