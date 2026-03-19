@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, type ComponentType } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,47 +15,59 @@ import { SocketProvider } from "@/contexts/SocketContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Retry dynamic imports once on chunk load failure (stale deploy)
+function lazyRetry(factory: () => Promise<{ default: ComponentType }>) {
+  return lazy(() =>
+    factory().catch(() => {
+      // Force a full page reload to get fresh chunk URLs
+      window.location.reload();
+      // Return a never-resolving promise so React doesn't render stale content
+      return new Promise(() => {});
+    }),
+  );
+}
+
 // Lazy-loaded page components
-const Index = lazy(() => import("./pages/Index"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const NewClient = lazy(() => import("./pages/NewClient"));
-const ClientsOverview = lazy(() => import("./pages/ClientsOverview"));
-const ClientDetail = lazy(() => import("./pages/ClientDetail"));
-const AllContacts = lazy(() => import("./pages/AllContacts"));
-const LeadDetail = lazy(() => import("./pages/LeadDetail"));
-const UserSettings = lazy(() => import("./pages/UserSettings"));
-const Integrations = lazy(() => import("./pages/Integrations"));
-const TeamMembers = lazy(() => import("./pages/TeamMembers"));
-const UploadXlsx = lazy(() => import("./pages/UploadXlsx"));
-const OutboundLeads = lazy(() => import("./pages/OutboundLeads"));
-const ImportOutboundLeads = lazy(() => import("./pages/ImportOutboundLeads"));
-const Prompts = lazy(() => import("./pages/Prompts"));
-const Campaigns = lazy(() => import("./pages/Campaigns"));
-const CampaignDetail = lazy(() => import("./components/campaigns/CampaignDetail"));
-const CampaignAddLeads = lazy(() => import("./pages/CampaignAddLeads"));
-const CampaignEdit = lazy(() => import("./pages/CampaignEdit"));
-const FollowUps = lazy(() => import("./pages/FollowUps"));
-const OutboundAccounts = lazy(() => import("./pages/OutboundAccounts"));
-const OutboundAnalytics = lazy(() => import("./pages/OutboundAnalytics"));
-const InboundAnalytics = lazy(() => import("./pages/InboundAnalytics"));
-const Scraper = lazy(() => import("./pages/Scraper"));
-const DeepScraper = lazy(() => import("./pages/DeepScraper"));
-const CommentPost = lazy(() => import("./pages/CommentPost"));
-const DataMigration = lazy(() => import("./pages/DataMigration"));
-const ResearchOverview = lazy(() => import("./pages/research/ResearchOverview"));
-const ResearchCompetitors = lazy(() => import("./pages/research/Competitors"));
-const ResearchCompetitorDetail = lazy(() => import("./pages/research/CompetitorDetail"));
-const ResearchPostsLibrary = lazy(() => import("./pages/research/PostsLibrary"));
-const CommentsIntel = lazy(() => import("./pages/research/CommentsIntel"));
-const LeadMagnetTracker = lazy(() => import("./pages/research/LeadMagnetTracker"));
-const IdeasBank = lazy(() => import("./pages/research/IdeasBank"));
-const ResearchAlerts = lazy(() => import("./pages/research/Alerts"));
-const ResearchReports = lazy(() => import("./pages/research/Reports"));
-const Bookings = lazy(() => import("./pages/Bookings"));
-const BookingAnalytics = lazy(() => import("./pages/BookingAnalytics"));
-const EodReport = lazy(() => import("./pages/EodReport"));
-const Landing = lazy(() => import("./pages/Landing"));
-const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
+const Index = lazyRetry(() => import("./pages/Index"));
+const NotFound = lazyRetry(() => import("./pages/NotFound"));
+const NewClient = lazyRetry(() => import("./pages/NewClient"));
+const ClientsOverview = lazyRetry(() => import("./pages/ClientsOverview"));
+const ClientDetail = lazyRetry(() => import("./pages/ClientDetail"));
+const AllContacts = lazyRetry(() => import("./pages/AllContacts"));
+const LeadDetail = lazyRetry(() => import("./pages/LeadDetail"));
+const UserSettings = lazyRetry(() => import("./pages/UserSettings"));
+const Integrations = lazyRetry(() => import("./pages/Integrations"));
+const TeamMembers = lazyRetry(() => import("./pages/TeamMembers"));
+const UploadXlsx = lazyRetry(() => import("./pages/UploadXlsx"));
+const OutboundLeads = lazyRetry(() => import("./pages/OutboundLeads"));
+const ImportOutboundLeads = lazyRetry(() => import("./pages/ImportOutboundLeads"));
+const Prompts = lazyRetry(() => import("./pages/Prompts"));
+const Campaigns = lazyRetry(() => import("./pages/Campaigns"));
+const CampaignDetail = lazyRetry(() => import("./components/campaigns/CampaignDetail"));
+const CampaignAddLeads = lazyRetry(() => import("./pages/CampaignAddLeads"));
+const CampaignEdit = lazyRetry(() => import("./pages/CampaignEdit"));
+const FollowUps = lazyRetry(() => import("./pages/FollowUps"));
+const OutboundAccounts = lazyRetry(() => import("./pages/OutboundAccounts"));
+const OutboundAnalytics = lazyRetry(() => import("./pages/OutboundAnalytics"));
+const InboundAnalytics = lazyRetry(() => import("./pages/InboundAnalytics"));
+const Scraper = lazyRetry(() => import("./pages/Scraper"));
+const DeepScraper = lazyRetry(() => import("./pages/DeepScraper"));
+const CommentPost = lazyRetry(() => import("./pages/CommentPost"));
+const DataMigration = lazyRetry(() => import("./pages/DataMigration"));
+const ResearchOverview = lazyRetry(() => import("./pages/research/ResearchOverview"));
+const ResearchCompetitors = lazyRetry(() => import("./pages/research/Competitors"));
+const ResearchCompetitorDetail = lazyRetry(() => import("./pages/research/CompetitorDetail"));
+const ResearchPostsLibrary = lazyRetry(() => import("./pages/research/PostsLibrary"));
+const CommentsIntel = lazyRetry(() => import("./pages/research/CommentsIntel"));
+const LeadMagnetTracker = lazyRetry(() => import("./pages/research/LeadMagnetTracker"));
+const IdeasBank = lazyRetry(() => import("./pages/research/IdeasBank"));
+const ResearchAlerts = lazyRetry(() => import("./pages/research/Alerts"));
+const ResearchReports = lazyRetry(() => import("./pages/research/Reports"));
+const Bookings = lazyRetry(() => import("./pages/Bookings"));
+const BookingAnalytics = lazyRetry(() => import("./pages/BookingAnalytics"));
+const EodReport = lazyRetry(() => import("./pages/EodReport"));
+const Landing = lazyRetry(() => import("./pages/Landing"));
+const AcceptInvite = lazyRetry(() => import("./pages/AcceptInvite"));
 
 const queryClient = new QueryClient();
 
