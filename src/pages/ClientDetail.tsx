@@ -48,7 +48,10 @@ import { useInviteTeamMember } from "@/hooks/useInvitations";
 import { useClientTrackingEvents } from "@/hooks/useTracking";
 import { Badge } from "@/components/ui/badge";
 import { ClientDetailSkeleton, TableSkeleton } from "@/components/skeletons";
-import { ArrowLeft, Plus, Trash2, RefreshCw, KeyRound, Mail } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, RefreshCw, KeyRound, Mail, Clapperboard, ExternalLink } from "lucide-react";
+import { useMonthlyReels } from "@/hooks/useMonthlyReels";
+import { useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 
 interface ClientData {
   account_id: string;
@@ -96,6 +99,8 @@ export default function ClientDetail() {
     has_outbound: false,
   });
   const { data: trackingData, isLoading: isTrackingLoading, refetch: refetchTracking } = useClientTrackingEvents(client?.account_id);
+  const { data: reelsData, isLoading: isReelsLoading, error: reelsError } = useMonthlyReels(id);
+  const queryClient = useQueryClient();
   const [isTogglingOutbound, setIsTogglingOutbound] = useState(false);
   const [isTogglingResearch, setIsTogglingResearch] = useState(false);
 
@@ -713,6 +718,73 @@ export default function ClientDetail() {
               </Table>
             )}
           </CardContent>
+        </Card>
+
+        {/* Monthly Reels */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Clapperboard className="h-4 w-4" />
+                Reels This Month
+              </CardTitle>
+              <CardDescription>
+                {reelsData ? `${reelsData.month}${reelsData.ig_username ? ` · @${reelsData.ig_username}` : ""}` : "Instagram reels posted since the start of the month"}
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-3">
+              {reelsData && (
+                <span className="text-3xl font-bold tabular-nums">{reelsData.count}</span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["monthly-reels", id] })}
+                disabled={isReelsLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${isReelsLoading ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+          </CardHeader>
+          {reelsError ? (
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {(reelsError as Error).message.includes("400")
+                  ? "Instagram not connected for this client."
+                  : "Failed to load reels data."}
+              </p>
+            </CardContent>
+          ) : isReelsLoading ? (
+            <CardContent>
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-4 bg-muted rounded animate-pulse" />
+                ))}
+              </div>
+            </CardContent>
+          ) : reelsData && reelsData.reels.length > 0 ? (
+            <CardContent>
+              <div className="space-y-1">
+                {reelsData.reels.map((reel) => (
+                  <div key={reel.id} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{format(new Date(reel.timestamp), "MMM d, h:mm a")}</span>
+                    <a
+                      href={reel.permalink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors text-xs"
+                    >
+                      View reel <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          ) : reelsData && reelsData.count === 0 ? (
+            <CardContent>
+              <p className="text-sm text-muted-foreground">No reels posted this month yet.</p>
+            </CardContent>
+          ) : null}
         </Card>
 
         {/* Website Tracking Events */}

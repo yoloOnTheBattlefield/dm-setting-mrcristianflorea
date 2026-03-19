@@ -1,5 +1,20 @@
 # Features
 
+## Reels Tracker (Client Detail)
+
+Shows how many Instagram Reels a specific client has posted since the start of the current month. Displayed as a card on the Client Detail page. Fetches media from the Instagram Graph API using the client's stored OAuth page access token, filters for `media_product_type === "REELS"`, and lists each reel with its post date and a link.
+
+### Location
+
+- **Card in:** `src/pages/ClientDetail.tsx`
+- **Hook:** `src/hooks/useMonthlyReels.ts`
+
+### API Routes
+
+- `GET /api/instagram/reels/monthly/:clientId` — returns `{ month, since, ig_username, count, reels[] }` for the given client
+
+---
+
 ## Lead DM Conversation Panel
 
 Displays the stored Instagram DM conversation directly on the lead detail page. Fetches the conversation thread for the lead from the database and renders messages in a chat-bubble UI (outbound right, inbound left), ordered oldest to newest.
