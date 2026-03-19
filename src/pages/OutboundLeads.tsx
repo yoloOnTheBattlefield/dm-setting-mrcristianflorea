@@ -10,6 +10,14 @@ import {
   Copy,
   ChevronDown,
   StickyNote,
+  MoreHorizontal,
+  ExternalLink,
+  Send,
+  MessageCircle,
+  Link2,
+  CalendarCheck,
+  XCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,8 +31,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useAuth } from "@/contexts/AuthContext";
 import { usePrompts } from "@/hooks/usePrompts";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 import OutboundLeadsFilters from "@/components/outbound-leads/OutboundLeadsFilters";
@@ -81,6 +95,74 @@ interface FunnelStats {
   contracts: number;
   contract_value: number;
 }
+
+// ── Pipeline status badge logic ──
+
+const PIPELINE_STAGES = [
+  { key: "dq", label: "DQ", bg: "bg-red-500/15", text: "text-red-400", dot: "bg-red-400" },
+  { key: "converted", label: "Converted", bg: "bg-emerald-500/15", text: "text-emerald-400", dot: "bg-emerald-400" },
+  { key: "replied", label: "Replied", bg: "bg-blue-500/15", text: "text-blue-400", dot: "bg-blue-400" },
+  { key: "link_sent", label: "Link Sent", bg: "bg-cyan-500/15", text: "text-cyan-400", dot: "bg-cyan-400" },
+  { key: "messaged", label: "Messaged", bg: "bg-amber-500/15", text: "text-amber-400", dot: "bg-amber-400" },
+  { key: "new", label: "New", bg: "bg-slate-500/15", text: "text-slate-400", dot: "bg-slate-400" },
+] as const;
+
+function getLeadStage(lead: OutboundLead) {
+  if (lead.qualified === false) return PIPELINE_STAGES[0]; // DQ
+  if (lead.booked) return PIPELINE_STAGES[1]; // Converted
+  if (lead.replied) return PIPELINE_STAGES[2]; // Replied
+  if (lead.link_sent) return PIPELINE_STAGES[3]; // Link Sent
+  if (lead.isMessaged) return PIPELINE_STAGES[4]; // Messaged
+  return PIPELINE_STAGES[5]; // New
+}
+
+// ── Avatar helpers ──
+
+const AVATAR_COLORS = [
+  "bg-blue-600", "bg-emerald-600", "bg-violet-600", "bg-amber-600",
+  "bg-rose-600", "bg-cyan-600", "bg-indigo-600", "bg-pink-600",
+];
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (parts[0]?.length) return parts[0][0].toUpperCase();
+  return "?";
+}
+
+// ── Time helpers ──
+
+function timeAgo(dateString: string): string {
+  const now = Date.now();
+  const then = new Date(dateString).getTime();
+  if (isNaN(then)) return "";
+  const diffMs = now - then;
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
+function getLastActivityDate(lead: OutboundLead): string | null {
+  const dates = [lead.updatedAt, lead.dmDate, lead.createdAt].filter(Boolean) as string[];
+  if (dates.length === 0) return null;
+  return dates.reduce((a, b) => (new Date(a) > new Date(b) ? a : b));
+}
+
+// ── API helpers ──
 
 async function fetchSources(): Promise<string[]> {
   const response = await fetchWithAuth(`${API_URL}/outbound-leads/sources`);
@@ -166,10 +248,106 @@ function formatNumber(n?: number): string {
   return String(n);
 }
 
+// ── Row Actions Dropdown ──
+
+function RowActions({
+  lead,
+  onToggleMessaged,
+  onToggleField,
+  onToggleDisqualified,
+  onOpenDm,
+  onOpenNote,
+}: {
+  lead: OutboundLead;
+  onToggleMessaged: (lead: OutboundLead) => void;
+  onToggleField: (lead: OutboundLead, field: "link_sent" | "replied" | "booked") => void;
+  onToggleDisqualified: (lead: OutboundLead) => void;
+  onOpenDm: (lead: OutboundLead) => void;
+  onOpenNote: (lead: OutboundLead) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="flex items-center gap-0.5">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => { e.stopPropagation(); onOpenNote(lead); }}
+        title="Notes"
+      >
+        <StickyNote className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => { e.stopPropagation(); onOpenDm(lead); }}
+        title="DM details"
+      >
+        <MessageSquare className="h-3.5 w-3.5" />
+      </Button>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={() => {
+            window.open(lead.profileLink || `https://instagram.com/${lead.username}`, "_blank");
+          }}>
+            <ExternalLink className="h-3.5 w-3.5 mr-2" />
+            Open IG Profile
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => onToggleMessaged(lead)}>
+            <Send className="h-3.5 w-3.5 mr-2 text-amber-400" />
+            {lead.isMessaged ? "Unmark Messaged" : "Mark Messaged"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onToggleField(lead, "replied")}>
+            <MessageCircle className="h-3.5 w-3.5 mr-2 text-blue-400" />
+            {lead.replied ? "Unmark Replied" : "Mark Replied"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onToggleField(lead, "link_sent")}>
+            <Link2 className="h-3.5 w-3.5 mr-2 text-cyan-400" />
+            {lead.link_sent ? "Unmark Link Sent" : "Mark Link Sent"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onToggleField(lead, "booked")}>
+            <CalendarCheck className="h-3.5 w-3.5 mr-2 text-emerald-400" />
+            {lead.booked ? "Unmark Converted" : "Mark Converted"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => onToggleDisqualified(lead)}
+            className={lead.qualified === false ? "" : "text-red-400 focus:text-red-400"}
+          >
+            {lead.qualified === false ? (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5 mr-2" />
+                Clear DQ
+              </>
+            ) : (
+              <>
+                <XCircle className="h-3.5 w-3.5 mr-2" />
+                Disqualify
+              </>
+            )}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 export default function OutboundLeads() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { data: promptOptions = [] } = usePrompts();
@@ -202,7 +380,7 @@ export default function OutboundLeads() {
   const limit = 20;
   const navigate = useNavigate();
 
-  // Selection state (declarations only — callbacks defined after `leads`)
+  // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -279,7 +457,6 @@ export default function OutboundLeads() {
     if (currentPage !== 1) params.set("page", String(currentPage));
     setSearchParams(params, { replace: true });
 
-    // Persist filter settings to localStorage
     writePersisted("ob-source", source);
     writePersisted("ob-qualified", qualifiedFilter);
     writePersisted("ob-messaged", messagedFilter);
@@ -345,7 +522,7 @@ export default function OutboundLeads() {
   const leads = data?.leads || [];
   const pagination = data?.pagination;
 
-  // Selection callbacks (must be after `leads` is defined)
+  // Selection callbacks
   const toggleSelectOne = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -538,6 +715,17 @@ export default function OutboundLeads() {
     }
   };
 
+  const handleSelectOneFromCard = useCallback((lead: OutboundLead) => {
+    if (selectAll) {
+      setSelectAll(false);
+      const next = new Set(leads.map((l) => l._id));
+      next.delete(lead._id);
+      setSelectedIds(next);
+    } else {
+      toggleSelectOne(lead._id);
+    }
+  }, [selectAll, leads, toggleSelectOne]);
+
   const showTableSkeleton = isLoading;
 
   return (
@@ -606,11 +794,13 @@ export default function OutboundLeads() {
               {showTableSkeleton ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="rounded-lg border bg-card p-3 space-y-2">
-                    <Shimmer className="h-4 w-32" delay={`${i * 60}ms`} />
-                    <div className="flex gap-4">
-                      <Shimmer className="h-4 w-16" delay={`${i * 60 + 20}ms`} />
-                      <Shimmer className="h-4 w-12" delay={`${i * 60 + 40}ms`} />
-                      <Shimmer className="h-4 w-12" delay={`${i * 60 + 60}ms`} />
+                    <div className="flex items-center gap-3">
+                      <Shimmer className="h-8 w-8 rounded-full" delay={`${i * 60}ms`} />
+                      <div className="space-y-1 flex-1">
+                        <Shimmer className="h-4 w-24" delay={`${i * 60 + 10}ms`} />
+                        <Shimmer className="h-3 w-32" delay={`${i * 60 + 20}ms`} />
+                      </div>
+                      <Shimmer className="h-5 w-16 rounded-full" delay={`${i * 60 + 30}ms`} />
                     </div>
                   </div>
                 ))
@@ -621,26 +811,31 @@ export default function OutboundLeads() {
               ) : (
                 leads.map((lead) => {
                   const isExpanded = expandedLeadIds.has(lead._id);
+                  const stage = getLeadStage(lead);
+                  const displayName = lead.fullName || lead.username;
+                  const avatarColor = getAvatarColor(displayName);
+                  const initials = getInitials(displayName);
+                  const activityDate = getLastActivityDate(lead);
+
                   return (
                     <div
                       key={lead._id}
                       className={`rounded-lg border bg-card${selectAll || selectedIds.has(lead._id) ? " bg-muted" : ""}`}
                     >
-                      {/* Primary row: checkbox, name, status ticks */}
+                      {/* Primary row: checkbox, avatar, name, status badge */}
                       <div className="flex items-center gap-3 px-3 py-2.5">
                         <Checkbox
                           checked={selectAll || selectedIds.has(lead._id)}
-                          onCheckedChange={() => {
-                            if (selectAll) {
-                              setSelectAll(false);
-                              const next = new Set(leads.map((l) => l._id));
-                              next.delete(lead._id);
-                              setSelectedIds(next);
-                            } else {
-                              toggleSelectOne(lead._id);
-                            }
-                          }}
+                          onCheckedChange={() => handleSelectOneFromCard(lead)}
                         />
+
+                        {/* Avatar */}
+                        <div
+                          className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold text-white shrink-0 ${avatarColor}`}
+                        >
+                          {initials}
+                        </div>
+
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1">
                             <a
@@ -664,44 +859,13 @@ export default function OutboundLeads() {
                           )}
                         </div>
 
-                        {/* Status ticks */}
-                        <div className="flex items-center gap-3 shrink-0">
-                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
-                            <Checkbox
-                              checked={!!lead.isMessaged}
-                              onCheckedChange={() => toggleMessaged(lead)}
-                            />
-                            <span className="text-[10px] text-muted-foreground leading-none">Sent</span>
-                          </label>
-                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
-                            <Checkbox
-                              checked={!!lead.replied}
-                              onCheckedChange={() => toggleField(lead, "replied")}
-                            />
-                            <span className="text-[10px] text-muted-foreground leading-none">Reply</span>
-                          </label>
-                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
-                            <Checkbox
-                              checked={!!lead.link_sent}
-                              onCheckedChange={() => toggleField(lead, "link_sent")}
-                            />
-                            <span className="text-[10px] text-muted-foreground leading-none">Link</span>
-                          </label>
-                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
-                            <Checkbox
-                              checked={!!lead.booked}
-                              onCheckedChange={() => toggleField(lead, "booked")}
-                            />
-                            <span className="text-[10px] text-muted-foreground leading-none">Conv</span>
-                          </label>
-                          <label className="flex flex-col items-center gap-0.5 cursor-pointer">
-                            <Checkbox
-                              checked={lead.qualified === false}
-                              onCheckedChange={() => toggleDisqualified(lead)}
-                            />
-                            <span className="text-[10px] text-muted-foreground leading-none">DQ</span>
-                          </label>
-                        </div>
+                        {/* Status badge */}
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 ${stage.bg} ${stage.text}`}
+                        >
+                          <span className={`h-1.5 w-1.5 rounded-full ${stage.dot}`} />
+                          {stage.label}
+                        </span>
 
                         {/* Expand toggle */}
                         <button
@@ -731,6 +895,12 @@ export default function OutboundLeads() {
                                 <p><Badge variant="outline" className="text-xs">{lead.promptLabel}</Badge></p>
                               </div>
                             )}
+                            {activityDate && (
+                              <div>
+                                <span className="text-muted-foreground">Last Activity</span>
+                                <p className="font-medium">{timeAgo(activityDate)}</p>
+                              </div>
+                            )}
                             <div>
                               <span className="text-muted-foreground">Contract</span>
                               <Input
@@ -745,11 +915,46 @@ export default function OutboundLeads() {
                               />
                             </div>
                           </div>
-                          <div className="flex justify-end pt-1">
-                            <Button variant="ghost" size="sm" onClick={() => openDmDialog(lead)}>
-                              <MessageSquare className="h-4 w-4 mr-1.5" />
-                              DM
+
+                          {/* Quick actions */}
+                          <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+                            <Button
+                              variant={lead.isMessaged ? "secondary" : "outline"}
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => toggleMessaged(lead)}
+                            >
+                              <Send className="h-3 w-3 mr-1" />
+                              {lead.isMessaged ? "Messaged" : "Mark Sent"}
                             </Button>
+                            <Button
+                              variant={lead.replied ? "secondary" : "outline"}
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => toggleField(lead, "replied")}
+                            >
+                              <MessageCircle className="h-3 w-3 mr-1" />
+                              {lead.replied ? "Replied" : "Mark Reply"}
+                            </Button>
+                            <Button
+                              variant={lead.booked ? "secondary" : "outline"}
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => toggleField(lead, "booked")}
+                            >
+                              <CalendarCheck className="h-3 w-3 mr-1" />
+                              {lead.booked ? "Converted" : "Convert"}
+                            </Button>
+                            <div className="ml-auto flex items-center gap-1">
+                              <Button variant="ghost" size="sm" className="h-7" onClick={() => setNoteLead({ id: lead._id, name: lead.fullName || lead.username })}>
+                                <StickyNote className="h-3.5 w-3.5 mr-1" />
+                                Note
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7" onClick={() => openDmDialog(lead)}>
+                                <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                                DM
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -780,18 +985,14 @@ export default function OutboundLeads() {
                         disabled={showTableSkeleton}
                       />
                     </TableHead>
-                    <TableHead>Username</TableHead>
-                    <TableHead className="max-w-[200px]">Name</TableHead>
+                    <TableHead>Lead</TableHead>
+                    <TableHead className="w-[120px]">Status</TableHead>
                     <TableHead className="text-right">Followers</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Prompt</TableHead>
-                    <TableHead>Messaged</TableHead>
-                    <TableHead>Replied</TableHead>
-                    <TableHead className="whitespace-nowrap">Link Sent</TableHead>
-                    <TableHead>Converted</TableHead>
-                    <TableHead>DQ</TableHead>
+                    <TableHead>Last Activity</TableHead>
                     <TableHead>Contract</TableHead>
-                    <TableHead>DM</TableHead>
+                    <TableHead className="w-24" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -799,157 +1000,170 @@ export default function OutboundLeads() {
                     Array.from({ length: 10 }).map((_, i) => (
                       <TableRow key={i}>
                         <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40}ms`} /></TableCell>
-                        <TableCell><Shimmer className="h-4 w-24" delay={`${i * 40 + 5}ms`} /></TableCell>
-                        <TableCell><Shimmer className="h-4 w-28" delay={`${i * 40 + 10}ms`} /></TableCell>
-                        <TableCell className="text-right"><Shimmer className="h-4 w-12 ml-auto" delay={`${i * 40 + 15}ms`} /></TableCell>
-                        <TableCell><Shimmer className="h-5 w-16 rounded-full" delay={`${i * 40 + 20}ms`} /></TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Shimmer className="h-8 w-8 rounded-full" delay={`${i * 40 + 5}ms`} />
+                            <div className="space-y-1">
+                              <Shimmer className="h-4 w-24" delay={`${i * 40 + 10}ms`} />
+                              <Shimmer className="h-3 w-32" delay={`${i * 40 + 15}ms`} />
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell><Shimmer className="h-5 w-20 rounded-full" delay={`${i * 40 + 20}ms`} /></TableCell>
+                        <TableCell className="text-right"><Shimmer className="h-4 w-12 ml-auto" delay={`${i * 40 + 25}ms`} /></TableCell>
                         <TableCell><Shimmer className="h-5 w-16 rounded-full" delay={`${i * 40 + 25}ms`} /></TableCell>
-                        <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40 + 30}ms`} /></TableCell>
-                        <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40 + 30}ms`} /></TableCell>
-                        <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40 + 30}ms`} /></TableCell>
-                        <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40 + 30}ms`} /></TableCell>
-                        <TableCell><Shimmer className="h-4 w-4" delay={`${i * 40 + 30}ms`} /></TableCell>
-                        <TableCell><Shimmer className="h-7 w-24" delay={`${i * 40 + 35}ms`} /></TableCell>
-                        <TableCell><Shimmer className="h-8 w-8" delay={`${i * 40 + 35}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-5 w-16 rounded-full" delay={`${i * 40 + 30}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-4 w-16" delay={`${i * 40 + 30}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-7 w-20" delay={`${i * 40 + 35}ms`} /></TableCell>
+                        <TableCell><Shimmer className="h-7 w-16" delay={`${i * 40 + 35}ms`} /></TableCell>
                       </TableRow>
                     ))
                   ) : leads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="h-24 text-center">
+                      <TableCell colSpan={9} className="h-24 text-center">
                         No outbound leads found.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    leads.map((lead) => (
-                      <TableRow
-                        key={lead._id}
-                        data-state={
-                          selectedIds.has(lead._id) || selectAll
-                            ? "selected"
-                            : undefined
-                        }
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectAll || selectedIds.has(lead._id)}
-                            onCheckedChange={() => {
-                              if (selectAll) {
-                                setSelectAll(false);
-                                const next = new Set(leads.map((l) => l._id));
-                                next.delete(lead._id);
-                                setSelectedIds(next);
-                              } else {
-                                toggleSelectOne(lead._id);
+                    leads.map((lead) => {
+                      const stage = getLeadStage(lead);
+                      const displayName = lead.fullName || lead.username;
+                      const avatarColor = getAvatarColor(displayName);
+                      const initials = getInitials(displayName);
+                      const activityDate = getLastActivityDate(lead);
+
+                      return (
+                        <TableRow
+                          key={lead._id}
+                          className="group"
+                          data-state={
+                            selectedIds.has(lead._id) || selectAll
+                              ? "selected"
+                              : undefined
+                          }
+                        >
+                          <TableCell>
+                            <Checkbox
+                              checked={selectAll || selectedIds.has(lead._id)}
+                              onCheckedChange={() => {
+                                if (selectAll) {
+                                  setSelectAll(false);
+                                  const next = new Set(leads.map((l) => l._id));
+                                  next.delete(lead._id);
+                                  setSelectedIds(next);
+                                } else {
+                                  toggleSelectOne(lead._id);
+                                }
+                              }}
+                            />
+                          </TableCell>
+
+                          {/* Lead: Avatar + Username + Full Name */}
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold text-white shrink-0 ${avatarColor}`}
+                              >
+                                {initials}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1">
+                                  <a
+                                    href={
+                                      lead.profileLink ||
+                                      `https://instagram.com/${lead.username}`
+                                    }
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-foreground hover:underline truncate"
+                                  >
+                                    @{lead.username}
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => { navigator.clipboard.writeText(lead.username); toast({ title: "Copied", description: `@${lead.username}` }); }}
+                                    className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                {lead.fullName && (
+                                  <span
+                                    className="text-xs text-muted-foreground truncate block max-w-[200px]"
+                                    title={lead.fullName}
+                                  >
+                                    {lead.fullName}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          {/* Status Badge */}
+                          <TableCell>
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${stage.bg} ${stage.text}`}
+                            >
+                              <span className={`h-1.5 w-1.5 rounded-full ${stage.dot}`} />
+                              {stage.label}
+                            </span>
+                          </TableCell>
+
+                          <TableCell className="text-right">
+                            {formatNumber(lead.followersCount)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">@{lead.source}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {lead.promptLabel ? (
+                              <Badge variant="outline">{lead.promptLabel}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+
+                          {/* Last Activity */}
+                          <TableCell>
+                            {activityDate ? (
+                              <span className="text-sm text-muted-foreground">
+                                {timeAgo(activityDate)}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell>
+                            <Input
+                              type="number"
+                              className="w-24 h-7 text-xs"
+                              placeholder="None"
+                              defaultValue={lead.contract_value ?? ""}
+                              onBlur={(e) =>
+                                saveContractValue(lead, e.target.value)
                               }
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-1">
-                            <a
-                              href={
-                                lead.profileLink ||
-                                `https://instagram.com/${lead.username}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-foreground hover:underline"
-                            >
-                              @{lead.username}
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => { navigator.clipboard.writeText(lead.username); toast({ title: "Copied", description: `@${lead.username}` }); }}
-                              className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-[200px]">
-                          <span className="block truncate" title={lead.fullName || undefined}>
-                            {lead.fullName || <span className="text-muted-foreground">—</span>}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatNumber(lead.followersCount)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">@{lead.source}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {lead.promptLabel ? (
-                            <Badge variant="outline">{lead.promptLabel}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Checkbox
-                            checked={!!lead.isMessaged}
-                            onCheckedChange={() => toggleMessaged(lead)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Checkbox
-                            checked={!!lead.replied}
-                            onCheckedChange={() => toggleField(lead, "replied")}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Checkbox
-                            checked={!!lead.link_sent}
-                            onCheckedChange={() => toggleField(lead, "link_sent")}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Checkbox
-                            checked={!!lead.booked}
-                            onCheckedChange={() => toggleField(lead, "booked")}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Checkbox
-                            checked={lead.qualified === false}
-                            onCheckedChange={() => toggleDisqualified(lead)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            className="w-24 h-7 text-xs"
-                            placeholder="None"
-                            defaultValue={lead.contract_value ?? ""}
-                            onBlur={(e) =>
-                              saveContractValue(lead, e.target.value)
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter")
-                                (e.target as HTMLInputElement).blur();
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-0.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setNoteLead({ id: lead._id, name: lead.fullName || lead.username })}
-                              title="Notes"
-                            >
-                              <StickyNote className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openDmDialog(lead)}
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter")
+                                  (e.target as HTMLInputElement).blur();
+                              }}
+                            />
+                          </TableCell>
+
+                          {/* Row Actions */}
+                          <TableCell className="pr-2">
+                            <RowActions
+                              lead={lead}
+                              onToggleMessaged={toggleMessaged}
+                              onToggleField={toggleField}
+                              onToggleDisqualified={toggleDisqualified}
+                              onOpenDm={openDmDialog}
+                              onOpenNote={(l) => setNoteLead({ id: l._id, name: l.fullName || l.username })}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>

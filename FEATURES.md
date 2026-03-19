@@ -241,6 +241,33 @@ Adds a "DQ" (disqualified) checkbox to the outbound leads table, allowing users 
 - **Backend model field:** `OutboundLead.qualified` (already existed — `true` = qualified, `false` = disqualified, `null` = unset)
 - **Backend route:** `PATCH /api/outbound-leads/:id` (already supports patching `qualified`)
 
+## Outbound Leads — Close CRM-Inspired UI Redesign
+
+Redesigned the Outbound Leads table inspired by Close CRM's UX philosophy: reduced visual noise, richer data density, and faster stage transitions from the row itself.
+
+### Changes
+
+**Funnel Stats Bar:**
+- Added conversion rate percentages between each stage (e.g., "23.7% of total", "7.8% reply rate", "12.5% close rate")
+- Rates displayed as sub-labels under each card value with `FunnelArrow` connector showing the step-to-step conversion
+
+**Desktop Table (13 → 9 columns):**
+- **Lead column:** Combined avatar (colored initials circle) + `@username` + full name (truncated with `title` tooltip on hover) — replaces separate Username and Name columns
+- **Status badge:** Single color-coded pipeline pill per row derived from boolean fields: DQ (red) › Converted (green) › Replied (blue) › Link Sent (cyan) › Messaged (amber) › New (slate) — replaces 5 separate checkbox columns
+- **Last Activity column:** Relative time ("2d ago", "5h ago") from `updatedAt` / `dmDate` / `createdAt`
+- **Row actions dropdown:** Note, DM, and `...` menu on hover per row. Dropdown surfaces all stage toggles (Mark Messaged, Mark Replied, Mark Link Sent, Mark Converted, Disqualify / Clear DQ) + Open IG Profile
+
+**Mobile Cards:**
+- Replaced checkbox status ticks with a single status badge matching desktop
+- Added colored initials avatar before username
+- Last Activity shown in expanded details
+- Expanded quick-action buttons for Messaged / Replied / Converted replacing inline checkboxes
+
+### Location
+
+- **Frontend page:** `src/pages/OutboundLeads.tsx`
+- **Funnel component:** `src/components/outbound-leads/FunnelStatsBar.tsx`
+
 ## Outbound Leads & Campaign Detail UI Polish
 
 Comprehensive UI improvements across the Outbound Leads table and Campaign Detail (DM Pipeline) pages.
