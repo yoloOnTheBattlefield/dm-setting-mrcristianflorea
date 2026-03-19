@@ -434,7 +434,7 @@ export default function LeadDetail() {
 
   const { data: notes = [] } = useLeadNotes(lead?._id);
   const { data: tasks = [] } = useLeadTasks(lead?._id);
-  const { data: conversationData } = useLeadConversation(lead?.ig_thread_id);
+  const { data: conversationData } = useLeadConversation(lead?._id);
   const createNote = useCreateLeadNote();
   const deleteNote = useDeleteLeadNote();
   const createTask = useCreateLeadTask();
