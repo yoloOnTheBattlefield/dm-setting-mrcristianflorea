@@ -1,9 +1,11 @@
+import { Suspense } from "react"
 import { useLocation } from "react-router-dom"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Separator } from "@/components/ui/separator"
 import { usePageInfo } from "@/hooks/useNavSections"
 import { NotificationBell } from "@/components/NotificationBell"
+import { PageSkeleton } from "@/components/PageSkeleton"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -29,7 +31,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <NotificationBell />
         </header>
         <main className="flex flex-1 flex-col min-w-0">
-          {children}
+          <Suspense fallback={<PageSkeleton />}>
+            {children}
+          </Suspense>
         </main>
       </SidebarInset>
     </SidebarProvider>
