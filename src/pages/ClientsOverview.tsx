@@ -96,13 +96,27 @@ export default function ClientsOverview() {
   if (isLoading) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4 animate-in fade-in duration-300">
-        <div className="space-y-2">
-          <Shimmer className="h-7 w-40" />
-          <Shimmer className="h-4 w-56" />
+        <div className="flex items-end justify-between">
+          <div className="space-y-2">
+            <Shimmer className="h-7 w-40" />
+            <Shimmer className="h-4 w-64" />
+          </div>
+          <div className="flex gap-6 items-end">
+            <Shimmer className="h-6 w-28 rounded-md" delay="60ms" />
+            <div className="space-y-1.5">
+              <Shimmer className="h-3 w-16" delay="80ms" />
+              <Shimmer className="h-9 w-40 rounded-md" delay="100ms" />
+            </div>
+          </div>
         </div>
-        <div className="rounded-lg border">
-          <TableSkeleton rows={6} cols={7} colWidths={["w-32", "w-16", "w-16", "w-16", "w-16", "w-16", "w-12"]} />
-        </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <Shimmer className="h-5 w-32" delay="120ms" />
+          </CardHeader>
+          <CardContent>
+            <TableSkeleton rows={6} cols={8} colWidths={["w-32", "w-20", "w-16", "w-16", "w-16", "w-16", "w-16", "w-16"]} />
+          </CardContent>
+        </Card>
       </div>
     );
   }

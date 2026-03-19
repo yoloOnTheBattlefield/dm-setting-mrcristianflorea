@@ -403,7 +403,7 @@ export default function OutboundAccounts() {
         {/* Table */}
         {isLoading ? (
           <div className="rounded-lg border">
-            <TableSkeleton rows={5} cols={6} colWidths={["w-24", "w-20", "w-16", "w-16", "w-20", "w-12"]} />
+            <TableSkeleton rows={5} cols={9} colWidths={["w-24", "w-20", "w-20", "w-16", "w-16", "w-16", "w-20", "w-16", "w-12"]} />
           </div>
         ) : (
           <>

@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
-import { DetailPageSkeleton } from "@/components/skeletons";
+import { LeadDetailSkeleton } from "@/components/skeletons";
 import {
   AlertCircle,
   RefreshCw,
@@ -513,7 +513,7 @@ export default function LeadDetail() {
   };
 
   // Loading / Error / Not Found
-  if (isLoading) return <div className="flex flex-1 flex-col gap-4 p-4"><DetailPageSkeleton /></div>;
+  if (isLoading) return <LeadDetailSkeleton />;
 
   if (isError) {
     return (
@@ -1079,7 +1079,7 @@ export default function LeadDetail() {
           )}
 
           {/* DM Conversation */}
-          {conversationData && conversationData.messages.length > 0 && (
+          {conversationData?.messages && conversationData.messages.length > 0 && (
             <Card>
               <CardHeader className="pb-2 pt-4 px-4">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">

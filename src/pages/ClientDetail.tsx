@@ -47,7 +47,7 @@ import { useTeamMembers, useAddTeamMember, useUpdateTeamMember, useDeleteTeamMem
 import { useInviteTeamMember } from "@/hooks/useInvitations";
 import { useClientTrackingEvents } from "@/hooks/useTracking";
 import { Badge } from "@/components/ui/badge";
-import { DetailPageSkeleton, TableSkeleton } from "@/components/skeletons";
+import { ClientDetailSkeleton, TableSkeleton } from "@/components/skeletons";
 import { ArrowLeft, Plus, Trash2, RefreshCw, KeyRound, Mail } from "lucide-react";
 
 interface ClientData {
@@ -345,11 +345,7 @@ export default function ClientDetail() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <DetailPageSkeleton />
-      </div>
-    );
+    return <ClientDetailSkeleton />;
   }
 
   if (!client) {

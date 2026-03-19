@@ -278,36 +278,199 @@ export function KanbanColumnSkeleton({
   );
 }
 
-// ─── Detail Page Skeleton ───
+// ─── Lead Detail Page Skeleton ───
 
-export function DetailPageSkeleton() {
+export function LeadDetailSkeleton() {
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Shimmer className="h-9 w-9 rounded-md" />
-        <div className="space-y-2">
-          <Shimmer className="h-7 w-48" />
-          <Shimmer className="h-4 w-64" />
+    <div className="flex flex-1 flex-col gap-4 p-4 md:p-6 animate-in fade-in duration-300">
+      {/* Breadcrumb + prev/next nav */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Shimmer className="h-4 w-10" />
+          <Shimmer className="h-3 w-2" />
+          <Shimmer className="h-4 w-24" />
+        </div>
+        <div className="flex items-center gap-1">
+          <Shimmer className="h-7 w-7 rounded-md" />
+          <Shimmer className="h-3 w-8" />
+          <Shimmer className="h-7 w-7 rounded-md" />
         </div>
       </div>
 
-      {/* Info card */}
-      <FormCardSkeleton fields={3} titleWidth="w-40" delay="100ms" />
+      {/* Avatar + name block */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <Shimmer className="h-14 w-14 rounded-full shrink-0" />
+          <div className="space-y-1.5">
+            <Shimmer className="h-6 w-40" />
+            <div className="flex items-center gap-3">
+              <Shimmer className="h-3.5 w-20" />
+              <Shimmer className="h-3.5 w-16" />
+              <Shimmer className="h-3.5 w-24" />
+            </div>
+          </div>
+        </div>
 
-      {/* Second card */}
-      <FormCardSkeleton fields={1} titleWidth="w-44" delay="250ms" />
+        {/* Pipeline stepper — 5 pills */}
+        <div className="flex items-center gap-0.5">
+          {["w-12", "w-16", "w-16", "w-12", "w-12"].map((w, i) => (
+            <Shimmer key={i} className={`h-7 ${w} rounded-full`} delay={`${i * 40}ms`} />
+          ))}
+        </div>
 
-      {/* Table card */}
-      <Card>
-        <CardHeader className="pb-3">
-          <Shimmer className="h-5 w-32" delay="400ms" />
-          <Shimmer className="h-3 w-56 mt-1" delay="430ms" />
-        </CardHeader>
-        <CardContent>
-          <TableSkeleton rows={3} cols={5} />
-        </CardContent>
-      </Card>
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          {["w-24", "w-16", "w-20", "w-14"].map((w, i) => (
+            <Shimmer key={i} className={`h-8 ${w} rounded-md`} delay={`${i * 30}ms`} />
+          ))}
+        </div>
+      </div>
+
+      {/* Separator */}
+      <div className="h-px bg-border" />
+
+      {/* Two-panel layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+        {/* Left sidebar */}
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <Shimmer className="h-3 w-16" />
+            </CardHeader>
+            <CardContent className="px-4 pb-4 space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <Shimmer className="h-3 w-12" delay={`${i * 40}ms`} />
+                  <Shimmer className="h-3 w-24" delay={`${i * 40 + 20}ms`} />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <Shimmer className="h-3 w-10" />
+            </CardHeader>
+            <CardContent className="px-4 pb-4 space-y-3">
+              <div className="space-y-1">
+                <Shimmer className="h-3 w-10" delay="80ms" />
+                <div className="flex gap-1">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <Shimmer key={i} className="h-5 w-5 rounded" delay={`${i * 30}ms`} />
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <Shimmer className="h-3 w-20" delay="120ms" />
+                <Shimmer className="h-7 w-20 rounded-md" delay="140ms" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main panel */}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <Shimmer className="h-4 w-28" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-start gap-3 py-2 border-b border-border/50">
+                  <Shimmer className="h-8 w-8 rounded-full shrink-0" delay={`${i * 60}ms`} />
+                  <div className="flex-1 space-y-1.5">
+                    <Shimmer className="h-3.5 w-48" delay={`${i * 60 + 20}ms`} />
+                    <Shimmer className="h-3 w-32" delay={`${i * 60 + 40}ms`} />
+                  </div>
+                  <Shimmer className="h-3 w-12 shrink-0" delay={`${i * 60 + 50}ms`} />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Client Detail Page Skeleton ───
+
+export function ClientDetailSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col gap-4 p-4 animate-in fade-in duration-300">
+      {/* Back button + title */}
+      <div className="flex items-center gap-4">
+        <Shimmer className="h-9 w-9 rounded-md" />
+        <div className="space-y-1.5">
+          <Shimmer className="h-7 w-40" />
+          <Shimmer className="h-4 w-52" />
+        </div>
+      </div>
+
+      <div className="grid gap-4">
+        {/* Client Info Card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <Shimmer className="h-5 w-36" />
+            <Shimmer className="h-3 w-28 mt-1" delay="30ms" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {[0, 1].map((i) => (
+              <div key={i}>
+                <Shimmer className="h-3 w-20 mb-1" delay={`${i * 40}ms`} />
+                <Shimmer className="h-4 w-48" delay={`${i * 40 + 20}ms`} />
+              </div>
+            ))}
+            {[0, 1].map((i) => (
+              <div key={i} className="flex items-center justify-between rounded-md border p-3">
+                <div className="space-y-1">
+                  <Shimmer className="h-3.5 w-24" delay={`${100 + i * 50}ms`} />
+                  <Shimmer className="h-3 w-48" delay={`${120 + i * 50}ms`} />
+                </div>
+                <Shimmer className="h-5 w-9 rounded-full" delay={`${140 + i * 50}ms`} />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* GHL Webhook Card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <Shimmer className="h-5 w-44" />
+            <Shimmer className="h-3 w-64 mt-1" delay="30ms" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Shimmer className="h-4 w-40" delay="100ms" />
+            <div className="space-y-2">
+              <Shimmer className="h-3 w-24" delay="120ms" />
+              <Shimmer className="h-9 w-full rounded-md" delay="140ms" />
+            </div>
+            <div className="flex justify-end">
+              <Shimmer className="h-9 w-28 rounded-md" delay="160ms" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Team Members Card */}
+        <Card>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div className="space-y-1">
+              <Shimmer className="h-5 w-32" delay="200ms" />
+              <Shimmer className="h-3 w-56 mt-1" delay="220ms" />
+            </div>
+            <div className="flex gap-2">
+              <Shimmer className="h-8 w-28 rounded-md" delay="240ms" />
+              <Shimmer className="h-8 w-24 rounded-md" delay="260ms" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <TableSkeleton
+              rows={4}
+              cols={5}
+              colWidths={["w-32", "w-40", "w-16", "w-20", "w-16"]}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
