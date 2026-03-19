@@ -1,17 +1,18 @@
 # Features
 
-## Reels Tracker (Client Detail)
+## Reels Insights (Research)
 
-Shows how many Instagram Reels a specific client has posted since the start of the current month. Displayed as a card on the Client Detail page. Fetches media from the Instagram Graph API using the client's stored OAuth page access token, filters for `media_product_type === "REELS"`, and lists each reel with its post date and a link.
+Shows how many Instagram Reels the current account has posted since the start of the month. Accessible from the Research section. Automatically uses the logged-in user's `account_id` — no client picker needed. Fetches from the IG Graph API using the account's stored OAuth page access token, filters for `media_product_type === "REELS"`, and lists each reel with its timestamp and permalink.
 
 ### Location
 
-- **Card in:** `src/pages/ClientDetail.tsx`
+- **Page:** `src/pages/research/ReelsInsights.tsx`
 - **Hook:** `src/hooks/useMonthlyReels.ts`
+- **Nav:** Research → "Reels" (`/research/reels`)
 
 ### API Routes
 
-- `GET /api/instagram/reels/monthly/:clientId` — returns `{ month, since, ig_username, count, reels[] }` for the given client
+- `GET /api/instagram/reels/monthly/:accountId` — returns `{ month, since, ig_username, count, reels[] }`. Users can only fetch their own account; admins can fetch any.
 
 ---
 

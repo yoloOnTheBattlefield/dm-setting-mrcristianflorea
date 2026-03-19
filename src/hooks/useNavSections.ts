@@ -100,6 +100,7 @@ export function useNavSections(): NavSection[] {
             { title: "Ideas Bank", url: "/research/ideas", description: "Save and organize content ideas from research" },
             { title: "Alerts", url: "/research/alerts", description: "Stay updated on competitor activity and keyword spikes" },
             { title: "Reports", url: "/research/reports", description: "Generate client-ready research reports" },
+            { title: "Reels", url: "/research/reels", description: "Track Instagram Reels posted this month" },
           ],
         }],
       })

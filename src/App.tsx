@@ -63,6 +63,7 @@ const LeadMagnetTracker = lazyRetry(() => import("./pages/research/LeadMagnetTra
 const IdeasBank = lazyRetry(() => import("./pages/research/IdeasBank"));
 const ResearchAlerts = lazyRetry(() => import("./pages/research/Alerts"));
 const ResearchReports = lazyRetry(() => import("./pages/research/Reports"));
+const ReelsInsights = lazyRetry(() => import("./pages/research/ReelsInsights"));
 const Bookings = lazyRetry(() => import("./pages/Bookings"));
 const BookingAnalytics = lazyRetry(() => import("./pages/BookingAnalytics"));
 const EodReport = lazyRetry(() => import("./pages/EodReport"));
@@ -285,6 +286,7 @@ const App = () => (
               <Route path="/research/ideas" element={<ProtectedRoute><DashboardLayout><IdeasBank /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/alerts" element={<ProtectedRoute><DashboardLayout><ResearchAlerts /></DashboardLayout></ProtectedRoute>} />
               <Route path="/research/reports" element={<ProtectedRoute><DashboardLayout><ResearchReports /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/research/reels" element={<ProtectedRoute><DashboardLayout><ReelsInsights /></DashboardLayout></ProtectedRoute>} />
               <Route path="/bookings" element={<ProtectedRoute><DashboardLayout><Bookings /></DashboardLayout></ProtectedRoute>} />
               <Route path="/analytics/bookings" element={<ProtectedRoute><DashboardLayout><BookingAnalytics /></DashboardLayout></ProtectedRoute>} />
               <Route path="/eod-report" element={<ProtectedRoute><DashboardLayout><EodReport /></DashboardLayout></ProtectedRoute>} />
