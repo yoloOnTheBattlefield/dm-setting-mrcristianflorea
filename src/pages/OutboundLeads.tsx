@@ -840,7 +840,7 @@ export default function OutboundLeads() {
                           <div className="flex items-center gap-1">
                             <a
                               href={lead.profileLink || `https://instagram.com/${lead.username}`}
-                              target="_blank"
+                              target="_blank" rel="noopener noreferrer"
                               rel="noopener noreferrer"
                               className="font-medium text-foreground hover:underline text-sm truncate"
                             >
@@ -1073,7 +1073,7 @@ export default function OutboundLeads() {
                                       lead.profileLink ||
                                       `https://instagram.com/${lead.username}`
                                     }
-                                    target="_blank"
+                                    target="_blank" rel="noopener noreferrer"
                                     rel="noopener noreferrer"
                                     className="text-foreground hover:underline truncate"
                                   >

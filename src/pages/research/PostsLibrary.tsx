@@ -491,7 +491,7 @@ export default function PostsLibrary() {
                         <TableCell className="font-medium whitespace-nowrap">
                           <a
                             href={`https://www.instagram.com/${post.competitorHandle}/`}
-                            target="_blank"
+                            target="_blank" rel="noopener noreferrer"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 hover:underline"
                             onClick={(e) => e.stopPropagation()}
@@ -575,7 +575,7 @@ export default function PostsLibrary() {
                           {post.reelUrl ? (
                             <a
                               href={post.reelUrl}
-                              target="_blank"
+                              target="_blank" rel="noopener noreferrer"
                               rel="noopener noreferrer"
                               className="text-muted-foreground hover:text-foreground transition-colors"
                               onClick={(e) => e.stopPropagation()}

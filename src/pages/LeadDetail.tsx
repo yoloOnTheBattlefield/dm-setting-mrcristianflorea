@@ -66,6 +66,14 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
+    .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "")
+    .replace(/javascript:/gi, "");
+}
+
 function parseBoldSectionsToObject(str: string) {
   const regex = /<b>(.*?)<\/b>\s*([\s\S]*?)(?=<b>|$)/g;
   const obj: Record<string, string> = {};
@@ -84,7 +92,7 @@ function SummarySections({ html }: { html: string }) {
     return (
       <div
         className="prose prose-sm dark:prose-invert max-w-none"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
       />
     );
   }
@@ -641,7 +649,7 @@ export default function LeadDetail() {
               {igHandle && (
                 <a
                   href={`https://instagram.com/${igHandle}`}
-                  target="_blank"
+                  target="_blank" rel="noopener noreferrer"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
@@ -717,7 +725,7 @@ export default function LeadDetail() {
             >
               <a
                 href={`https://instagram.com/direct/t/${lead.ig_thread_id || igHandle}`}
-                target="_blank"
+                target="_blank" rel="noopener noreferrer"
                 rel="noopener noreferrer"
               >
                 <Send className="h-3.5 w-3.5 mr-1.5" />Send DM
@@ -1252,7 +1260,7 @@ function EditableDetailRow({
       {hasValue && href ? (
         <a
           href={href}
-          target="_blank"
+          target="_blank" rel="noopener noreferrer"
           rel="noopener noreferrer"
           className="text-sm font-medium truncate ml-4 text-right hover:underline"
           onClick={(e) => e.stopPropagation()}

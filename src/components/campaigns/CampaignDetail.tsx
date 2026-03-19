@@ -927,7 +927,7 @@ export default function CampaignDetail() {
                         <div className="flex items-center gap-1">
                           <a
                             href={lead.profileLink || `https://instagram.com/${lead.username}`}
-                            target="_blank"
+                            target="_blank" rel="noopener noreferrer"
                             rel="noopener noreferrer"
                             className="font-medium text-foreground hover:underline text-sm truncate"
                           >
@@ -1160,7 +1160,7 @@ export default function CampaignDetail() {
                           <div className="flex items-center gap-1">
                             <a
                               href={profileUrl!}
-                              target="_blank"
+                              target="_blank" rel="noopener noreferrer"
                               rel="noopener noreferrer"
                               className="text-foreground hover:underline"
                             >
@@ -1168,7 +1168,7 @@ export default function CampaignDetail() {
                             </a>
                             <a
                               href={profileUrl!}
-                              target="_blank"
+                              target="_blank" rel="noopener noreferrer"
                               rel="noopener noreferrer"
                               className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                             >
@@ -1281,7 +1281,7 @@ export default function CampaignDetail() {
                               <DropdownMenuItem asChild>
                                 <a
                                   href={profileUrl!}
-                                  target="_blank"
+                                  target="_blank" rel="noopener noreferrer"
                                   rel="noopener noreferrer"
                                 >
                                   <ExternalLink className="h-3.5 w-3.5 mr-2" />

@@ -450,7 +450,7 @@ function KanbanCardContent({
         <div className="flex-1 min-w-0">
           <a
             href={`https://instagram.com/${lead?.username}`}
-            target="_blank"
+            target="_blank" rel="noopener noreferrer"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="text-xs font-semibold hover:underline truncate block"

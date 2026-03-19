@@ -307,7 +307,7 @@ export default function Bookings() {
                         {igHandle && (
                           <a
                             href={`https://instagram.com/${igHandle}`}
-                            target="_blank"
+                            target="_blank" rel="noopener noreferrer"
                             rel="noopener noreferrer"
                             className="text-[11px] text-muted-foreground hover:underline flex items-center gap-0.5"
                           >
