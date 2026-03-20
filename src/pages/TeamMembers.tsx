@@ -323,6 +323,7 @@ export default function TeamMembers() {
                               variant="ghost"
                               size="icon"
                               title="Reset password"
+                              aria-label="Reset password"
                               onClick={() => setResetPasswordDialog({ open: true, userId: member.user_id, name: `${member.first_name} ${member.last_name}` })}
                             >
                               <KeyRound className="h-4 w-4" />
@@ -330,7 +331,7 @@ export default function TeamMembers() {
                           )}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                              <Button variant="ghost" size="icon" aria-label="Remove member" className="text-destructive hover:text-destructive">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>

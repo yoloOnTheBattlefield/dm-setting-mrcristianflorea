@@ -193,6 +193,7 @@ export default function TrackingCard({
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Copy snippet"
                 className="absolute top-1 right-1 h-7 w-7"
                 onClick={() => onCopySnippet(snippet)}
               >

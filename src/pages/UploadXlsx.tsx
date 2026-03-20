@@ -302,6 +302,7 @@ export default function UploadXlsx() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Remove file"
                     className="shrink-0"
                     onClick={() => setFiles((prev) => prev.filter((_, i) => i !== idx))}
                     disabled={isSubmitting}

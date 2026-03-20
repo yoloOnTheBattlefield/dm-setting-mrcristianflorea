@@ -323,6 +323,7 @@ export default function Prompts() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Edit prompt"
                           onClick={() => openEdit(prompt)}
                         >
                           <Pencil className="h-4 w-4" />
@@ -332,6 +333,7 @@ export default function Prompts() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              aria-label="Delete prompt"
                               className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />

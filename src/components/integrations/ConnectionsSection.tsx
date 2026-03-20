@@ -172,6 +172,7 @@ export default function ConnectionsSection({
                 <Button
                   variant="outline"
                   size="icon"
+                  aria-label="Copy webhook URL"
                   className="shrink-0"
                   onClick={() => onCopy(`${apiUrl}/api/manychat/webhook`, "Webhook URL copied to clipboard")}
                 >
@@ -190,6 +191,7 @@ export default function ConnectionsSection({
                 <Button
                   variant="outline"
                   size="icon"
+                  aria-label="Copy API key"
                   className="shrink-0"
                   onClick={() => {
                     if (userApiKey) {

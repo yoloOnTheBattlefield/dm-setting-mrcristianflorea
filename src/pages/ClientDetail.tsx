@@ -352,7 +352,7 @@ export default function ClientDetail() {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/clients")}>
+          <Button variant="ghost" size="icon" aria-label="Back to clients" onClick={() => navigate("/clients")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -366,7 +366,7 @@ export default function ClientDetail() {
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/clients")}>
+        <Button variant="ghost" size="icon" aria-label="Back to clients" onClick={() => navigate("/clients")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -675,6 +675,7 @@ export default function ClientDetail() {
                             variant="ghost"
                             size="icon"
                             title="Reset password"
+                            aria-label="Reset password"
                             onClick={() => setResetPasswordDialog({ open: true, userId: member.user_id, name: `${member.first_name} ${member.last_name}` })}
                           >
                             <KeyRound className="h-4 w-4" />
@@ -682,7 +683,7 @@ export default function ClientDetail() {
                           {member.role !== 1 && member._id !== user?.id && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                <Button variant="ghost" size="icon" aria-label="Remove member" className="text-destructive hover:text-destructive">
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>

@@ -78,6 +78,7 @@ export default function CompetitorDetail() {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Back to competitors"
               onClick={() => navigate("/research/competitors")}
             >
               <ArrowLeft className="h-5 w-5" />

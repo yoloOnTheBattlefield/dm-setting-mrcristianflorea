@@ -115,7 +115,7 @@ export default function ImportOutboundLeads() {
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 max-w-3xl">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/outbound-leads")}>
+        <Button variant="ghost" size="icon" aria-label="Back to outbound leads" onClick={() => navigate("/outbound-leads")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
