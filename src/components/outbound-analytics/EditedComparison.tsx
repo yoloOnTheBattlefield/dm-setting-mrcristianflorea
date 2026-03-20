@@ -1,15 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { EditedComparisonData } from "@/hooks/useOutboundAnalytics";
+import { formatDuration } from "@/lib/formatters";
 import { Pencil, Sparkles } from "lucide-react";
 
 interface EditedComparisonProps {
   data: EditedComparisonData;
-}
-
-function formatTime(minutes: number): string {
-  if (minutes < 60) return `${Math.round(minutes)}m`;
-  if (minutes < 1440) return `${(minutes / 60).toFixed(1)}h`;
-  return `${(minutes / 1440).toFixed(1)}d`;
 }
 
 function rateColor(rate: number): string {
@@ -124,8 +119,8 @@ export function EditedComparison({ data }: EditedComparisonProps) {
         />
         <MetricRow
           label="Avg Response Time"
-          aiValue={formatTime(ai.avg_response_time_min)}
-          editedValue={formatTime(ed.avg_response_time_min)}
+          aiValue={formatDuration(ai.avg_response_time_min)}
+          editedValue={formatDuration(ed.avg_response_time_min)}
           aiRaw={ed.avg_response_time_min}
           editedRaw={ai.avg_response_time_min}
         />

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { formatDateTime } from "@/lib/formatters";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,15 +67,6 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   paused: { label: "Paused", className: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
   completed: { label: "Completed", className: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
 };
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 function progressColor(pct: number) {
   if (pct >= 80) return "bg-green-500";
@@ -515,7 +507,7 @@ export default function CampaignList({
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground whitespace-nowrap">
-                          {formatDate(c.createdAt)}
+                          {formatDateTime(c.createdAt)}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { timeAgoCompact } from "@/lib/formatters";
 import { Link, useNavigate } from "react-router-dom";
 import {
   DndContext,
@@ -72,20 +73,6 @@ function getInitials(first: string | null | undefined, last: string | null | und
   return `${f}${l}`.toUpperCase() || "?";
 }
 
-function timeAgo(dateString: string): string {
-  const now = Date.now();
-  const then = new Date(dateString).getTime();
-  const diffMs = now - then;
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d`;
-  return `${Math.floor(days / 30)}mo`;
-}
-
 function daysSince(dateString: string | null): number {
   if (!dateString) return 999;
   return Math.floor((Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24));
@@ -111,7 +98,7 @@ function getLastActivity(lead: ApiLead): ActivityInfo | null {
 
   if (entries.length === 0) return null;
   const latest = entries.reduce((a, b) => (new Date(a.date) > new Date(b.date) ? a : b));
-  return { icon: latest.icon, label: latest.label, time: timeAgo(latest.date), color: latest.color };
+  return { icon: latest.icon, label: latest.label, time: timeAgoCompact(latest.date), color: latest.color };
 }
 
 const AVATAR_COLORS = [

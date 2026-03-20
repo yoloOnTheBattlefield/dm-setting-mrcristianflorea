@@ -1,4 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { formatShortDate, formatAbsoluteDateTime, timeAgo, daysBetween } from "@/lib/formatters";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
 import { LeadDetailSkeleton } from "@/components/skeletons";
@@ -152,46 +153,6 @@ async function fetchLead(contactId: string): Promise<ApiLead> {
   const response = await fetchWithAuth(`${API_URL}/leads/${contactId}`);
   if (!response.ok) throw new Error(`Failed to fetch lead: ${response.status}`);
   return response.json();
-}
-
-function formatShortDate(dateString: string | null): string {
-  if (!dateString) return "—";
-  return new Date(dateString).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatAbsoluteDateTime(dateString: string): string {
-  return new Date(dateString).toLocaleString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function timeAgo(dateString: string): string {
-  const seconds = Math.floor(
-    (Date.now() - new Date(dateString).getTime()) / 1000
-  );
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return formatShortDate(dateString);
-}
-
-function daysBetween(dateA: string, dateB: string | null): number {
-  const a = new Date(dateA).getTime();
-  const b = dateB ? new Date(dateB).getTime() : Date.now();
-  return Math.floor(Math.abs(b - a) / (1000 * 60 * 60 * 24));
 }
 
 function getScoreInfo(score: number | null | undefined): {

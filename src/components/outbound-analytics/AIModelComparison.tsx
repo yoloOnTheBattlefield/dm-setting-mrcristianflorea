@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AIModelPerformance } from "@/hooks/useOutboundAnalytics";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { formatDuration } from "@/lib/formatters";
 
 interface AIModelComparisonProps {
   data: AIModelPerformance[];
@@ -23,12 +24,6 @@ function rateColor(rate: number): string {
 
 function fmtRate(v: number): string {
   return `${v.toFixed(1)}%`;
-}
-
-function formatTime(minutes: number): string {
-  if (minutes < 60) return `${Math.round(minutes)}m`;
-  if (minutes < 1440) return `${(minutes / 60).toFixed(1)}h`;
-  return `${(minutes / 1440).toFixed(1)}d`;
 }
 
 /** Nice display name for the raw model ID */
@@ -99,7 +94,7 @@ export function AIModelComparison({ data, isLoading }: AIModelComparisonProps) {
                   {fmtRate(m.booked_rate)}
                 </TableCell>
                 <TableCell className="text-right">
-                  {formatTime(m.avg_response_time_min)}
+                  {formatDuration(m.avg_response_time_min)}
                 </TableCell>
               </TableRow>
             ))

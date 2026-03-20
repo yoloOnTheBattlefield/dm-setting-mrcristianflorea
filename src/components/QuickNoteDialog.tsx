@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { timeAgo } from "@/lib/formatters";
 import {
   Dialog,
   DialogContent,
@@ -21,16 +22,6 @@ interface QuickNoteDialogProps {
   onOpenChange: (open: boolean) => void;
   outboundLeadId: string;
   contactName: string;
-}
-
-function timeAgo(dateStr: string): string {
-  const diffMs = Date.now() - new Date(dateStr).getTime();
-  const diffH = diffMs / (1000 * 60 * 60);
-  const diffD = diffH / 24;
-  if (diffH < 1) return `${Math.max(1, Math.round(diffMs / 60000))}m ago`;
-  if (diffH < 24) return `${Math.round(diffH)}h ago`;
-  if (diffD < 2) return "1d ago";
-  return `${Math.round(diffD)}d ago`;
 }
 
 export function QuickNoteDialog({

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatShortDate } from "@/lib/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -76,14 +77,6 @@ function priorityBadge(priority: string) {
   if (priority === "high") return <Badge variant="destructive" className="text-xs">High</Badge>;
   if (priority === "medium") return <Badge variant="secondary" className="text-xs">Medium</Badge>;
   return <Badge variant="outline" className="text-xs">Low</Badge>;
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 // ── Main Component ───────────────────────────────────────
@@ -191,7 +184,7 @@ export function AIReportTab({ filterParams }: AIReportTabProps) {
                     )}
                     <div>
                       <p className="text-sm font-medium">
-                        {formatDate(r.date_range.start)} — {formatDate(r.date_range.end)}
+                        {formatShortDate(r.date_range.start)} — {formatShortDate(r.date_range.end)}
                       </p>
                       {r.report?.executive_summary && (
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">

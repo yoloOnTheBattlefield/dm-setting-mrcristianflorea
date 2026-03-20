@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatShortDate, timeAgo } from "@/lib/formatters";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Table,
@@ -96,31 +97,6 @@ function getInitials(first: string | null | undefined, last: string | null | und
   const f = (first && first !== "null") ? first[0] : "";
   const l = (last && last !== "null") ? last[0] : "";
   return `${f}${l}`.toUpperCase() || "?";
-}
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return "";
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function timeAgo(dateString: string): string {
-  const now = Date.now();
-  const then = new Date(dateString).getTime();
-  const diffMs = now - then;
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
 }
 
 // Activity type icons + labels based on which field was most recently updated
@@ -429,10 +405,10 @@ export function ContactsTable({
                     </span>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(contact.date_created)}
+                    {formatShortDate(contact.date_created)}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(contact.link_sent_at)}
+                    {formatShortDate(contact.link_sent_at)}
                   </TableCell>
                   <TableCell>
                     {activity && (

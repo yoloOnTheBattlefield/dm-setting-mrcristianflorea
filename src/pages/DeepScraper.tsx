@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { formatDateTime } from "@/lib/formatters";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,15 +121,6 @@ const STATUS_BADGE: Record<DeepScrapeJobStatus, { label: string; className: stri
 function getStatusLabel(status: DeepScrapeJobStatus, scrapeType?: string): string {
   if (status === "scraping_reels" && scrapeType === "posts") return "Scraping Posts";
   return STATUS_BADGE[status].label;
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 function formatShortDate(dateStr: string) {
@@ -697,8 +689,8 @@ function JobInlineDetail({ jobId }: { jobId: string }) {
         {job.direct_urls && job.direct_urls.length > 0
           ? `URLs: ${job.direct_urls.join(", ")}`
           : `Seeds: ${job.seed_usernames.map((u) => `@${u}`).join(", ")}`}
-        {" \u00b7 "}Started {formatDate(job.createdAt)}
-        {job.updatedAt !== job.createdAt && ` \u00b7 Updated ${formatDate(job.updatedAt)}`}
+        {" \u00b7 "}Started {formatDateTime(job.createdAt)}
+        {job.updatedAt !== job.createdAt && ` \u00b7 Updated ${formatDateTime(job.updatedAt)}`}
       </div>
     </div>
   );
@@ -1313,7 +1305,7 @@ export default function DeepScraper() {
                               <JobStats job={job} />
                             </TableCell>
                             <TableCell className="text-muted-foreground whitespace-nowrap">
-                              {formatDate(job.createdAt)}
+                              {formatDateTime(job.createdAt)}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">

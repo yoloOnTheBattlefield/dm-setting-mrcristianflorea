@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateTime } from "@/lib/formatters";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import type { QualificationJob } from "@/hooks/useJobs";
@@ -11,11 +12,6 @@ const STATUS_STYLES: Record<string, { label: string; className: string }> = {
   failed: { label: "Failed", className: "bg-red-500/15 text-red-400 border-red-500/30" },
   cancelled: { label: "Cancelled", className: "bg-gray-500/15 text-gray-400 border-gray-500/30" },
 };
-
-function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-}
 
 export default function JobCard({ job }: { job: QualificationJob }) {
   const style = STATUS_STYLES[job.status] || STATUS_STYLES.queued;
@@ -35,7 +31,7 @@ export default function JobCard({ job }: { job: QualificationJob }) {
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
             <Clock className="h-3 w-3" />
-            {formatDate(job.createdAt)}
+            {formatDateTime(job.createdAt)}
           </div>
         </div>
 

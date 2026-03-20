@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { formatShortDate, formatTime, formatCurrency } from "@/lib/formatters";
 import { useNavigate } from "react-router-dom";
 import {
   useBookings,
@@ -73,18 +74,6 @@ const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; icon:
   cancelled: { label: "Cancelled", color: "bg-gray-500/10 text-gray-600 dark:text-gray-400", icon: XCircle },
 };
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-}
-
-function formatCurrency(val: number | null): string {
-  if (val == null) return "\u2014";
-  return `$${val.toLocaleString()}`;
-}
 
 export default function Bookings() {
   const { toast } = useToast();
@@ -317,7 +306,7 @@ export default function Bookings() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <p className="text-xs">{formatDate(b.booking_date)}</p>
+                      <p className="text-xs">{formatShortDate(b.booking_date)}</p>
                       <p className="text-[10px] text-muted-foreground">{formatTime(b.booking_date)}</p>
                     </TableCell>
                     <TableCell>

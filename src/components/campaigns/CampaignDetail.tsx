@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { formatDateTime } from "@/lib/formatters";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -144,15 +145,6 @@ const LEAD_STATUS_BADGE: Record<string, { label: string; className: string }> = 
 };
 
 const MANUAL_STATUSES = ["pending", "sent", "delivered", "replied", "failed", "skipped"] as const;
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export default function CampaignDetail() {
   const { id: campaignId } = useParams<{ id: string }>();
@@ -985,7 +977,7 @@ export default function CampaignDetail() {
                         </div>
                         <div>
                           <span className="text-muted-foreground">Sent At</span>
-                          <p className="font-medium">{cl.sent_at ? formatDate(cl.sent_at) : "-"}</p>
+                          <p className="font-medium">{cl.sent_at ? formatDateTime(cl.sent_at) : "-"}</p>
                         </div>
                         {cl.template_index != null && (
                           <div>
@@ -1235,7 +1227,7 @@ export default function CampaignDetail() {
                         {cl.template_index != null ? `#${cl.template_index + 1}` : "-"}
                       </TableCell>
                       <TableCell className="text-muted-foreground whitespace-nowrap">
-                        {cl.sent_at ? formatDate(cl.sent_at) : "-"}
+                        {cl.sent_at ? formatDateTime(cl.sent_at) : "-"}
                       </TableCell>
                       {visibleColumns.message && (
                         <TableCell className="max-w-[150px] text-muted-foreground">

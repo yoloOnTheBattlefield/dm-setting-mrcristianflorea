@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { daysSince, timeAgo } from "@/lib/formatters";
 import {
   useFollowUps,
   useFollowUpStats,
@@ -108,23 +109,6 @@ const COLUMN_ORDER: FollowUpStatus[] = [
 ];
 
 // ─── Helpers ───
-
-function daysSince(dateStr: string | null | undefined): number | null {
-  if (!dateStr) return null;
-  const diffMs = Date.now() - new Date(dateStr).getTime();
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-}
-
-function timeAgo(dateStr: string | null | undefined): string {
-  if (!dateStr) return "";
-  const diffMs = Date.now() - new Date(dateStr).getTime();
-  const diffH = diffMs / (1000 * 60 * 60);
-  const diffD = diffH / 24;
-  if (diffH < 1) return `${Math.max(1, Math.round(diffMs / 60000))}m ago`;
-  if (diffH < 24) return `${Math.round(diffH)}h ago`;
-  if (diffD < 2) return "1d ago";
-  return `${Math.round(diffD)}d ago`;
-}
 
 function formatFollowers(count: number | null | undefined): string {
   if (count == null) return "";

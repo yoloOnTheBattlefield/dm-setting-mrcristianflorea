@@ -1,23 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { ResponseSpeedData } from "@/hooks/useOutboundAnalytics";
+import { formatDuration, timeAgo } from "@/lib/formatters";
 import { Clock, AlertTriangle, MessageCircle } from "lucide-react";
 
 interface ResponseSpeedPanelProps {
   data: ResponseSpeedData;
-}
-
-function formatTime(minutes: number): string {
-  if (minutes < 60) return `${Math.round(minutes)}m`;
-  if (minutes < 1440) return `${(minutes / 60).toFixed(1)}h`;
-  return `${(minutes / 1440).toFixed(1)}d`;
-}
-
-function formatTimeSince(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = diff / 60000;
-  if (mins < 60) return `${Math.round(mins)}m ago`;
-  if (mins < 1440) return `${(mins / 60).toFixed(1)}h ago`;
-  return `${(mins / 1440).toFixed(1)}d ago`;
 }
 
 export function ResponseSpeedPanel({ data }: ResponseSpeedPanelProps) {
@@ -33,15 +20,15 @@ export function ResponseSpeedPanel({ data }: ResponseSpeedPanelProps) {
         <div className="grid grid-cols-3 gap-4 mb-5">
           <div>
             <p className="text-xs text-muted-foreground">Avg Prospect Reply</p>
-            <p className="text-lg font-bold">{formatTime(data.avg_prospect_reply_time_min)}</p>
+            <p className="text-lg font-bold">{formatDuration(data.avg_prospect_reply_time_min)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Avg Your Response</p>
-            <p className="text-lg font-bold">{formatTime(data.avg_user_response_time_min)}</p>
+            <p className="text-lg font-bold">{formatDuration(data.avg_user_response_time_min)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Median Your Response</p>
-            <p className="text-lg font-bold">{formatTime(data.median_user_response_time_min)}</p>
+            <p className="text-lg font-bold">{formatDuration(data.median_user_response_time_min)}</p>
           </div>
         </div>
 
@@ -91,7 +78,7 @@ export function ResponseSpeedPanel({ data }: ResponseSpeedPanelProps) {
               <div className="text-right">
                 <span className="text-xs font-medium">{data.oldest_waiting.lead_name}</span>
                 <span className="text-[10px] text-muted-foreground ml-1.5">
-                  {formatTimeSince(data.oldest_waiting.waiting_since)}
+                  {timeAgo(data.oldest_waiting.waiting_since)}
                 </span>
               </div>
             </div>
@@ -99,7 +86,7 @@ export function ResponseSpeedPanel({ data }: ResponseSpeedPanelProps) {
 
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Avg Wait Time</span>
-            <span className="text-sm font-medium">{formatTime(data.avg_waiting_time_min)}</span>
+            <span className="text-sm font-medium">{formatDuration(data.avg_waiting_time_min)}</span>
           </div>
         </div>
       </CardContent>
