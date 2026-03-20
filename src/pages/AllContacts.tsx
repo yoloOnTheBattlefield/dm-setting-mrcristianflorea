@@ -10,7 +10,7 @@ import { readPersisted, writePersisted } from "@/hooks/usePersistedState";
 import { useLeadSelection } from "@/hooks/useLeadSelection";
 import {
   AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight, Plus, X,
-  List, Columns3, Download, Ghost, CalendarCheck, Link2, CheckCircle2,
+  List, Columns3, Download, Ghost, CalendarCheck, Link2, CheckCircle2, Trash2,
 } from "lucide-react";
 import { StatsBarSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Popover,
   PopoverContent,
@@ -379,9 +389,28 @@ export default function AllContacts() {
     }
   }, [queryClient, toast]);
 
+  const deleteLead = useCallback(async (leadId: string) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/leads/${leadId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        await queryClient.invalidateQueries({ queryKey: ["rawLeads"] });
+        toast({ title: "Deleted", description: "Lead removed" });
+      } else {
+        const d = await response.json().catch(() => ({}));
+        toast({ title: "Error", description: d.error || "Failed to delete", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect", variant: "destructive" });
+    }
+  }, [queryClient, toast]);
+
   const handleQuickAction = useCallback((leadId: string, action: QuickAction) => {
     const now = new Date().toISOString();
-    if (action.type === "clear_ghosted") {
+    if (action.type === "delete") {
+      deleteLead(leadId);
+    } else if (action.type === "clear_ghosted") {
       patchLead(leadId, { ghosted_at: null }, "Ghosted cleared");
     } else if (action.type === "set_stage") {
       const stageFields: Record<string, Record<string, unknown>> = {
@@ -398,10 +427,11 @@ export default function AllContacts() {
       };
       patchLead(leadId, stageFields[action.stage], labels[action.stage]);
     }
-  }, [patchLead]);
+  }, [patchLead, deleteLead]);
 
   // --- Bulk actions ---
   const [bulkActing, setBulkActing] = useState(false);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
   const getSelectedIds = useCallback((): string[] => {
     if (selection.mode === "manual") return Array.from(selection.selectedIds);
@@ -475,6 +505,32 @@ export default function AllContacts() {
     URL.revokeObjectURL(url);
     toast({ title: "Exported", description: `${selected.length} leads exported as CSV` });
   }, [getSelectedIds, contacts, toast]);
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = getSelectedIds();
+    if (ids.length === 0) return;
+    setBulkActing(true);
+    let success = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        const res = await fetchWithAuth(`${API_URL}/leads/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) success++;
+        else failed++;
+      } catch {
+        failed++;
+      }
+    }
+    await queryClient.invalidateQueries({ queryKey: ["rawLeads"] });
+    selection.clearSelection();
+    setBulkActing(false);
+    toast({
+      title: "Bulk Delete",
+      description: `${success} deleted${failed > 0 ? `, ${failed} failed` : ""}`,
+    });
+  }, [getSelectedIds, queryClient, selection, toast]);
 
   // --- Clickable stat filter ---
   const handleStatClick = useCallback((filter: string) => {
@@ -783,6 +839,17 @@ export default function AllContacts() {
                 </Button>
 
                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBulkDeleteConfirm(true)}
+                  disabled={bulkActing}
+                  className="text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  Delete
+                </Button>
+
+                <Button
                   variant="ghost"
                   size="sm"
                   onClick={selection.clearSelection}
@@ -1001,6 +1068,27 @@ export default function AllContacts() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteConfirm} onOpenChange={setBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectionCount} lead{selectionCount !== 1 ? "s" : ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the selected leads. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleBulkDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

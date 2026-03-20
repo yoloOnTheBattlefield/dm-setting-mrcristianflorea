@@ -34,7 +34,18 @@ import {
   CheckCircle2,
   MoreHorizontal,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { LeadSortField, SortOrder } from "@/hooks/useRawLeads";
 
 interface ContactsTableProps {
@@ -53,7 +64,8 @@ interface ContactsTableProps {
 
 export type QuickAction =
   | { type: "set_stage"; stage: "link_sent" | "booked" | "closed" | "ghosted" }
-  | { type: "clear_ghosted" };
+  | { type: "clear_ghosted" }
+  | { type: "delete" };
 
 // Pipeline stages matching LeadDetail.tsx
 const PIPELINE_STAGES = [
@@ -173,6 +185,7 @@ function RowActions({
 }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const isGhosted = !!lead.ghosted_at;
 
   return (
@@ -243,8 +256,36 @@ function RowActions({
               Mark Ghosted
             </DropdownMenuItem>
           )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => { setOpen(false); setDeleteConfirm(true); }}
+            className="text-red-400 focus:text-red-400"
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-2" />
+            Delete Lead
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete lead?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this lead. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => onAction?.(lead._id, { type: "delete" })}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

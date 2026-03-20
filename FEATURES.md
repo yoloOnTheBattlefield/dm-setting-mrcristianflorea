@@ -1098,3 +1098,23 @@ Both in-app (Socket.IO toast + notification bell) and browser push (works when t
 VAPID_PUBLIC_KEY=BIpa0UnGrlsJ4s6Ueooa2OzFQlG2Cz1Dwczhly-mrPtC6Wj8rDERoPh5iKzV1lfX7xcVTKYOAT0ZObcqBEdB7y8
 VAPID_PRIVATE_KEY=2Ij7qLB2H8NJ1mn0ufryWrRUVbRxG3V81E2woAT9Gg4
 ```
+
+---
+
+## Delete Inbound Leads
+
+Remove inbound leads individually or in bulk from the All Contacts page. Each delete action requires confirmation via an AlertDialog to prevent accidental removal.
+
+### Features
+
+- **Single delete:** "Delete Lead" option in the per-row "..." dropdown menu with red styling and trash icon. Shows confirmation dialog before deleting.
+- **Bulk delete:** "Delete" button in the bulk action bar (appears when leads are selected). Shows confirmation dialog with count of leads to be deleted.
+
+### Location
+
+- **Contacts table:** `src/components/contacts-table.tsx` (Delete menu item + AlertDialog in RowActions)
+- **All Contacts page:** `src/pages/AllContacts.tsx` (deleteLead handler, handleBulkDelete, bulk delete confirmation dialog)
+
+### API Routes
+
+- **`DELETE /leads/:id`** — Permanently deletes an inbound lead (pre-existing backend endpoint)
