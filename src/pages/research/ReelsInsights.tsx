@@ -61,13 +61,21 @@ function LoadingSkeleton() {
   );
 }
 
+const TIMEFRAMES = [
+  { label: "7d", days: 7 },
+  { label: "30d", days: 30 },
+  { label: "180d", days: 180 },
+  { label: "365d", days: 365 },
+];
+
 export default function ReelsInsights() {
   const { user } = useAuth();
   const accountId = user?.account_id;
   const queryClient = useQueryClient();
+  const [days, setDays] = useState(30);
 
-  const reels = useMonthlyReels(accountId);
-  const posts = useMonthlyPosts(accountId);
+  const reels = useMonthlyReels(accountId, days);
+  const posts = useMonthlyPosts(accountId, days);
   const stories = useInstagramStories(accountId);
 
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -97,21 +105,38 @@ export default function ReelsInsights() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {reels.data?.ig_username ? `@${reels.data.ig_username} · ` : ""}
-            Reels, posts, and stories from your account
+            Last {days} days
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            queryClient.invalidateQueries({ queryKey: ["monthly-reels", accountId] });
-            queryClient.invalidateQueries({ queryKey: ["monthly-posts", accountId] });
-            queryClient.invalidateQueries({ queryKey: ["instagram-stories", accountId] });
-          }}
-          disabled={reels.isLoading || posts.isLoading || stories.isLoading}
-        >
-          <RefreshCw className={`h-4 w-4 ${reels.isLoading || posts.isLoading || stories.isLoading ? "animate-spin" : ""}`} />
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border divide-x overflow-hidden">
+            {TIMEFRAMES.map((tf) => (
+              <button
+                key={tf.days}
+                onClick={() => setDays(tf.days)}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  days === tf.days
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {tf.label}
+              </button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ["monthly-reels", accountId, days] });
+              queryClient.invalidateQueries({ queryKey: ["monthly-posts", accountId, days] });
+              queryClient.invalidateQueries({ queryKey: ["instagram-stories", accountId] });
+            }}
+            disabled={reels.isLoading || posts.isLoading || stories.isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${reels.isLoading || posts.isLoading || stories.isLoading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="reels">
@@ -141,7 +166,7 @@ export default function ReelsInsights() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-5xl font-bold tabular-nums">{reels.data.count}</CardTitle>
-                  <CardDescription>Reel{reels.data.count !== 1 ? "s" : ""} in {reels.data.month}</CardDescription>
+                  <CardDescription>Reel{reels.data.count !== 1 ? "s" : ""} in the last {days} days</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Badge variant={reels.data.count > 0 ? "default" : "secondary"}>
@@ -213,7 +238,7 @@ export default function ReelsInsights() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-5xl font-bold tabular-nums">{posts.data.count}</CardTitle>
-                  <CardDescription>Post{posts.data.count !== 1 ? "s" : ""} in {posts.data.month}</CardDescription>
+                  <CardDescription>Post{posts.data.count !== 1 ? "s" : ""} in the last {days} days</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Badge variant={posts.data.count > 0 ? "default" : "secondary"}>
@@ -300,7 +325,7 @@ export default function ReelsInsights() {
                 <CardHeader><CardTitle className="text-base">Stories</CardTitle></CardHeader>
                 <CardContent>
                   {stories.data.stories.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No active stories right now.</p>
+                    <p className="text-sm text-muted-foreground">No active stories right now. Stories expire after 24h and can't be retrieved once gone.</p>
                   ) : (
                     <div className="divide-y divide-border">
                       {stories.data.stories.map((story, i) => (

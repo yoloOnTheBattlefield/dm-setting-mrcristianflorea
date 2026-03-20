@@ -15,18 +15,18 @@ export interface PostItem {
 }
 
 export interface MonthlyPostsResponse {
-  month: string;
+  days: number;
   since: string;
   ig_username: string | null;
   count: number;
   posts: PostItem[];
 }
 
-export function useMonthlyPosts(accountId: string | undefined) {
+export function useMonthlyPosts(accountId: string | undefined, days = 30) {
   return useQuery<MonthlyPostsResponse>({
-    queryKey: ["monthly-posts", accountId],
+    queryKey: ["monthly-posts", accountId, days],
     queryFn: async () => {
-      const res = await fetchWithAuth(`${API_URL}/api/instagram/posts/monthly/${accountId}`);
+      const res = await fetchWithAuth(`${API_URL}/api/instagram/posts/monthly/${accountId}?days=${days}`);
       if (!res.ok) throw new Error("Failed to fetch monthly posts");
       return res.json();
     },
