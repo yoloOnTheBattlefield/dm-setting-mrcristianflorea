@@ -155,7 +155,7 @@ export default function FollowUps() {
   useEffect(() => {
     if (!hasSynced.current) {
       hasSynced.current = true;
-      syncMutation.mutateAsync().catch(() => {});
+      syncMutation.mutateAsync().catch((err) => console.error("Follow-ups sync failed:", err));
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

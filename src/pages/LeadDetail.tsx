@@ -308,7 +308,7 @@ function OutboundLeadLinker({
             replied: true,
             replied_at: leadCreatedAt || new Date().toISOString(),
           }),
-        }).catch(() => {});
+        }).catch((err) => console.error("Failed to update outbound replied status:", err));
         toast({ title: "Linked", description: "Outbound lead linked and marked as replied." });
         setSearch(""); setResults([]); setAutoResults([]); setShowResults(false);
         onLinked();

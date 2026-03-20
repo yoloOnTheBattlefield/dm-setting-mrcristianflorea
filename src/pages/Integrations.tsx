@@ -116,7 +116,7 @@ export default function Integrations() {
           setIgUsername(data.ig_oauth.ig_username || "");
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error("Failed to fetch integration status:", err));
   }, [user?.id]);
 
   // Handle Instagram OAuth redirect (code in URL params)

@@ -64,7 +64,7 @@ export default function UserSettings() {
     fetchWithAuth(NOTIF_SETTINGS_URL)
       .then((r) => r.json())
       .then((d) => setPushEnabled(d.push_notifications_enabled ?? true))
-      .catch(() => {});
+      .catch((err) => console.error("Failed to fetch notification settings:", err));
   }, []);
 
   const handlePushToggle = async (enabled: boolean) => {

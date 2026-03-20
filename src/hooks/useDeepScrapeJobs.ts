@@ -316,7 +316,7 @@ export function useDeepScrapeLeads(jobId: string | null) {
           })),
         );
       })
-      .catch(() => {});
+      .catch((err) => console.error("Failed to fetch deep scrape leads:", err));
 
     return () => { cancelled = true; };
   }, [jobId]);

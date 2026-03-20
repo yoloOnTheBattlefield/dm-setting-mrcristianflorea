@@ -95,7 +95,7 @@ export default function Bookings() {
   useEffect(() => {
     if (!hasSynced.current) {
       hasSynced.current = true;
-      syncMutation.mutateAsync().catch(() => {});
+      syncMutation.mutateAsync().catch((err) => console.error("Bookings sync failed:", err));
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
