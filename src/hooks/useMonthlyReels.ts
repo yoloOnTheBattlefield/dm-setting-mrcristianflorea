@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 
+export interface ReelComment {
+  id: string;
+  text: string;
+  timestamp: string;
+  username: string;
+}
+
 export interface ReelItem {
   id: string;
   timestamp: string;
@@ -8,6 +15,7 @@ export interface ReelItem {
   like_count: number;
   comments_count: number;
   play_count: number;
+  comments: ReelComment[];
 }
 
 export interface MonthlyReelsResponse {
