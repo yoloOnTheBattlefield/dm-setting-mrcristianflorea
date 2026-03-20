@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
 import { LeadDetailSkeleton } from "@/components/skeletons";
 import {
@@ -77,6 +77,7 @@ import {
   BreadcrumbSeparator,
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -539,6 +540,32 @@ export default function LeadDetail() {
   const { data: notes = [] } = useLeadNotes(lead?._id);
   const { data: tasks = [] } = useLeadTasks(lead?._id);
   const { data: conversationData } = useLeadConversation(lead?._id);
+  const [linkConvOpen, setLinkConvOpen] = useState(false);
+  const { data: allConversations } = useQuery<{ conversations: import("@/lib/types").IgConversation[] }>({
+    queryKey: ["ig-conversations-list"],
+    queryFn: async () => {
+      const res = await fetchWithAuth(`${API_URL}/api/ig-conversations?limit=100`);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    enabled: linkConvOpen,
+  });
+  const linkConversation = useMutation({
+    mutationFn: async (conversationId: string) => {
+      const res = await fetchWithAuth(`${API_URL}/api/ig-conversations/${conversationId}/link-lead`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_id: lead!._id }),
+      });
+      if (!res.ok) throw new Error("Failed to link");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead-conversation", lead!._id] });
+      setLinkConvOpen(false);
+      toast({ title: "Conversation linked" });
+    },
+    onError: () => toast({ title: "Failed to link conversation", variant: "destructive" }),
+  });
   const createNote = useCreateLeadNote();
   const deleteNote = useDeleteLeadNote();
   const createTask = useCreateLeadTask();
@@ -1509,6 +1536,53 @@ export default function LeadDetail() {
                 </CardContent>
               </Card>
             )}
+
+            {/* DM Conversation — link prompt when none found */}
+            {conversationData === null && (
+              <Card>
+                <CardContent className="px-4 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Instagram className="h-3.5 w-3.5" />
+                    No DM conversation linked
+                  </div>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setLinkConvOpen(true)}>
+                    Link conversation
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Link conversation dialog */}
+            <Dialog open={linkConvOpen} onOpenChange={setLinkConvOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Link a conversation</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-1 max-h-80 overflow-y-auto">
+                  {!allConversations && <p className="text-sm text-muted-foreground py-4 text-center">Loading…</p>}
+                  {allConversations?.conversations.length === 0 && (
+                    <p className="text-sm text-muted-foreground py-4 text-center">No conversations found</p>
+                  )}
+                  {allConversations?.conversations.map((conv) => {
+                    const usernames = Object.values(conv.participant_usernames ?? {});
+                    const label = usernames.length ? usernames.join(", ") : conv.participant_ids.join(", ");
+                    return (
+                      <button
+                        key={conv._id}
+                        onClick={() => linkConversation.mutate(conv._id)}
+                        disabled={linkConversation.isPending}
+                        className="flex items-center justify-between rounded-md px-3 py-2.5 text-sm hover:bg-muted transition-colors text-left"
+                      >
+                        <span className="font-medium truncate">{label}</span>
+                        {conv.last_message_at && (
+                          <span className="text-xs text-muted-foreground ml-2 shrink-0">{timeAgo(conv.last_message_at)}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* DM Conversation */}
             {conversationData?.messages && conversationData.messages.length > 0 && (
