@@ -35,7 +35,6 @@ export function useDeepScrapeJobs(params: {
       return res.json();
     },
     staleTime: 1000 * 10,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -50,7 +49,6 @@ export function useDeepScrapeJob(jobId: string | null) {
     },
     enabled: !!jobId,
     staleTime: 1000 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -65,8 +63,6 @@ export function useDeepScrapeTargetStats() {
         throw new Error(`Failed to fetch target stats: ${res.status}`);
       return res.json();
     },
-    staleTime: 1000 * 30,
-    refetchOnWindowFocus: false,
   });
 }
 

@@ -24,7 +24,6 @@ export function useScrapeJobs(params: {
       return res.json();
     },
     staleTime: 1000 * 10,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -38,7 +37,6 @@ export function useScrapeJob(jobId: string | null) {
     },
     enabled: !!jobId,
     staleTime: 1000 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 

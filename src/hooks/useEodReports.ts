@@ -37,7 +37,6 @@ export function useTodayReport() {
       if (!res.ok) throw new Error("Failed to fetch today's report");
       return res.json();
     },
-    staleTime: 1000 * 30,
     refetchOnWindowFocus: true,
   });
 }
@@ -52,7 +51,6 @@ export function useTeamReports(date?: string) {
       if (!res.ok) throw new Error("Failed to fetch team reports");
       return res.json();
     },
-    staleTime: 1000 * 30,
   });
 }
 

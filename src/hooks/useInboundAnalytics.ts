@@ -67,7 +67,6 @@ export function useInboundOverview(params?: InboundParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -80,7 +79,6 @@ export function useInboundPosts(params?: InboundParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -93,6 +91,5 @@ export function useInboundDaily(params?: InboundParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

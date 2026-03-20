@@ -10,7 +10,6 @@ export function useResearchKeywords() {
       return KEYWORDS;
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -54,6 +53,5 @@ export function useKeywordDetail(keywordId: string | null) {
     },
     enabled: !!keywordId,
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

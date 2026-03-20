@@ -44,7 +44,6 @@ export function useSenderAccounts(
     },
     staleTime: 1000 * 10,
     refetchInterval: params?.refetchInterval,
-    refetchOnWindowFocus: false,
   });
 }
 

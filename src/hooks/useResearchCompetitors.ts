@@ -13,7 +13,6 @@ export function useResearchCompetitors() {
       return res.json() as Promise<ResearchCompetitor[]>;
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -32,6 +31,5 @@ export function useResearchCompetitor(id: string | undefined) {
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

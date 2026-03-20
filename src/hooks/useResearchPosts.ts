@@ -50,6 +50,5 @@ export function useResearchPosts(params: PostFilters) {
       return res.json() as Promise<PaginatedPosts>;
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

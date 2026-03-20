@@ -48,7 +48,6 @@ export function useWarmupStatus(outboundAccountId: string | null) {
     },
     enabled: !!outboundAccountId,
     staleTime: 1000 * 10,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -105,6 +104,5 @@ export function useWarmupLogs(
     },
     enabled: !!outboundAccountId,
     staleTime: 1000 * 10,
-    refetchOnWindowFocus: false,
   });
 }

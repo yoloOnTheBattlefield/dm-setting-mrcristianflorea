@@ -100,7 +100,6 @@ export function useAIReports(limit = 10) {
       return data.reports;
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -119,6 +118,5 @@ export function useAIReport(reportId: string | null) {
       return false;
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

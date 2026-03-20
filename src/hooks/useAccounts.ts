@@ -27,6 +27,5 @@ export function useAccounts() {
     queryKey: ["accounts"],
     queryFn: fetchAccounts,
     staleTime: 1000 * 60 * 10,
-    refetchOnWindowFocus: false,
   });
 }

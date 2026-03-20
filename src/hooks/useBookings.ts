@@ -91,7 +91,6 @@ export function useBookings(params: {
       return res.json();
     },
     staleTime: 1000 * 15,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -120,7 +119,6 @@ export function useBookingAnalytics(params?: { start_date?: string; end_date?: s
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 

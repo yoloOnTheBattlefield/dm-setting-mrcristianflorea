@@ -161,8 +161,6 @@ export function useCampaigns(
       if (!res.ok) throw new Error(`Failed to fetch campaigns: ${res.status}`);
       return res.json();
     },
-    staleTime: 1000 * 30,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -176,7 +174,6 @@ export function useCampaign(campaignId: string | null) {
     },
     enabled: !!campaignId,
     staleTime: 1000 * 10,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -191,7 +188,6 @@ export function useCampaignStats(campaignId: string | null) {
     enabled: !!campaignId,
     refetchInterval: 10_000,
     staleTime: 1000 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -206,7 +202,6 @@ export function useCampaignNextSend(campaignId: string | null, campaignStatus?: 
     enabled: !!campaignId && campaignStatus === "active",
     refetchInterval: 10_000,
     staleTime: 1000 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -229,7 +224,6 @@ export function useCampaignLeads(
     },
     enabled: !!campaignId,
     staleTime: 1000 * 15,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -244,7 +238,6 @@ export function useCampaignSenders(campaignId: string | null, enabled = false) {
     enabled: !!campaignId && enabled,
     staleTime: 1000 * 10,
     refetchInterval: enabled ? 15_000 : false,
-    refetchOnWindowFocus: false,
   });
 }
 

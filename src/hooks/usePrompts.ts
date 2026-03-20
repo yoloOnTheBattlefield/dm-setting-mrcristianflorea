@@ -100,7 +100,6 @@ export function usePrompts() {
     queryKey: ["prompts"],
     queryFn: () => fetchPrompts(),
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 

@@ -17,8 +17,6 @@ export function useAIPrompts() {
       const data = await res.json();
       return data.prompts;
     },
-    staleTime: 1000 * 30,
-    refetchOnWindowFocus: false,
   });
 }
 

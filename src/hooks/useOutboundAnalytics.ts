@@ -68,7 +68,6 @@ export function useOutboundFunnel(params?: {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -81,7 +80,6 @@ export function useMessageAnalytics(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -94,7 +92,6 @@ export function useSenderAnalytics(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -107,7 +104,6 @@ export function useCampaignAnalytics(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -224,7 +220,6 @@ export function useDailyActivity(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -237,7 +232,6 @@ export function useResponseSpeed(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -250,7 +244,6 @@ export function useConversationDepth(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -269,7 +262,6 @@ export function useAIModelAnalytics(params?: AnalyticsParams & { sender_id?: str
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -282,7 +274,6 @@ export function useEditedComparison(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -295,7 +286,6 @@ export function useTimeOfDay(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -308,7 +298,6 @@ export function useEffortOutcome(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -321,7 +310,6 @@ export function useTrendOverTime(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -365,7 +353,6 @@ export function useFollowerTiers(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -378,7 +365,6 @@ export function usePromptLabels(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -391,7 +377,6 @@ export function useQuestionTypes(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -420,7 +405,6 @@ export function useScoreBreakdown(params?: AnalyticsParams) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -447,6 +431,5 @@ export function useWeeklyHeatmap(params?: AnalyticsParams & { metric?: string })
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

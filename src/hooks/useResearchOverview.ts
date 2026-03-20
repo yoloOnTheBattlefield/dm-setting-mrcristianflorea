@@ -16,7 +16,6 @@ export function useResearchOverviewKPIs() {
       return res.json() as Promise<ResearchOverviewKPIs>;
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -31,7 +30,6 @@ export function useResearchEngagementTrend() {
       return res.json() as Promise<EngagementTrendPoint[]>;
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -46,6 +44,5 @@ export function useResearchTopPosts() {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

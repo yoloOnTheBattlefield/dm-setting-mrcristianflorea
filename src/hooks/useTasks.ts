@@ -79,8 +79,6 @@ export function useTasks(
   return useQuery({
     queryKey: ["tasks", params.status, params.type, params.search, params.page, params.limit],
     queryFn: () => fetchTasks(params),
-    staleTime: 1000 * 30,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -90,7 +88,6 @@ export function useTaskStats() {
     queryFn: () => fetchStats(),
     refetchInterval: 10_000,
     staleTime: 1000 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 

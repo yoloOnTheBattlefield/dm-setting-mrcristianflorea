@@ -26,7 +26,6 @@ export function useTrackingSettings() {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -59,8 +58,6 @@ export function useTrackingEvents(limit = 5, accountId?: string) {
       if (!res.ok) throw new Error("Failed to fetch tracking events");
       return res.json();
     },
-    staleTime: 1000 * 30,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -75,7 +72,5 @@ export function useClientTrackingEvents(accountId: string | undefined, limit = 2
       return res.json();
     },
     enabled: !!accountId,
-    staleTime: 1000 * 30,
-    refetchOnWindowFocus: false,
   });
 }

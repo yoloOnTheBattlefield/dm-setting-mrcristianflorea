@@ -9,6 +9,5 @@ export function useResearchIdeas() {
       return IDEAS;
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

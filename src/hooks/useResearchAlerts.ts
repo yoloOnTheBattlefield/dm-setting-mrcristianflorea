@@ -9,6 +9,5 @@ export function useResearchAlerts() {
       return ALERTS;
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

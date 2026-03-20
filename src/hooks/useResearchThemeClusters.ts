@@ -9,6 +9,5 @@ export function useResearchThemeClusters() {
       return THEME_CLUSTERS;
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

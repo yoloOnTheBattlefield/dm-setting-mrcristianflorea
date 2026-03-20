@@ -55,7 +55,6 @@ export function useAccountsAnalytics(params?: FetchAccountsAnalyticsParams) {
     queryKey: ["accountsAnalytics", params?.startDate, params?.endDate, params?.showDeleted],
     queryFn: () => fetchAccountsAnalytics(params),
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 

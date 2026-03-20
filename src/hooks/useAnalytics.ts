@@ -73,6 +73,5 @@ export function useAnalytics(params?: FetchAnalyticsParams) {
     queryKey: ["analytics", params?.startDate, params?.endDate, params?.source, params?.accountId],
     queryFn: () => fetchAnalytics(params),
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

@@ -20,7 +20,6 @@ export function useApifyUsage(enabled: boolean) {
     },
     enabled,
     staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -32,8 +31,6 @@ export function useApifyTokens() {
       if (!res.ok) throw new Error(`Failed to fetch Apify tokens: ${res.status}`);
       return res.json();
     },
-    staleTime: 1000 * 30,
-    refetchOnWindowFocus: false,
   });
 }
 

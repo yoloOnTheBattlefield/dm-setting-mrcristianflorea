@@ -34,6 +34,5 @@ export function useLeads(params?: FetchLeadsParams) {
     queryKey: ["leads", params?.startDate, params?.endDate],
     queryFn: () => fetchLeads(params),
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

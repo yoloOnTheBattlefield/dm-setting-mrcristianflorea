@@ -77,7 +77,6 @@ export function useTeamMembers(accountId?: string) {
     queryKey: ["teamMembers", accountId],
     queryFn: () => fetchTeamMembers(accountId),
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }
 

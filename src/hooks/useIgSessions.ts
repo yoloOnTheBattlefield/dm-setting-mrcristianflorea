@@ -15,8 +15,6 @@ export function useIgSessions() {
       if (!res.ok) throw new Error(`Failed to fetch IG sessions: ${res.status}`);
       return res.json();
     },
-    staleTime: 1000 * 30,
-    refetchOnWindowFocus: false,
   });
 }
 

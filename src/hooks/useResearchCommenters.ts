@@ -13,6 +13,5 @@ export function useResearchCommenters() {
       return res.json() as Promise<ResearchCommenter[]>;
     },
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 }

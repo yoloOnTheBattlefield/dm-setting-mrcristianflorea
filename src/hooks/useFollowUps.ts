@@ -91,7 +91,6 @@ export function useFollowUps(params: {
       return res.json();
     },
     staleTime: 1000 * 15,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -104,7 +103,6 @@ export function useFollowUpStats() {
       return res.json();
     },
     staleTime: 1000 * 15,
-    refetchOnWindowFocus: false,
   });
 }
 

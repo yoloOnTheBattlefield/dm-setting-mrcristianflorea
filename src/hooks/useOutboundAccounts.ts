@@ -81,7 +81,6 @@ export function useOutboundAccounts(params: {
       return res.json();
     },
     staleTime: 1000 * 15,
-    refetchOnWindowFocus: false,
   });
 }
 

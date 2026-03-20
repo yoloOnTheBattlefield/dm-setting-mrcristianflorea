@@ -47,7 +47,6 @@ export function useOutboundLeads(params: {
       return res.json();
     },
     staleTime: 1000 * 15,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -123,7 +122,6 @@ export function useImportStatus(jobId: string | null) {
       if (data?.status === "done" || data?.status === "error") return false;
       return 500;
     },
-    refetchOnWindowFocus: false,
   });
 }
 
