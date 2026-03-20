@@ -5,6 +5,9 @@ export interface ReelItem {
   id: string;
   timestamp: string;
   permalink: string;
+  like_count: number;
+  comments_count: number;
+  play_count: number;
 }
 
 export interface MonthlyReelsResponse {

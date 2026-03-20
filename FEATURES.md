@@ -812,6 +812,62 @@ Complete redesign of the `/lead/:id` page from a passive data record into an act
 
 ---
 
+## Lead Detail Page — Close CRM-Inspired UX Improvements
+
+Additional UX enhancements to the Lead Detail page inspired by Close CRM.
+
+### Changes
+
+**Inline Communication Compose Box:**
+- Persistent, always-visible tabbed compose bar at the top of the activity section
+- Tabs between Note, DM, Follow-Up, and Task modes
+- Note tab: textarea with Ctrl+Enter submit
+- DM tab: direct link to Instagram DM
+- Follow-Up tab: preset buttons (Today, Tomorrow, In 3 days) + custom datetime picker
+- Task tab: title + due date + add button
+
+**Pipeline Stage Visual Stepper:**
+- Replaced tag-style stage buttons with a horizontal progress stepper with connecting lines between stages
+- Shows how many days the lead has been in the current stage
+- Orange "stuck" warning indicator when no activity for 5+ days
+
+**Contact Panel Quick Actions:**
+- Added quick-action icon row: copy email, open Instagram profile, send DM
+- Added "Last Contacted" field showing last outbound DM timestamp
+
+**Lead Score Visual Badge:**
+- Colored badge in the header: green (7-10), amber (4-6), red (1-3)
+- Shows star icon + score immediately visible on page open
+
+**Smart "Next Action" Banner:**
+- Banner below the stage stepper showing next scheduled follow-up or task
+- Overdue follow-ups shown in red with "Send DM" CTA
+- Yellow nudge when no follow-up is scheduled: "No follow-up scheduled — add one now" with quick Schedule button
+
+**Follow-Up Scheduling UX:**
+- Quick date-picker popover on the Follow-Up button with presets: Today, Tomorrow, In 3 days, Custom
+- Follow-up date shown as a badge in the lead header (amber for upcoming, red for overdue)
+
+**Lead Navigation Context:**
+- Updated counter to show "X of Y Leads" format
+- Added J/K keyboard shortcuts for navigating between leads (in addition to existing arrow keys)
+- Tooltips on nav buttons showing keyboard shortcuts
+
+**"Mark Ghosted" Overflow Menu:**
+- Moved "Mark Ghosted" out of the header into a ... overflow dropdown menu
+- When triggered, shows AlertDialog asking: "Schedule a re-engagement follow-up in 30 days?"
+- Options: Cancel, Just Ghost, Ghost + Schedule Follow-Up
+
+**General UX:**
+- Relative timestamps with absolute datetime tooltips on hover throughout (activity feed, DM messages, task due dates, created date)
+- Keyboard shortcut hints: N for note, F for follow-up, T for task (shown in overflow menu)
+
+### Location
+
+- **Frontend page:** `src/pages/LeadDetail.tsx`
+
+---
+
 ## Virality Score Algorithm
 
 Per-post virality score that measures how much a post outperforms its account's baseline engagement. Uses per-competitor averages as the baseline so a small account going viral is scored the same as a large account going viral.

@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, ExternalLink, Clapperboard, AlertCircle } from "lucide-react";
+import { RefreshCw, ExternalLink, Clapperboard, AlertCircle, Heart, MessageCircle, Play } from "lucide-react";
 import { format } from "date-fns";
 
 export default function ReelsInsights() {
@@ -88,19 +88,32 @@ export default function ReelsInsights() {
               ) : (
                 <div className="divide-y divide-border">
                   {data.reels.map((reel, i) => (
-                    <div key={reel.id} className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground w-5 text-right">{i + 1}</span>
-                        <span className="text-sm">{format(new Date(reel.timestamp), "MMM d, yyyy · h:mm a")}</span>
+                    <div key={reel.id} className="py-3 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-5 text-right">{i + 1}</span>
+                          <span className="text-sm">{format(new Date(reel.timestamp), "MMM d, yyyy · h:mm a")}</span>
+                        </div>
+                        <a
+                          href={reel.permalink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          View <ExternalLink className="h-3 w-3" />
+                        </a>
                       </div>
-                      <a
-                        href={reel.permalink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        View <ExternalLink className="h-3 w-3" />
-                      </a>
+                      <div className="flex items-center gap-4 pl-7">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Play className="h-3 w-3" /> {reel.play_count.toLocaleString()}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Heart className="h-3 w-3" /> {reel.like_count.toLocaleString()}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <MessageCircle className="h-3 w-3" /> {reel.comments_count.toLocaleString()}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>

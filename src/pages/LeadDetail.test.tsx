@@ -96,7 +96,7 @@ describe("LeadDetail — Header & Pipeline", () => {
       expect(screen.getByText("Note")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Follow-Up")).toBeInTheDocument();
+    expect(screen.getAllByText("Follow-Up").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Task")).toBeInTheDocument();
   });
 
@@ -160,33 +160,29 @@ describe("LeadDetail — Outbound Lead Linking", () => {
 describe("LeadDetail — Notes", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("opens note input when Note button is clicked", async () => {
+  it("shows note compose tab with textarea", async () => {
     mockAllFetches();
     renderLeadDetail();
 
     await waitFor(() => {
-      expect(screen.getByText("Note")).toBeInTheDocument();
+      // The compose box is always visible with Note as default tab
+      expect(screen.getByPlaceholderText("Write a note... (Ctrl+Enter to save)")).toBeInTheDocument();
     });
-
-    fireEvent.click(screen.getByText("Note"));
-
-    expect(screen.getByPlaceholderText("Write a note...")).toBeInTheDocument();
   });
 });
 
 describe("LeadDetail — Tasks", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("opens task input when Task button is clicked", async () => {
+  it("renders compose box with task tab", async () => {
     mockAllFetches();
     renderLeadDetail();
 
     await waitFor(() => {
-      expect(screen.getByText("Task")).toBeInTheDocument();
+      // The compose box renders tab triggers for all modes
+      const tabs = screen.getAllByRole("tab");
+      const tabNames = tabs.map((t) => t.textContent);
+      expect(tabNames).toEqual(expect.arrayContaining(["Note", "Task"]));
     });
-
-    fireEvent.click(screen.getByText("Task"));
-
-    expect(screen.getByPlaceholderText("Task title...")).toBeInTheDocument();
   });
 });
