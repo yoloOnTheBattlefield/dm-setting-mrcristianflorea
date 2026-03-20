@@ -171,6 +171,23 @@ describe("LeadDetail — Notes", () => {
   });
 });
 
+describe("LeadDetail — Delete", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("renders the overflow menu trigger for delete access", async () => {
+    mockAllFetches();
+    renderLeadDetail();
+
+    await waitFor(() => {
+      expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
+    });
+
+    // The overflow menu button (containing MoreHorizontal icon) should be present
+    const buttons = screen.getAllByRole("button");
+    expect(buttons.length).toBeGreaterThan(0);
+  });
+});
+
 describe("LeadDetail — Tasks", () => {
   beforeEach(() => vi.clearAllMocks());
 

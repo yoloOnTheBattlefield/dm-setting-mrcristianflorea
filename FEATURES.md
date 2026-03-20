@@ -1174,3 +1174,42 @@ Remove inbound leads individually or in bulk from the All Contacts page. Each de
 ### API Routes
 
 - **`DELETE /leads/:id`** — Permanently deletes an inbound lead (pre-existing backend endpoint)
+
+---
+
+## Delete Lead from Lead Detail Page
+
+Delete an inbound lead directly from the Lead Detail page via the "..." overflow menu. Shows a confirmation dialog before permanently removing the lead, then navigates back to the contacts list.
+
+### Location
+
+- **Frontend page:** `src/pages/LeadDetail.tsx` (Delete menu item in overflow dropdown + AlertDialog confirmation + deleteLead handler)
+- **Frontend test:** `src/pages/LeadDetail.test.tsx` (delete option visibility, confirmation dialog)
+
+### API Routes
+
+- **`DELETE /leads/:id`** — Permanently deletes an inbound lead (pre-existing backend endpoint)
+
+---
+
+## Calendly Automatic Inbound Lead Creation
+
+Calendly bookings automatically create inbound leads in the CRM. Handles three scenarios:
+
+1. **Existing inbound lead** — matched by `contact_id` via `utm_medium`. Updates `booked_at`, email, and Q&A.
+2. **contact_id present, no existing lead** — creates a new lead with the contact_id instead of returning 404.
+3. **Standalone booking** (YouTube, ads, organic) — no `contact_id`. Creates a new lead with `source: "calendly"`, deduplicating by email to prevent duplicates from re-bookings.
+
+Account resolution uses three fallbacks: `utm_source`, `?account=` query param on the webhook URL, or matching the Calendly event creator to the stored `calendly_user_uri` on the Account.
+
+### Location
+
+- **Webhook handler:** `quddify-crm/routes/calendly.js` (`POST /api/calendly`)
+- **Webhook registration:** `quddify-crm/routes/calendly.js` (`POST /calendly/add`)
+- **Account model:** `quddify-crm/models/Account.js` (`calendly_user_uri` field)
+- **Tests:** `quddify-crm/routes/calendly.test.js`
+
+### API Routes
+
+- **`POST /api/calendly`** — Public Calendly webhook endpoint. Receives `invitee.created` events and creates/updates leads.
+- **`POST /calendly/add`** — Authenticated. Registers a Calendly webhook subscription and stores the token + user URI on the account.

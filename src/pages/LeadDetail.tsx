@@ -431,6 +431,7 @@ export default function LeadDetail() {
   const [followUpDate, setFollowUpDate] = useState("");
   const [activeComposeTab, setActiveComposeTab] = useState("note");
   const [showGhostedDialog, setShowGhostedDialog] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [followUpPopoverOpen, setFollowUpPopoverOpen] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement>(null);
 
@@ -553,6 +554,25 @@ export default function LeadDetail() {
       toast({ title: "Error", description: "Failed to connect", variant: "destructive" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const deleteLead = async () => {
+    if (!contactId) return;
+    try {
+      const response = await fetchWithAuth(`${API_URL}/leads/${contactId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        await queryClient.invalidateQueries({ queryKey: ["rawLeads"] });
+        toast({ title: "Deleted", description: "Lead removed" });
+        navigate("/");
+      } else {
+        const d = await response.json().catch(() => ({}));
+        toast({ title: "Error", description: d.error || "Failed to delete", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect", variant: "destructive" });
     }
   };
 
@@ -900,8 +920,36 @@ export default function LeadDetail() {
                   <Keyboard className="h-3.5 w-3.5 mr-2" />
                   N: Note &middot; F: Follow-up &middot; T: Task
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setDeleteConfirm(true)}
+                  className="text-red-400 focus:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Lead
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete lead?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently remove this lead. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => deleteLead()}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
 
           {/* Row 2: Pipeline Stepper with connecting lines */}
