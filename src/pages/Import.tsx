@@ -9,7 +9,7 @@ export default function Import() {
   const [calendlyOpen, setCalendlyOpen] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-1 flex-col gap-6 p-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Import Data</h1>
         <p className="text-sm text-muted-foreground">
