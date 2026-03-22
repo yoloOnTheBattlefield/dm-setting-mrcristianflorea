@@ -46,7 +46,37 @@ export function useCreateLeadNote() {
       if (!res.ok) throw new Error("Failed to create note");
       return res.json();
     },
-    onSuccess: (_data, vars) => {
+    // Optimistic update — add note to cache immediately
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["lead-notes", vars.lead_id] });
+      const previous = qc.getQueryData<LeadNote[]>(["lead-notes", vars.lead_id]);
+
+      const optimistic: LeadNote = {
+        _id: `temp-${Date.now()}`,
+        lead_id: vars.lead_id,
+        outbound_lead_id: null,
+        account_id: "",
+        author_id: "",
+        author_name: "You",
+        content: vars.content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      qc.setQueryData<LeadNote[]>(["lead-notes", vars.lead_id], (old) => [
+        ...(old ?? []),
+        optimistic,
+      ]);
+
+      return { previous };
+    },
+    onError: (_err, vars, context) => {
+      // Rollback on error
+      if (context?.previous) {
+        qc.setQueryData(["lead-notes", vars.lead_id], context.previous);
+      }
+    },
+    onSettled: (_data, _err, vars) => {
       qc.invalidateQueries({ queryKey: ["lead-notes", vars.lead_id] });
     },
   });
@@ -68,7 +98,23 @@ export function useDeleteLeadNote() {
       if (!res.ok) throw new Error("Failed to delete note");
       return res.json();
     },
-    onSuccess: (_data, vars) => {
+    // Optimistic delete — remove note from cache immediately
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["lead-notes", vars.lead_id] });
+      const previous = qc.getQueryData<LeadNote[]>(["lead-notes", vars.lead_id]);
+
+      qc.setQueryData<LeadNote[]>(["lead-notes", vars.lead_id], (old) =>
+        (old ?? []).filter((note) => note._id !== vars.id),
+      );
+
+      return { previous };
+    },
+    onError: (_err, vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["lead-notes", vars.lead_id], context.previous);
+      }
+    },
+    onSettled: (_data, _err, vars) => {
       qc.invalidateQueries({ queryKey: ["lead-notes", vars.lead_id] });
       qc.invalidateQueries({ queryKey: ["lead-notes-outbound", vars.lead_id] });
     },
@@ -108,7 +154,36 @@ export function useCreateOutboundLeadNote() {
       if (!res.ok) throw new Error("Failed to create note");
       return res.json();
     },
-    onSuccess: (_data, vars) => {
+    // Optimistic update
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["lead-notes-outbound", vars.outbound_lead_id] });
+      const previous = qc.getQueryData<LeadNote[]>(["lead-notes-outbound", vars.outbound_lead_id]);
+
+      const optimistic: LeadNote = {
+        _id: `temp-${Date.now()}`,
+        lead_id: null,
+        outbound_lead_id: vars.outbound_lead_id,
+        account_id: "",
+        author_id: "",
+        author_name: "You",
+        content: vars.content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      qc.setQueryData<LeadNote[]>(["lead-notes-outbound", vars.outbound_lead_id], (old) => [
+        ...(old ?? []),
+        optimistic,
+      ]);
+
+      return { previous };
+    },
+    onError: (_err, vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["lead-notes-outbound", vars.outbound_lead_id], context.previous);
+      }
+    },
+    onSettled: (_data, _err, vars) => {
       qc.invalidateQueries({ queryKey: ["lead-notes-outbound", vars.outbound_lead_id] });
     },
   });

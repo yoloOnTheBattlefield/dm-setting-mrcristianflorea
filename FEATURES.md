@@ -1,5 +1,87 @@
 # Features
 
+## Infrastructure & DX Improvements
+
+Cross-cutting improvements to frontend and backend quality, security, performance, and developer experience.
+
+### TypeScript Strict Mode (Frontend)
+
+Enabled `strictNullChecks` and `noImplicitAny` in `tsconfig.app.json` for stronger type safety across the entire frontend.
+
+- **Location:** `tsconfig.app.json`
+
+### Helmet Security Headers (Backend)
+
+Added `helmet` middleware for automatic HTTP security headers (XSS protection, content-type sniffing prevention, clickjacking protection).
+
+- **Location:** `index.js` (middleware registration)
+
+### Centralized Error Handler (Backend)
+
+Express error-handling middleware that catches thrown/nexted errors from routes. Routes can simply `throw` or call `next(error)` instead of repeating try/catch blocks.
+
+- **Location:** `middleware/errorHandler.js`
+- **Tests:** `middleware/errorHandler.test.js`
+
+### Request Logging Middleware (Backend)
+
+Pino-based HTTP request logger that automatically logs method, URL, status code, and response time for every request with structured JSON output.
+
+- **Location:** `middleware/requestLogger.js`
+- **Tests:** `middleware/requestLogger.test.js`
+
+### Zod Schema Hardening (Backend)
+
+Replaced `.passthrough()` with `.strip()` across all 13 Zod validation schemas. Updated the `validate` middleware to replace `req.body/query/params` with parsed values so unknown fields are actually stripped.
+
+- **Location:** `schemas/*.js`, `middleware/validate.js`
+
+### Route Splitting (Frontend)
+
+Split 40+ route definitions from `App.tsx` into feature-based modules: `coreRoutes`, `outboundRoutes`, `researchRoutes`, `settingsRoutes`, `publicRoutes`. Each route module has per-feature `Suspense` boundaries.
+
+- **Location:** `src/routes/*.tsx`
+
+### Login Form with react-hook-form + Zod (Frontend)
+
+Refactored `LoginForm` to use `react-hook-form` with `@hookform/resolvers/zod` for declarative validation. Shared schema in `src/lib/schemas.ts` mirrors backend `schemas/accounts.js`.
+
+- **Location:** `src/components/login-form.tsx`, `src/lib/schemas.ts`
+
+### Optimistic UI Updates (Frontend)
+
+Added optimistic create/delete for lead notes. New notes appear instantly in the UI; deletions are removed from cache immediately. Rollback on error.
+
+- **Location:** `src/hooks/useLeadNotes.ts`
+- **Tests:** `src/hooks/useLeadNotes.test.ts`
+
+### WebSocket Reconnection & Auth Refresh (Frontend)
+
+SocketContext now passes JWT token via `socket.auth`, handles reconnection with exponential backoff, detects auth errors (401) to force re-login, and supports server-initiated token refresh events.
+
+- **Location:** `src/contexts/SocketContext.tsx`
+
+### Controller Layer (Backend)
+
+Introduced `controllers/` directory with `leadController.js` as the reference implementation. Business logic separated from route definitions for testability.
+
+- **Location:** `controllers/leadController.js`
+
+### Standardized Response Envelope (Backend)
+
+Response helpers (`ok`, `created`, `paginated`, `deleted`) ensure consistent `{ data }` / `{ data, meta }` envelope across all endpoints.
+
+- **Location:** `utils/response.js`
+- **Tests:** `utils/response.test.js`
+
+### Redis Caching Layer (Backend)
+
+Redis client singleton with no-op stub fallback. Used by rate limiter for persistence across deploys. Gracefully degrades to in-memory when `REDIS_URL` is not set.
+
+- **Location:** `services/redis.js`, `middleware/rateLimiter.js`
+
+---
+
 ## Reels Insights (Research)
 
 Shows how many Instagram Reels the current account has posted since the start of the month. Accessible from the Research section. Automatically uses the logged-in user's `account_id` — no client picker needed. Fetches from the IG Graph API using the account's stored OAuth page access token, filters for `media_product_type === "REELS"`, and lists each reel with its timestamp and permalink.
@@ -1297,3 +1379,31 @@ Supports multiple emails per lead via the `emails` array field — Stripe matchi
 - **`DELETE /api/stripe/disconnect`** — Authenticated. Removes webhook secret.
 - **`GET /api/stripe/payments/:leadId`** — Authenticated. Returns payments for a lead.
 - **`POST /api/stripe/import`** — Authenticated. Bulk import payments from CSV. Matches to leads, auto-closes.
+
+---
+
+## Voice Note DMs (Backend)
+
+Send pre-recorded audio voice notes via Instagram DM through the Chrome extension. Voice notes are uploaded to the server, stored alongside campaigns, and delivered to the extension as tasks with a `voice_note_url` field. The extension will spoof `getUserMedia` to feed the pre-recorded audio to Instagram's voice note recorder.
+
+### How It Works
+
+1. User uploads an audio file via the voice notes API
+2. The audio URL is stored in the campaign's `voice_notes` array
+3. During campaign rotation, text messages and voice notes are interleaved — the scheduler rotates through both
+4. Tasks with `voice_note_url` (instead of `message`) signal the extension to send a voice note
+
+### Location
+
+- **Backend model:** `quddify-crm/models/Task.js` (`voice_note_url` field)
+- **Backend model:** `quddify-crm/models/Campaign.js` (`voice_notes` array with `url`, `label`, `duration_ms`, `original_filename`)
+- **Backend route:** `quddify-crm/routes/voice-notes.js` (upload + delete)
+- **Backend scheduler:** `quddify-crm/services/campaignScheduler.js` (voice note rotation in `processDM` + `processTick`)
+- **Backend manual campaigns:** `quddify-crm/routes/manual-campaigns.js` (voice note rotation in `/next`)
+- **Backend task creation:** `quddify-crm/routes/tasks.js` (accepts `voice_note_url` in task creation)
+- **Backend wiring:** `quddify-crm/index.js` (`/api/voice-notes`)
+
+### API Routes
+
+- **`POST /api/voice-notes/upload`** — Form data: `audio` (file), `campaign_id` (optional), `duration_ms` (optional). Max 10MB, 60s. Returns `{ url, storage_key, original_filename, mime_type, file_size, duration_ms }`.
+- **`DELETE /api/voice-notes`** — Body: `{ storage_key }`. Deletes the audio file. Tenant-isolated by account prefix.
