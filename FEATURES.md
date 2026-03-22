@@ -1268,3 +1268,32 @@ Supports Calendly-specific status mapping: "Active" → scheduled, "Canceled" �
 ### API Routes
 
 - **`POST /api/bookings/import`** — Accepts `{ rows: [...] }` JSON body with mapped booking data. Validates required fields (booking_date), maps Calendly status values, and bulk-inserts. Returns `{ imported, skipped, errors[] }`.
+
+---
+
+## Stripe Integration
+
+Captures Stripe payment events (checkout, invoices, charges) via webhook and matches them to leads by email. Payments appear on the lead's timeline with amount, currency, and description. Auto-closes leads (sets `closed_at` and adds to `contract_value`) on payment match.
+
+Supports multiple emails per lead via the `emails` array field — Stripe matching checks both primary `email` and `emails` array. Users can add/remove secondary emails from the lead detail contact card.
+
+### Location
+
+- **Backend route:** `quddify-crm/routes/stripe.js` (webhook, connect, disconnect, payments, import)
+- **Payment model:** `quddify-crm/models/Payment.js`
+- **Lead model:** `quddify-crm/models/Lead.js` (`emails` array field)
+- **Account model:** `quddify-crm/models/Account.js` (`stripe_webhook_secret` encrypted field)
+- **Integrations UI:** `src/components/integrations/ConnectionsSection.tsx` (Stripe card)
+- **Timeline:** `src/pages/LeadDetail.tsx` (payment activity items)
+- **Hook:** `src/hooks/usePayments.ts` (`useLeadPayments`)
+- **Import dialog:** `src/components/ImportPaymentsDialog.tsx`
+- **Import page:** `src/pages/Import.tsx` (Stripe card)
+- **Types:** `src/lib/types.ts` (`Payment` interface)
+
+### API Routes
+
+- **`POST /api/stripe/webhook?account=GHL_ID`** — Public. Stripe signature verified. Handles `checkout.session.completed`, `invoice.paid`, `charge.succeeded`. Creates Payment record, matches to lead by email, auto-closes.
+- **`POST /api/stripe/connect`** — Authenticated. Saves encrypted webhook signing secret.
+- **`DELETE /api/stripe/disconnect`** — Authenticated. Removes webhook secret.
+- **`GET /api/stripe/payments/:leadId`** — Authenticated. Returns payments for a lead.
+- **`POST /api/stripe/import`** — Authenticated. Bulk import payments from CSV. Matches to leads, auto-closes.

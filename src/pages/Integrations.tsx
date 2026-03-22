@@ -65,6 +65,11 @@ export default function Integrations() {
   // Calendly connection status
   const [calendlyConnected, setCalendlyConnected] = useState(false);
 
+  // Stripe connection status
+  const [stripeConnected, setStripeConnected] = useState(false);
+  const [stripeSecret, setStripeSecret] = useState("");
+  const [isSavingStripe, setIsSavingStripe] = useState(false);
+
   // Instagram OAuth state
   const [igConnected, setIgConnected] = useState(false);
   const [igUsername, setIgUsername] = useState("");
@@ -110,6 +115,9 @@ export default function Integrations() {
         }
         if (data?.calendly_token) {
           setCalendlyConnected(true);
+        }
+        if (data?.stripe_webhook_secret) {
+          setStripeConnected(true);
         }
         if (data?.ig_oauth) {
           setIgConnected(true);
@@ -332,6 +340,41 @@ export default function Integrations() {
     setCalendlyToken("");
   };
 
+  const handleStripeSave = async () => {
+    if (!stripeSecret.trim()) return;
+    setIsSavingStripe(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/stripe/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webhook_secret: stripeSecret }),
+      });
+      if (res.ok) {
+        setStripeConnected(true);
+        setStripeSecret("");
+        toast({ title: "Stripe connected", description: "Webhook secret saved" });
+      } else {
+        toast({ title: "Failed to save", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Failed to connect", variant: "destructive" });
+    } finally {
+      setIsSavingStripe(false);
+    }
+  };
+
+  const handleStripeDisconnect = async () => {
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/stripe/disconnect`, { method: "DELETE" });
+      if (res.ok) {
+        setStripeConnected(false);
+        toast({ title: "Stripe disconnected" });
+      }
+    } catch {
+      toast({ title: "Failed to disconnect", variant: "destructive" });
+    }
+  };
+
   const handleConnectInstagram = async () => {
     setIsConnectingIg(true);
     try {
@@ -497,6 +540,13 @@ export default function Integrations() {
           navigator.clipboard.writeText(text);
           toast({ title: "Copied", description });
         }}
+        stripeConnected={stripeConnected}
+        stripeSecret={stripeSecret}
+        onStripeSecretChange={setStripeSecret}
+        onStripeSave={handleStripeSave}
+        onStripeDisconnect={handleStripeDisconnect}
+        isSavingStripe={isSavingStripe}
+        userGhl={user?.ghl}
       />
 
       {/* Calendly Token Modal */}

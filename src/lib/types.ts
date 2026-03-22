@@ -60,6 +60,7 @@ export interface ApiLead {
   score?: number | null;
   contract_value?: number | null;
   closed_at?: string | null;
+  emails?: string[];
 }
 
 // Internal contact type used by analytics
@@ -185,6 +186,25 @@ export interface SalesMetrics {
   avg_deal_value: number;
   by_source: SalesSourceMetrics[];
   by_medium: SalesMediumMetrics[];
+}
+
+// --- Payments ---
+
+export interface Payment {
+  _id: string;
+  account_id: string;
+  lead_id: string | null;
+  stripe_event_id: string;
+  stripe_event_type: string;
+  amount: number; // in cents
+  currency: string;
+  customer_email: string | null;
+  customer_name: string | null;
+  description: string | null;
+  stripe_customer_id: string | null;
+  stripe_payment_intent_id: string | null;
+  payment_date: string;
+  createdAt: string;
 }
 
 export type SourceFilter = "all" | "inbound" | "outbound";

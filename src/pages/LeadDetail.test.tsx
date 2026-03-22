@@ -32,6 +32,10 @@ vi.mock("@/hooks/useLeadTasks", () => ({
   useDeleteLeadTask: () => ({ mutate: vi.fn() }),
 }));
 
+vi.mock("@/hooks/usePayments", () => ({
+  useLeadPayments: () => ({ data: [] }),
+}));
+
 const baseLead = {
   _id: "lead1",
   account_id: "acc1",

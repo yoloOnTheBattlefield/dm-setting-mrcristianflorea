@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ImportBookingsDialog } from "@/components/ImportBookingsDialog";
+import { ImportPaymentsDialog } from "@/components/ImportPaymentsDialog";
 import { CalendarCheck, CreditCard } from "lucide-react";
 
 export default function Import() {
   const [calendlyOpen, setCalendlyOpen] = useState(false);
+  const [stripeOpen, setStripeOpen] = useState(false);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4">
@@ -39,29 +40,30 @@ export default function Import() {
           </CardContent>
         </Card>
 
-        {/* Stripe — Coming Soon */}
-        <Card className="flex flex-col opacity-60">
+        {/* Stripe */}
+        <Card className="flex flex-col">
           <CardContent className="py-5 px-5 flex flex-col flex-1">
             <div className="flex items-center gap-3 mb-3">
               <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
                 <CreditCard className="h-5 w-5 text-purple-500" />
               </div>
-              <div className="flex items-center gap-2">
+              <div>
                 <h3 className="text-sm font-semibold">Stripe</h3>
-                <Badge variant="secondary" className="text-[10px]">Coming Soon</Badge>
+                <p className="text-[11px] text-muted-foreground">Payment exports</p>
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-4 flex-1">
-              Import payment data from Stripe to track revenue, close rates, and customer lifetime value.
+              Import payment data from Stripe CSV exports. Matches payments to leads by email and auto-closes deals.
             </p>
-            <Button size="sm" variant="outline" disabled>
-              Import
+            <Button size="sm" variant="outline" onClick={() => setStripeOpen(true)}>
+              Import CSV
             </Button>
           </CardContent>
         </Card>
       </div>
 
       <ImportBookingsDialog open={calendlyOpen} onOpenChange={setCalendlyOpen} />
+      <ImportPaymentsDialog open={stripeOpen} onOpenChange={setStripeOpen} />
     </div>
   );
 }

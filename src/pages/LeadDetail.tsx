@@ -97,6 +97,7 @@ import {
   useDeleteLeadTask,
 } from "@/hooks/useLeadTasks";
 import { useLeadConversation } from "@/hooks/useLeadConversation";
+import { useLeadPayments } from "@/hooks/usePayments";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -502,6 +503,7 @@ export default function LeadDetail() {
   const { data: notes = [] } = useLeadNotes(lead?._id);
   const { data: tasks = [] } = useLeadTasks(lead?._id);
   const { data: conversationData } = useLeadConversation(lead?._id);
+  const { data: payments = [] } = useLeadPayments(lead?._id);
   const [linkConvOpen, setLinkConvOpen] = useState(false);
   const { data: allConversations } = useQuery<{ conversations: import("@/lib/types").IgConversation[] }>({
     queryKey: ["ig-conversations-list"],
@@ -559,14 +561,17 @@ export default function LeadDetail() {
 
   const deleteLead = async () => {
     if (!contactId) return;
+    setDeleteConfirm(false);
     try {
       const response = await fetchWithAuth(`${API_URL}/leads/${contactId}`, {
         method: "DELETE",
       });
       if (response.ok) {
-        await queryClient.invalidateQueries({ queryKey: ["rawLeads"] });
+        queryClient.invalidateQueries({ queryKey: ["rawLeads"] });
+        queryClient.invalidateQueries({ queryKey: ["lead-ids"] });
         toast({ title: "Deleted", description: "Lead removed" });
-        navigate("/");
+        // Small delay to let dialog overlay unmount before navigating
+        setTimeout(() => navigate("/contacts/all"), 50);
       } else {
         const d = await response.json().catch(() => ({}));
         toast({ title: "Error", description: d.error || "Failed to delete", variant: "destructive" });
@@ -707,7 +712,7 @@ export default function LeadDetail() {
 
   // Build unified activity feed
   const activityItems: {
-    type: "note" | "stage" | "task_completed";
+    type: "note" | "stage" | "task_completed" | "payment";
     date: string;
     id: string;
     data: Record<string, unknown>;
@@ -747,6 +752,19 @@ export default function LeadDetail() {
       date: t.completed_at!,
       id: `task-${t._id}`,
       data: { title: t.title },
+    });
+  }
+
+  for (const p of payments) {
+    activityItems.push({
+      type: "payment",
+      date: p.payment_date,
+      id: `payment-${p._id}`,
+      data: {
+        amount: p.amount,
+        currency: p.currency,
+        description: p.description,
+      },
     });
   }
 
@@ -1123,6 +1141,38 @@ export default function LeadDetail() {
                   onSave={(val) => patchLead({ email: val }, val ? `Email set to ${val}` : "Email cleared")}
                   disabled={isSaving}
                 />
+                {/* Secondary Emails */}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Additional Emails</p>
+                  <div className="flex flex-wrap gap-1">
+                    {(lead.emails || []).map((e, i) => (
+                      <Badge key={i} variant="secondary" className="text-[10px] gap-1 pr-1">
+                        {e}
+                        <button
+                          className="hover:text-destructive ml-0.5"
+                          onClick={() => {
+                            const updated = (lead.emails || []).filter((_, j) => j !== i);
+                            patchLead({ emails: updated }, `Removed ${e}`);
+                          }}
+                        >
+                          &times;
+                        </button>
+                      </Badge>
+                    ))}
+                    <button
+                      className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-dashed border-muted-foreground/30 hover:border-muted-foreground/60"
+                      onClick={() => {
+                        const email = prompt("Enter additional email:");
+                        if (email?.trim()) {
+                          const updated = [...(lead.emails || []), email.trim()];
+                          patchLead({ emails: updated }, `Added ${email.trim()}`);
+                        }
+                      }}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
                 <EditableDetailRow
                   label="Instagram"
                   value={igHandle ? `@${igHandle}` : null}
@@ -1695,6 +1745,8 @@ export default function LeadDetail() {
                             ? "bg-blue-500 border-blue-500"
                             : item.type === "task_completed"
                             ? "bg-emerald-500 border-emerald-500"
+                            : item.type === "payment"
+                            ? "bg-emerald-500 border-emerald-500"
                             : item.data.icon === "ghosted"
                             ? "bg-red-500 border-red-500"
                             : item.data.icon === "booked" || item.data.icon === "closed"
@@ -1734,6 +1786,16 @@ export default function LeadDetail() {
                           {item.type === "task_completed" && (
                             <div className="flex items-center gap-2">
                               <span className="text-sm"><CheckCircle className="h-3.5 w-3.5 inline mr-1 text-emerald-500" />Completed: {String(item.data.title)}</span>
+                              <RelativeTime date={item.date} />
+                            </div>
+                          )}
+                          {item.type === "payment" && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">
+                                <DollarSign className="h-3.5 w-3.5 inline mr-1 text-emerald-500" />
+                                ${((Number(item.data.amount) || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {String(item.data.currency || "usd").toUpperCase()} paid
+                                {item.data.description && <span className="text-muted-foreground"> — {String(item.data.description)}</span>}
+                              </span>
                               <RelativeTime date={item.date} />
                             </div>
                           )}

@@ -86,7 +86,7 @@ describe("Integrations — Status badges", () => {
     renderIntegrations();
 
     const notConnected = screen.getAllByText("Not Connected");
-    expect(notConnected.length).toBe(2);
+    expect(notConnected.length).toBe(3);
   });
 
   it("shows 'Ready' badge for ManyChat when API key exists", () => {
