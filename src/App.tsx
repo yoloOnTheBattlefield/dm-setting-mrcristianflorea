@@ -67,6 +67,7 @@ const ReelsInsights = lazyRetry(() => import("./pages/research/ReelsInsights"));
 const Bookings = lazyRetry(() => import("./pages/Bookings"));
 const BookingAnalytics = lazyRetry(() => import("./pages/BookingAnalytics"));
 const EodReport = lazyRetry(() => import("./pages/EodReport"));
+const Import = lazyRetry(() => import("./pages/Import"));
 const Landing = lazyRetry(() => import("./pages/Landing"));
 const AcceptInvite = lazyRetry(() => import("./pages/AcceptInvite"));
 
@@ -173,6 +174,13 @@ const App = () => (
                 <ProtectedRoute>
                   <DashboardLayout>
                     <TeamMembers />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/import" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <Import />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />

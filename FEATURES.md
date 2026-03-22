@@ -1239,6 +1239,18 @@ UTM attribution flows from Calendly booking links → Lead model → Booking mod
 
 ---
 
+## Import Data Page
+
+Central import hub under Workspace for bringing in data from external tools. Currently supports Calendly CSV imports, with Stripe planned.
+
+### Location
+
+- **Page:** `src/pages/Import.tsx`
+- **Nav:** Workspace → "Import" (`/import`)
+- **Route:** `src/App.tsx`
+
+---
+
 ## Calendly CSV Booking Import
 
 Import bookings from Calendly's CSV/XLSX export. Supports drag-and-drop file upload, auto-detects column mappings using synonym matching (e.g. "Invitee Name" → Contact Name, "Start Date & Time" → Booking Date), shows a preview with mapping overrides, and bulk-imports to the database.
@@ -1249,7 +1261,7 @@ Supports Calendly-specific status mapping: "Active" → scheduled, "Canceled" �
 
 - **Dialog:** `src/components/ImportBookingsDialog.tsx`
 - **Hook:** `src/hooks/useBookings.ts` (`useImportBookings`)
-- **Page:** `src/pages/Bookings.tsx` ("Import CSV" button)
+- **Page:** `src/pages/Import.tsx` (Calendly card)
 - **Backend:** `quddify-crm/routes/bookings.js` (`POST /api/bookings/import`)
 - **Tests:** `src/components/ImportBookingsDialog.test.tsx`
 
