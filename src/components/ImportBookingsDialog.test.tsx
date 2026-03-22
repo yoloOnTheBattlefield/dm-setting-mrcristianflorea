@@ -15,8 +15,8 @@ vi.mock("@/hooks/use-toast", () => ({
 }));
 
 const mockRows = [
-  { "Invitee Name": "John Doe", "Invitee Email": "john@test.com", "Start Date & Time": "2026-03-15T10:00:00Z", "Status": "Active", "UTM Source": "youtube" },
-  { "Invitee Name": "Jane Smith", "Invitee Email": "jane@test.com", "Start Date & Time": "2026-03-16T14:00:00Z", "Status": "Canceled", "UTM Source": "ig" },
+  { "Invitee First Name": "John", "Invitee Last Name": "Doe", "Invitee Email": "john@test.com", "Start Date & Time": "2026-03-15T10:00:00Z", "Canceled": "No", "UTM Source": "youtube" },
+  { "Invitee First Name": "Jane", "Invitee Last Name": "Smith", "Invitee Email": "jane@test.com", "Start Date & Time": "2026-03-16T14:00:00Z", "Canceled": "Yes", "UTM Source": "ig" },
 ];
 
 // Mock xlsx — dynamic import returns the module as default
@@ -53,7 +53,7 @@ describe("ImportBookingsDialog", () => {
 
   it("renders upload step when opened", () => {
     renderDialog();
-    expect(screen.getByText("Import Bookings")).toBeInTheDocument();
+    expect(screen.getByText("Import Calendly Leads")).toBeInTheDocument();
     expect(screen.getByText("Drop your Calendly CSV export here")).toBeInTheDocument();
   });
 
@@ -86,7 +86,7 @@ describe("ImportBookingsDialog", () => {
   it("shows import result after successful import", async () => {
     mockFetchWithAuth.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ imported: 2, skipped: 0, errors: [] }),
+      json: async () => ({ imported: 2, updated: 0, skipped: 0, errors: [] }),
     });
 
     renderDialog();
@@ -103,11 +103,11 @@ describe("ImportBookingsDialog", () => {
       expect(screen.getByText("Map Columns")).toBeInTheDocument();
     });
 
-    const importButton = screen.getByText(/Import 2 Bookings/);
+    const importButton = screen.getByText(/Import 2 Leads/);
     fireEvent.click(importButton);
 
     await waitFor(() => {
-      expect(screen.getByText("2 bookings imported")).toBeInTheDocument();
+      expect(screen.getByText("2 leads imported")).toBeInTheDocument();
     });
   });
 });

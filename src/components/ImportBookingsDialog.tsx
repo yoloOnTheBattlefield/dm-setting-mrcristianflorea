@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { useImportBookings } from "@/hooks/useBookings";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -27,59 +28,65 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle } from "lucide-react";
 
-// Booking fields that can be mapped from CSV columns
-const BOOKING_FIELDS = [
-  { key: "contact_name", label: "Contact Name", required: true },
+// Lead fields that can be mapped from Calendly CSV columns
+const LEAD_FIELDS = [
+  { key: "first_name", label: "First Name", required: true },
+  { key: "last_name", label: "Last Name" },
   { key: "email", label: "Email" },
   { key: "booking_date", label: "Booking Date", required: true },
-  { key: "status", label: "Status" },
   { key: "canceled", label: "Canceled (Yes/No)" },
   { key: "no_show", label: "No-Show (Yes/No)" },
-  { key: "source", label: "Source (inbound/outbound)" },
-  { key: "cash_collected", label: "Cash Collected" },
+  { key: "cancellation_reason", label: "Cancellation Reason" },
   { key: "contract_value", label: "Contract Value / Event Price" },
-  { key: "notes", label: "Notes" },
   { key: "utm_source", label: "UTM Source" },
   { key: "utm_medium", label: "UTM Medium" },
   { key: "utm_campaign", label: "UTM Campaign" },
-  { key: "event_type", label: "Event Type" },
-  { key: "ig_username", label: "IG Username" },
+  { key: "source", label: "Source" },
+  { key: "question_1", label: "Question 1" },
+  { key: "response_1", label: "Response 1" },
+  { key: "question_2", label: "Question 2" },
+  { key: "response_2", label: "Response 2" },
+  { key: "question_3", label: "Question 3" },
+  { key: "response_3", label: "Response 3" },
 ] as const;
 
-type BookingFieldKey = (typeof BOOKING_FIELDS)[number]["key"];
+type LeadFieldKey = (typeof LEAD_FIELDS)[number]["key"];
 
 // Synonyms for auto-mapping Calendly CSV headers
-const SYNONYMS: Record<BookingFieldKey, string[]> = {
-  contact_name: ["invitee name", "name", "contact name", "contact", "full name", "invitee full name"],
+const SYNONYMS: Record<LeadFieldKey, string[]> = {
+  first_name: ["invitee first name", "first name", "firstname"],
+  last_name: ["invitee last name", "last name", "lastname"],
   email: ["invitee email", "email", "e-mail", "email address"],
   booking_date: [
     "start date & time", "event date/time", "event date", "date", "booking date",
-    "start date", "scheduled date", "event start date/time", "start date and time",
+    "start date", "scheduled date", "start date and time",
   ],
-  status: ["status", "event status", "booking status"],
   canceled: ["canceled", "cancelled"],
-  no_show: ["marked as no-show", "no-show", "no show", "noshow"],
+  no_show: ["marked as no-show", "no-show", "no show"],
+  cancellation_reason: ["cancellation reason", "cancel reason"],
+  contract_value: ["event price", "contract value", "price", "amount"],
+  utm_source: ["utm source", "utm_source"],
+  utm_medium: ["utm medium", "utm_medium"],
+  utm_campaign: ["utm campaign", "utm_campaign"],
   source: ["source", "booking source"],
-  cash_collected: ["cash collected", "cash", "amount paid", "payment"],
-  contract_value: ["contract value", "contract", "deal value", "event price"],
-  notes: ["notes", "event notes", "meeting notes", "invitee notes"],
-  utm_source: ["utm source", "utm_source", "utmsource"],
-  utm_medium: ["utm medium", "utm_medium", "utmmedium"],
-  utm_campaign: ["utm campaign", "utm_campaign", "utmcampaign"],
-  event_type: ["event type name", "event type", "event name"],
-  ig_username: ["ig username", "ig handle", "instagram", "ig", "username"],
+  question_1: ["question 1"],
+  response_1: ["response 1"],
+  question_2: ["question 2"],
+  response_2: ["response 2"],
+  question_3: ["question 3"],
+  response_3: ["response 3"],
 };
 
-function autoSuggestMapping(headers: string[]): Record<string, BookingFieldKey | null> {
-  const mapping: Record<string, BookingFieldKey | null> = {};
-  const usedFields = new Set<BookingFieldKey>();
+function autoSuggestMapping(headers: string[]): Record<string, LeadFieldKey | null> {
+  const mapping: Record<string, LeadFieldKey | null> = {};
+  const usedFields = new Set<LeadFieldKey>();
 
   for (const header of headers) {
     const headerLower = header.toLowerCase().trim();
-    let bestMatch: BookingFieldKey | null = null;
+    let bestMatch: LeadFieldKey | null = null;
     let bestLength = 0;
 
-    for (const [field, synonyms] of Object.entries(SYNONYMS) as [BookingFieldKey, string[]][]) {
+    for (const [field, synonyms] of Object.entries(SYNONYMS) as [LeadFieldKey, string[]][]) {
       if (usedFields.has(field)) continue;
       for (const synonym of synonyms) {
         if (headerLower === synonym || headerLower.includes(synonym)) {
@@ -106,6 +113,7 @@ type Step = "upload" | "mapping" | "result";
 
 interface ImportResult {
   imported: number;
+  updated: number;
   skipped: number;
   errors: { row: number; reason: string }[];
 }
@@ -117,13 +125,30 @@ interface ImportBookingsDialogProps {
 
 export function ImportBookingsDialog({ open, onOpenChange }: ImportBookingsDialogProps) {
   const { toast } = useToast();
-  const importMutation = useImportBookings();
+  const qc = useQueryClient();
+
+  const importMutation = useMutation({
+    mutationFn: async (rows: Record<string, unknown>[]): Promise<ImportResult> => {
+      const res = await fetchWithAuth(`${API_URL}/leads/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+      if (!res.ok) throw new Error("Failed to import leads");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["analytics"] });
+      qc.invalidateQueries({ queryKey: ["bookings"] });
+      qc.invalidateQueries({ queryKey: ["booking-stats"] });
+    },
+  });
 
   const [step, setStep] = useState<Step>("upload");
   const [headers, setHeaders] = useState<string[]>([]);
   const [allRows, setAllRows] = useState<Record<string, unknown>[]>([]);
   const [previewRows, setPreviewRows] = useState<Record<string, unknown>[]>([]);
-  const [mapping, setMapping] = useState<Record<string, BookingFieldKey | null>>({});
+  const [mapping, setMapping] = useState<Record<string, LeadFieldKey | null>>({});
   const [result, setResult] = useState<ImportResult | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -187,21 +212,18 @@ export function ImportBookingsDialog({ open, onOpenChange }: ImportBookingsDialo
   const mappedFieldCount = Object.values(mapping).filter(Boolean).length;
   const hasRequiredFields = (() => {
     const mapped = new Set(Object.values(mapping).filter(Boolean));
-    return mapped.has("contact_name") && mapped.has("booking_date");
+    return mapped.has("first_name") && mapped.has("booking_date");
   })();
 
   const handleImport = async () => {
-    // Transform rows using the mapping
     const mappedRows = allRows.map((row) => {
       const mapped: Record<string, unknown> = {};
       for (const [header, field] of Object.entries(mapping)) {
         if (!field) continue;
         let value = row[header];
-        // Handle date objects from xlsx
         if (field === "booking_date" && value instanceof Date) {
           value = value.toISOString();
         } else if (field === "booking_date" && typeof value === "string") {
-          // Try to parse various date formats
           const parsed = new Date(value);
           if (!isNaN(parsed.getTime())) value = parsed.toISOString();
         }
@@ -224,13 +246,12 @@ export function ImportBookingsDialog({ open, onOpenChange }: ImportBookingsDialo
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {step === "upload" && "Import Bookings"}
+            {step === "upload" && "Import Calendly Leads"}
             {step === "mapping" && "Map Columns"}
             {step === "result" && "Import Complete"}
           </DialogTitle>
         </DialogHeader>
 
-        {/* Step 1: Upload */}
         {step === "upload" && (
           <div
             className={cn(
@@ -255,7 +276,6 @@ export function ImportBookingsDialog({ open, onOpenChange }: ImportBookingsDialo
           </div>
         )}
 
-        {/* Step 2: Column Mapping */}
         {step === "mapping" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -265,12 +285,11 @@ export function ImportBookingsDialog({ open, onOpenChange }: ImportBookingsDialo
               {!hasRequiredFields && (
                 <Badge variant="destructive" className="text-xs">
                   <AlertTriangle className="h-3 w-3 mr-1" />
-                  Map Contact Name & Booking Date
+                  Map First Name & Booking Date
                 </Badge>
               )}
             </div>
 
-            {/* Mapping table */}
             <div className="rounded-lg border overflow-hidden">
               <Table>
                 <TableHeader>
@@ -288,7 +307,7 @@ export function ImportBookingsDialog({ open, onOpenChange }: ImportBookingsDialo
                         <Select
                           value={mapping[header] ?? "__ignore__"}
                           onValueChange={(v) =>
-                            setMapping((prev) => ({ ...prev, [header]: v === "__ignore__" ? null : (v as BookingFieldKey) }))
+                            setMapping((prev) => ({ ...prev, [header]: v === "__ignore__" ? null : (v as LeadFieldKey) }))
                           }
                         >
                           <SelectTrigger className="h-7 text-xs">
@@ -298,7 +317,7 @@ export function ImportBookingsDialog({ open, onOpenChange }: ImportBookingsDialo
                             <SelectItem value="__ignore__">
                               <span className="text-muted-foreground">Ignore</span>
                             </SelectItem>
-                            {BOOKING_FIELDS.map((f) => {
+                            {LEAD_FIELDS.map((f) => {
                               const usedByOther = Object.entries(mapping).some(
                                 ([h, v]) => v === f.key && h !== header,
                               );
@@ -323,7 +342,6 @@ export function ImportBookingsDialog({ open, onOpenChange }: ImportBookingsDialo
               </Table>
             </div>
 
-            {/* Preview */}
             {previewRows.length > 0 && (
               <details className="text-xs">
                 <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
@@ -335,7 +353,7 @@ export function ImportBookingsDialog({ open, onOpenChange }: ImportBookingsDialo
                       <TableRow>
                         {headers.filter((h) => mapping[h]).map((h) => (
                           <TableHead key={h} className="text-[10px] whitespace-nowrap">
-                            {BOOKING_FIELDS.find((f) => f.key === mapping[h])?.label ?? h}
+                            {LEAD_FIELDS.find((f) => f.key === mapping[h])?.label ?? h}
                           </TableHead>
                         ))}
                       </TableRow>
@@ -359,31 +377,29 @@ export function ImportBookingsDialog({ open, onOpenChange }: ImportBookingsDialo
             )}
 
             <div className="flex justify-between">
-              <Button variant="outline" size="sm" onClick={reset}>
-                Back
-              </Button>
+              <Button variant="outline" size="sm" onClick={reset}>Back</Button>
               <Button
                 size="sm"
                 disabled={!hasRequiredFields || importMutation.isPending}
                 onClick={handleImport}
               >
                 <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
-                {importMutation.isPending ? "Importing..." : `Import ${allRows.length} Bookings`}
+                {importMutation.isPending ? "Importing..." : `Import ${allRows.length} Leads`}
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Result */}
         {step === "result" && result && (
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-4 rounded-lg bg-green-500/10">
               <CheckCircle2 className="h-8 w-8 text-green-500 shrink-0" />
               <div>
-                <p className="font-medium">{result.imported} bookings imported</p>
-                {result.skipped > 0 && (
-                  <p className="text-sm text-muted-foreground">{result.skipped} rows skipped</p>
-                )}
+                <p className="font-medium">{result.imported} leads imported</p>
+                <p className="text-sm text-muted-foreground">
+                  {result.updated > 0 && `${result.updated} updated · `}
+                  {result.skipped > 0 && `${result.skipped} skipped`}
+                </p>
               </div>
             </div>
 
@@ -400,9 +416,7 @@ export function ImportBookingsDialog({ open, onOpenChange }: ImportBookingsDialo
               </div>
             )}
 
-            <Button onClick={() => handleClose(false)} className="w-full">
-              Done
-            </Button>
+            <Button onClick={() => handleClose(false)} className="w-full">Done</Button>
           </div>
         )}
       </DialogContent>
