@@ -1213,3 +1213,46 @@ Account resolution uses three fallbacks: `utm_source`, `?account=` query param o
 
 - **`POST /api/calendly`** — Public Calendly webhook endpoint. Receives `invitee.created` events and creates/updates leads.
 - **`POST /calendly/add`** — Authenticated. Registers a Calendly webhook subscription and stores the token + user URI on the account.
+
+---
+
+## Sales Performance Dashboard
+
+Surfaces sales KPIs and source attribution directly on the main dashboard. Shows overall close rate, show-up rate, total revenue, and average deal value. Breaks down close rate and revenue by marketing source (utm_source: youtube, ig, email, etc.) and top mediums (utm_medium: video title, email subject, etc.).
+
+UTM attribution flows from Calendly booking links → Lead model → Booking model. The Calendly webhook stores `utm_source` and `utm_medium` from the booking link's tracking params. The booking sync propagates these to Booking records. Outbound bookings default to `utm_source: "ig"`.
+
+### Location
+
+- **Component:** `src/components/dashboard/SalesOverview.tsx`
+- **Types:** `src/lib/types.ts` (`SalesMetrics`, `SalesSourceMetrics`, `SalesMediumMetrics`)
+- **Hook:** `src/hooks/useAnalytics.ts` (extended `AnalyticsResponse` with `sales` field)
+- **Dashboard:** `src/pages/Index.tsx` (rendered after FunnelOverview)
+- **Skeleton:** `src/components/dashboard/DashboardSkeleton.tsx`
+- **Backend models:** `quddify-crm/models/Booking.js` (`utm_source`, `utm_medium` fields), `quddify-crm/models/Lead.js` (`utm_source`, `utm_medium` fields)
+- **Backend routes:** `quddify-crm/routes/analytics.js` (sales metrics in GET /analytics), `quddify-crm/routes/calendly.js` (UTM storage + account resolution priority change), `quddify-crm/routes/bookings.js` (UTM propagation in sync/CRUD)
+- **Tests:** `src/components/dashboard/SalesOverview.test.tsx`
+
+### API Routes
+
+- **`GET /analytics`** — Extended to return `sales` object with `total_bookings`, `overall_close_rate`, `overall_show_up_rate`, `total_revenue`, `avg_deal_value`, `by_source[]`, and `by_medium[]`.
+
+---
+
+## Calendly CSV Booking Import
+
+Import bookings from Calendly's CSV/XLSX export. Supports drag-and-drop file upload, auto-detects column mappings using synonym matching (e.g. "Invitee Name" → Contact Name, "Start Date & Time" → Booking Date), shows a preview with mapping overrides, and bulk-imports to the database.
+
+Supports Calendly-specific status mapping: "Active" → scheduled, "Canceled" → cancelled. Preserves UTM attribution columns (UTM Source, UTM Medium) for sales analytics.
+
+### Location
+
+- **Dialog:** `src/components/ImportBookingsDialog.tsx`
+- **Hook:** `src/hooks/useBookings.ts` (`useImportBookings`)
+- **Page:** `src/pages/Bookings.tsx` ("Import CSV" button)
+- **Backend:** `quddify-crm/routes/bookings.js` (`POST /api/bookings/import`)
+- **Tests:** `src/components/ImportBookingsDialog.test.tsx`
+
+### API Routes
+
+- **`POST /api/bookings/import`** — Accepts `{ rows: [...] }` JSON body with mapped booking data. Validates required fields (booking_date), maps Calendly status values, and bulk-inserts. Returns `{ imported, skipped, errors[] }`.

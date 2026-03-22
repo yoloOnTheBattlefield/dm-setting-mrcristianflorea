@@ -7,6 +7,7 @@ import {
   FupEffectiveness,
   StageAging,
   CumulativeBooking,
+  SalesMetrics,
   SourceFilter,
 } from "@/lib/types";
 import { RadarDataPoint } from "@/components/dashboard/LeadsRadarChart";
@@ -28,6 +29,7 @@ interface AnalyticsResponse {
   aging: StageAging[];
   cumulative: CumulativeBooking[];
   radar?: RadarDataPoint[];
+  sales?: SalesMetrics;
 }
 
 async function fetchAnalytics({

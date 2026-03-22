@@ -188,6 +188,27 @@ export function useDeleteBooking() {
   });
 }
 
+export function useImportBookings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (rows: Record<string, unknown>[]): Promise<{ imported: number; skipped: number; errors: { row: number; reason: string }[] }> => {
+      const res = await fetchWithAuth(`${BASE}/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+      if (!res.ok) throw new Error("Failed to import bookings");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bookings"] });
+      qc.invalidateQueries({ queryKey: ["booking-stats"] });
+      qc.invalidateQueries({ queryKey: ["booking-analytics"] });
+      qc.invalidateQueries({ queryKey: ["analytics"] });
+    },
+  });
+}
+
 export function useSyncBookings() {
   const qc = useQueryClient();
   return useMutation({

@@ -157,6 +157,36 @@ export interface CumulativeBooking {
   combined_cumulative: number;
 }
 
+// --- Sales Metrics ---
+
+export interface SalesSourceMetrics {
+  source: string;
+  bookings: number;
+  completed: number;
+  close_rate: number;
+  show_up_rate: number;
+  revenue: number;
+}
+
+export interface SalesMediumMetrics {
+  medium: string;
+  source: string;
+  bookings: number;
+  completed: number;
+  close_rate: number;
+  revenue: number;
+}
+
+export interface SalesMetrics {
+  total_bookings: number;
+  overall_close_rate: number;
+  overall_show_up_rate: number;
+  total_revenue: number;
+  avg_deal_value: number;
+  by_source: SalesSourceMetrics[];
+  by_medium: SalesMediumMetrics[];
+}
+
 export type SourceFilter = "all" | "inbound" | "outbound";
 
 export type DateRangeFilter = 1 | 7 | 14 | 30 | 90 | "all";

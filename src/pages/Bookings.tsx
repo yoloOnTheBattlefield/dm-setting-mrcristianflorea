@@ -64,8 +64,10 @@ import {
   ChevronRight,
   Trash2,
   ExternalLink,
+  Upload,
 } from "lucide-react";
 import { Shimmer } from "@/components/skeletons";
+import { ImportBookingsDialog } from "@/components/ImportBookingsDialog";
 
 const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; icon: typeof Clock }> = {
   scheduled: { label: "Scheduled", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400", icon: Clock },
@@ -81,6 +83,7 @@ export default function Bookings() {
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data, isLoading } = useBookings({ page, limit: 20, status, search, sort: "booking_date" });
@@ -163,6 +166,11 @@ export default function Bookings() {
           >
             <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", syncMutation.isPending && "animate-spin")} />
             Sync
+          </Button>
+
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            <Upload className="h-3.5 w-3.5 mr-1.5" />
+            Import CSV
           </Button>
 
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -378,6 +386,9 @@ export default function Bookings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import CSV Dialog */}
+      <ImportBookingsDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }

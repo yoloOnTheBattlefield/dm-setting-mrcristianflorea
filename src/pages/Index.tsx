@@ -13,6 +13,7 @@ import { StageAgingTable } from "@/components/dashboard/StageAgingTable";
 import { CumulativeBookingsChart } from "@/components/dashboard/CumulativeBookingsChart";
 import { LeadsRadarChart } from "@/components/dashboard/LeadsRadarChart";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { SalesOverview } from "@/components/dashboard/SalesOverview";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -144,6 +145,10 @@ export default function Index() {
         ) : metrics ? (
           <div className="space-y-6">
             <FunnelOverview metrics={metrics.funnel} source={effectiveSource} />
+
+            {metrics.sales && metrics.sales.total_bookings > 0 && (
+              <SalesOverview metrics={metrics.sales} />
+            )}
 
             <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-stretch">
               {isOutbound ? (

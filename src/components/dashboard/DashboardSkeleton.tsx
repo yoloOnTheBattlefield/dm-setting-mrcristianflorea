@@ -84,6 +84,42 @@ export function DashboardSkeleton() {
         </div>
       </div>
 
+      {/* ── Sales Performance ── */}
+      <div className="space-y-4">
+        <S className="h-5 w-36" delay="80ms" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="rounded-lg border bg-card p-4 shadow-sm flex flex-col items-center">
+              <S className="h-5 w-5 rounded-full mb-1.5" delay={`${90 + i * 30}ms`} />
+              <S className="h-7 w-16 mb-1" delay={`${100 + i * 30}ms`} />
+              <S className="h-3 w-20" delay={`${110 + i * 30}ms`} />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 rounded-lg border bg-card p-4 sm:p-6 shadow-sm">
+            <S className="h-4 w-36 mb-4" delay="200ms" />
+            <div className="h-[250px] flex items-end gap-2 pt-4">
+              <Bars bars={[60, 45, 75, 50]} baseDelay={220} />
+            </div>
+          </div>
+          <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm">
+            <S className="h-4 w-32 mb-4" delay="300ms" />
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <S className="h-2.5 w-2.5 rounded-full" delay={`${320 + i * 30}ms`} />
+                    <S className="h-3 w-16" delay={`${330 + i * 30}ms`} />
+                  </div>
+                  <S className="h-3 w-24" delay={`${340 + i * 30}ms`} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ── Three charts row ── */}
       <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-stretch">
         {/* VelocityChart — bar chart */}
