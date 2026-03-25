@@ -1,5 +1,14 @@
 # Features
 
+## Telegram Integration
+
+Telegram connection card in Settings > Integrations. Users provide a Bot Token and Chat ID to receive lead notifications.
+
+### Files
+
+- `src/pages/Integrations.tsx` — Telegram state management and connect/disconnect handlers
+- `src/components/integrations/ConnectionsSection.tsx` — Telegram card UI with bot token and chat ID inputs
+
 ## Infrastructure & DX Improvements
 
 Cross-cutting improvements to frontend and backend quality, security, performance, and developer experience.

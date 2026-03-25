@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Copy, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
+import { Copy, CheckCircle2, Loader2, AlertTriangle, Send } from "lucide-react";
 
 interface ConnectionsSectionProps {
   // Calendly
@@ -34,6 +34,15 @@ interface ConnectionsSectionProps {
   onStripeDisconnect: () => void;
   isSavingStripe: boolean;
   userGhl?: string;
+  // Telegram
+  telegramConnected: boolean;
+  telegramBotToken: string;
+  telegramChatId: string;
+  onTelegramBotTokenChange: (value: string) => void;
+  onTelegramChatIdChange: (value: string) => void;
+  onTelegramSave: () => void;
+  onTelegramDisconnect: () => void;
+  isSavingTelegram: boolean;
 }
 
 export default function ConnectionsSection({
@@ -55,6 +64,14 @@ export default function ConnectionsSection({
   onStripeDisconnect,
   isSavingStripe,
   userGhl,
+  telegramConnected,
+  telegramBotToken,
+  telegramChatId,
+  onTelegramBotTokenChange,
+  onTelegramChatIdChange,
+  onTelegramSave,
+  onTelegramDisconnect,
+  isSavingTelegram,
 }: ConnectionsSectionProps) {
   const stripeWebhookUrl = `https://quddify-server.vercel.app/api/stripe/webhook?account=${userGhl || "YOUR_ACCOUNT_ID"}`;
   return (
@@ -218,6 +235,76 @@ export default function ConnectionsSection({
                     </>
                   ) : (
                     "Connect Stripe"
+                  )}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+        {/* Telegram Integration Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Telegram</CardTitle>
+              {telegramConnected ? (
+                <Badge className="bg-green-500/15 text-green-500 border-green-500/30 gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Connected
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground gap-1">
+                  Not Connected
+                </Badge>
+              )}
+            </div>
+            <CardDescription>
+              Get notified on Telegram when new leads come in
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {telegramConnected ? (
+              <Button onClick={onTelegramDisconnect} variant="outline" className="w-full">
+                Disconnect Telegram
+              </Button>
+            ) : (
+              <>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Bot Token</Label>
+                  <Input
+                    value={telegramBotToken}
+                    onChange={(e) => onTelegramBotTokenChange(e.target.value)}
+                    placeholder="123456:ABC-DEF..."
+                    className="text-xs font-mono mt-1"
+                    type="password"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Chat ID</Label>
+                  <Input
+                    value={telegramChatId}
+                    onChange={(e) => onTelegramChatIdChange(e.target.value)}
+                    placeholder="-100123456789"
+                    className="text-xs font-mono mt-1"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    Create a bot via @BotFather, then get your chat ID from @userinfobot
+                  </p>
+                </div>
+                <Button
+                  onClick={onTelegramSave}
+                  disabled={!telegramBotToken.trim() || !telegramChatId.trim() || isSavingTelegram}
+                  className="w-full"
+                >
+                  {isSavingTelegram ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-3.5 w-3.5 mr-1.5" />
+                      Connect Telegram
+                    </>
                   )}
                 </Button>
               </>

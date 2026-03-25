@@ -70,6 +70,12 @@ export default function Integrations() {
   const [stripeSecret, setStripeSecret] = useState("");
   const [isSavingStripe, setIsSavingStripe] = useState(false);
 
+  // Telegram state
+  const [telegramConnected, setTelegramConnected] = useState(false);
+  const [telegramBotToken, setTelegramBotToken] = useState("");
+  const [telegramChatId, setTelegramChatId] = useState("");
+  const [isSavingTelegram, setIsSavingTelegram] = useState(false);
+
   // Instagram OAuth state
   const [igConnected, setIgConnected] = useState(false);
   const [igUsername, setIgUsername] = useState("");
@@ -122,6 +128,9 @@ export default function Integrations() {
         if (data?.ig_oauth) {
           setIgConnected(true);
           setIgUsername(data.ig_oauth.ig_username || "");
+        }
+        if (data?.telegram_connected) {
+          setTelegramConnected(true);
         }
       })
       .catch((err) => console.error("Failed to fetch integration status:", err));
@@ -375,6 +384,43 @@ export default function Integrations() {
     }
   };
 
+  const handleTelegramSave = async () => {
+    if (!telegramBotToken.trim() || !telegramChatId.trim()) return;
+    setIsSavingTelegram(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/telegram/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_token: telegramBotToken, chat_id: telegramChatId }),
+      });
+      if (res.ok) {
+        setTelegramConnected(true);
+        setTelegramBotToken("");
+        setTelegramChatId("");
+        toast({ title: "Telegram connected", description: "Test message sent to your chat" });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: "Failed to connect", description: data.error || "Check your bot token and chat ID", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Failed to connect", variant: "destructive" });
+    } finally {
+      setIsSavingTelegram(false);
+    }
+  };
+
+  const handleTelegramDisconnect = async () => {
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/telegram/disconnect`, { method: "DELETE" });
+      if (res.ok) {
+        setTelegramConnected(false);
+        toast({ title: "Telegram disconnected" });
+      }
+    } catch {
+      toast({ title: "Failed to disconnect", variant: "destructive" });
+    }
+  };
+
   const handleConnectInstagram = async () => {
     setIsConnectingIg(true);
     try {
@@ -547,6 +593,14 @@ export default function Integrations() {
         onStripeDisconnect={handleStripeDisconnect}
         isSavingStripe={isSavingStripe}
         userGhl={user?.ghl}
+        telegramConnected={telegramConnected}
+        telegramBotToken={telegramBotToken}
+        telegramChatId={telegramChatId}
+        onTelegramBotTokenChange={setTelegramBotToken}
+        onTelegramChatIdChange={setTelegramChatId}
+        onTelegramSave={handleTelegramSave}
+        onTelegramDisconnect={handleTelegramDisconnect}
+        isSavingTelegram={isSavingTelegram}
       />
 
       {/* Calendly Token Modal */}

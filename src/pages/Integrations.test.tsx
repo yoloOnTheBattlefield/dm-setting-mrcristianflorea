@@ -82,11 +82,11 @@ describe("Integrations — Status badges", () => {
     expect(screen.getByText("Disabled")).toBeInTheDocument();
   });
 
-  it("shows 'Not Connected' badges for Calendly and Instagram", () => {
+  it("shows 'Not Connected' badges for Calendly, Instagram, Stripe, and Telegram", () => {
     renderIntegrations();
 
     const notConnected = screen.getAllByText("Not Connected");
-    expect(notConnected.length).toBe(3);
+    expect(notConnected.length).toBe(4);
   });
 
   it("shows 'Ready' badge for ManyChat when API key exists", () => {
