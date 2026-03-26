@@ -1416,3 +1416,16 @@ Send pre-recorded audio voice notes via Instagram DM through the Chrome extensio
 
 - **`POST /api/voice-notes/upload`** — Form data: `audio` (file), `campaign_id` (optional), `duration_ms` (optional). Max 10MB, 60s. Returns `{ url, storage_key, original_filename, mime_type, file_size, duration_ms }`.
 - **`DELETE /api/voice-notes`** — Body: `{ storage_key }`. Deletes the audio file. Tenant-isolated by account prefix.
+
+## Campaign Senders Management (Modal)
+
+Add/remove outbound accounts directly from the Campaign Senders modal on the campaign detail page (`campaigns/:id`). Available when the campaign is in draft or paused status.
+
+### Files
+
+- `src/components/campaigns/CampaignDetail.tsx` — Senders modal with "Edit Senders" toggle, checkbox list of outbound accounts, save/cancel
+- `src/hooks/useCampaigns.ts` — `useUpdateCampaign` now invalidates `campaign-senders` query on success
+
+### API Routes
+
+- **`PATCH /api/campaigns/:id`** — Existing route; accepts `outbound_account_ids` to update which senders are assigned to the campaign (draft/paused only)

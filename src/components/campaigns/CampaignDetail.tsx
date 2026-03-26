@@ -75,8 +75,10 @@ import {
   useCampaignSenders,
   useMoveLeads,
   useCampaigns,
+  useUpdateCampaign,
 } from "@/hooks/useCampaigns";
 import type { CampaignSender } from "@/hooks/useCampaigns";
+import { useOutboundAccounts, type OutboundAccount } from "@/hooks/useOutboundAccounts";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 import { useAIPrompts, useCreateAIPrompt, useUpdateAIPrompt, useDeleteAIPrompt } from "@/hooks/useAIPrompts";
 import { Input } from "@/components/ui/input";
@@ -200,6 +202,8 @@ export default function CampaignDetail() {
     generated_message: string | null;
   } | null>(null);
   const [showSendersModal, setShowSendersModal] = useState(false);
+  const [editingSenders, setEditingSenders] = useState(false);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [showDuplicate, setShowDuplicate] = useState(false);
   const [dupLeadFilter, setDupLeadFilter] = useState("all");
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -208,6 +212,9 @@ export default function CampaignDetail() {
   });
 
   const { data: sendersData } = useCampaignSenders(campaignId ?? null, true);
+  const { data: outboundData } = useOutboundAccounts({ page: 1, limit: 200 });
+  const outboundAccounts = outboundData?.accounts ?? [];
+  const updateCampaignMutation = useUpdateCampaign();
 
   // Real-time ETA from scheduler (overrides polled data when a message is actually sent)
   const [socketEta, setSocketEta] = useState<{ nextInSeconds: number; receivedAt: number } | null>(null);
@@ -1824,12 +1831,104 @@ export default function CampaignDetail() {
       </Dialog>
 
       {/* Campaign Senders Modal */}
-      <Dialog open={showSendersModal} onOpenChange={setShowSendersModal}>
+      <Dialog
+        open={showSendersModal}
+        onOpenChange={(open) => {
+          setShowSendersModal(open);
+          if (!open) setEditingSenders(false);
+        }}
+      >
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Campaign Senders</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Campaign Senders</DialogTitle>
+              {campaign && (campaign.status === "draft" || campaign.status === "paused") && !editingSenders && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedAccountIds(campaign.outbound_account_ids);
+                    setEditingSenders(true);
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1" />
+                  Edit Senders
+                </Button>
+              )}
+            </div>
           </DialogHeader>
-          {sendersData && (
+
+          {editingSenders && campaign ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Select which outbound accounts to use for this campaign.
+              </p>
+              {outboundAccounts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No outbound accounts available.</p>
+              ) : (
+                <div className="space-y-1.5 border rounded-md p-3">
+                  {outboundAccounts.map((a) => (
+                    <label key={a._id} className="flex items-center gap-2 cursor-pointer py-1">
+                      <Checkbox
+                        checked={selectedAccountIds.includes(a._id)}
+                        onCheckedChange={() => {
+                          setSelectedAccountIds((prev) =>
+                            prev.includes(a._id)
+                              ? prev.filter((id) => id !== a._id)
+                              : [...prev, a._id]
+                          );
+                        }}
+                      />
+                      <span className="text-sm">@{a.username}</span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${
+                          a.status === "ready"
+                            ? "text-green-400 border-green-500/30"
+                            : a.status === "warming"
+                            ? "text-yellow-400 border-yellow-500/30"
+                            : "text-zinc-400 border-zinc-500/30"
+                        }`}
+                      >
+                        {a.status}
+                      </Badge>
+                      {a.linked_sender_status === "online" && (
+                        <span className="h-2 w-2 rounded-full bg-green-400 ml-auto" title="Browser connected" />
+                      )}
+                    </label>
+                  ))}
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="ghost" size="sm" onClick={() => setEditingSenders(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={updateCampaignMutation.isPending}
+                  onClick={async () => {
+                    try {
+                      await updateCampaignMutation.mutateAsync({
+                        id: campaign._id,
+                        body: { outbound_account_ids: selectedAccountIds },
+                      });
+                      queryClient.invalidateQueries({ queryKey: ["campaign-senders"] });
+                      toast({ title: "Senders updated", description: "Campaign senders have been updated." });
+                      setEditingSenders(false);
+                    } catch {
+                      toast({ title: "Error", description: "Failed to update senders.", variant: "destructive" });
+                    }
+                  }}
+                >
+                  {updateCampaignMutation.isPending ? (
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Saving...</>
+                  ) : (
+                    "Save"
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : sendersData ? (
             <div className="space-y-4">
               {/* Summary bar */}
               <div className="flex gap-4 text-sm">
@@ -1872,8 +1971,7 @@ export default function CampaignDetail() {
                 </Table>
               </div>
             </div>
-          )}
-          {!sendersData && (
+          ) : (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>

@@ -275,6 +275,7 @@ export function useUpdateCampaign() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
+      qc.invalidateQueries({ queryKey: ["campaign-senders"] });
     },
   });
 }
