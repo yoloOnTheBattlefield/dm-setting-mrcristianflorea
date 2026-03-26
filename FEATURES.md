@@ -9,6 +9,20 @@ Telegram connection card in Settings > Integrations. Users provide a Bot Token a
 - `src/pages/Integrations.tsx` — Telegram state management and connect/disconnect handlers
 - `src/components/integrations/ConnectionsSection.tsx` — Telegram card UI with bot token and chat ID inputs
 
+## Midnight Telegram Daily Report
+
+Automated daily report sent at midnight UTC via Telegram to all accounts with Telegram configured. Includes outbound stats (DMs sent, replies, booked), inbound stats (new leads, booked, closed), total bookings, and revenue.
+
+### Files
+
+- `services/midnightReportScheduler.js` — Cron job that queries daily stats and sends Telegram message
+- `services/midnightReportScheduler.test.js` — Unit tests
+
+### Cron Schedule
+
+- Runs at `0 0 * * *` (midnight UTC) via `node-cron`
+- Registered in `index.js` alongside other schedulers
+
 ## Infrastructure & DX Improvements
 
 Cross-cutting improvements to frontend and backend quality, security, performance, and developer experience.
