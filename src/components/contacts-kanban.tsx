@@ -22,6 +22,16 @@ import { Button } from "@/components/ui/button";
 import { Shimmer } from "@/components/skeletons";
 import { ApiLead } from "@/lib/types";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Ghost,
   CalendarCheck,
   Link2,
@@ -32,12 +42,14 @@ import {
   ExternalLink,
   MoreHorizontal,
   ChevronDown,
+  Trash2,
 } from "lucide-react";
 
 interface ContactsKanbanProps {
   contacts: ApiLead[];
   isLoading?: boolean;
   onMove?: (leadId: string, toStage: string) => void;
+  onDelete?: (leadId: string) => void;
 }
 
 const KANBAN_COLUMNS = [
@@ -115,8 +127,9 @@ function getAvatarColor(name: string): string {
 }
 
 // --- Draggable Card ---
-function KanbanCard({ lead, onMove }: { lead: ApiLead; onMove?: (leadId: string, toStage: string) => void }) {
+function KanbanCard({ lead, onMove, onDelete }: { lead: ApiLead; onMove?: (leadId: string, toStage: string) => void; onDelete?: (leadId: string) => void }) {
   const navigate = useNavigate();
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lead._id,
   });
@@ -230,6 +243,13 @@ function KanbanCard({ lead, onMove }: { lead: ApiLead; onMove?: (leadId: string,
                   <Ghost className="h-3.5 w-3.5 mr-2" /> Ghosted
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setDeleteConfirm(true)}
+                className="text-red-400 focus:text-red-400"
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Lead
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -239,6 +259,26 @@ function KanbanCard({ lead, onMove }: { lead: ApiLead; onMove?: (leadId: string,
       {stale && (
         <p className="text-[10px] text-amber-400/70 mt-1.5">Stale — no activity in {daysSince(lead.date_created)}d</p>
       )}
+
+      <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete lead?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this lead. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => onDelete?.(lead._id)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -269,11 +309,13 @@ function KanbanColumn({
   leads,
   totalCount,
   onMove,
+  onDelete,
 }: {
   column: typeof KANBAN_COLUMNS[number];
   leads: ApiLead[];
   totalCount: number;
   onMove?: (leadId: string, toStage: string) => void;
+  onDelete?: (leadId: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.key });
   const [expanded, setExpanded] = useState(false);
@@ -304,7 +346,7 @@ function KanbanColumn({
         ) : (
           <>
             {visibleLeads.map((lead) => (
-              <KanbanCard key={lead._id} lead={lead} onMove={onMove} />
+              <KanbanCard key={lead._id} lead={lead} onMove={onMove} onDelete={onDelete} />
             ))}
             {hiddenCount > 0 && !expanded && (
               <button
@@ -322,7 +364,7 @@ function KanbanColumn({
   );
 }
 
-export function ContactsKanban({ contacts, isLoading, onMove }: ContactsKanbanProps) {
+export function ContactsKanban({ contacts, isLoading, onMove, onDelete }: ContactsKanbanProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -407,6 +449,7 @@ export function ContactsKanban({ contacts, isLoading, onMove }: ContactsKanbanPr
             leads={grouped[col.key] || []}
             totalCount={(grouped[col.key] || []).length}
             onMove={onMove}
+            onDelete={onDelete}
           />
         ))}
       </div>

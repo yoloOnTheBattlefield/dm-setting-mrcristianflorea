@@ -944,6 +944,7 @@ export default function AllContacts() {
               contacts={contacts}
               isLoading={isLoading}
               onMove={handleKanbanMove}
+              onDelete={deleteLead}
             />
           )}
         </>
