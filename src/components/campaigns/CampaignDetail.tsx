@@ -1866,9 +1866,14 @@ export default function CampaignDetail() {
               {outboundAccounts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No outbound accounts available.</p>
               ) : (
-                <div className="space-y-1.5 border rounded-md p-3 overflow-y-auto min-h-0">
-                  {outboundAccounts.map((a) => (
-                    <label key={a._id} className="flex items-center gap-2 cursor-pointer py-1">
+                <div className="border rounded-md overflow-y-auto min-h-0">
+                  {outboundAccounts.map((a, i) => (
+                    <label
+                      key={a._id}
+                      className={`flex items-center gap-2.5 cursor-pointer px-3 py-2 transition-colors hover:bg-muted/50 ${
+                        i % 2 === 1 ? "bg-muted/25" : ""
+                      }`}
+                    >
                       <Checkbox
                         checked={selectedAccountIds.includes(a._id)}
                         onCheckedChange={() => {
@@ -1879,6 +1884,11 @@ export default function CampaignDetail() {
                           );
                         }}
                       />
+                      {a.linked_sender_status === "online" ? (
+                        <span className="h-2 w-2 rounded-full bg-green-400 shrink-0" title="Browser connected" />
+                      ) : (
+                        <span className="h-2 w-2 rounded-full bg-zinc-500 shrink-0" title="Browser offline" />
+                      )}
                       <span className="text-sm">@{a.username}</span>
                       <Badge
                         variant="outline"
@@ -1892,14 +1902,9 @@ export default function CampaignDetail() {
                       >
                         {a.status}
                       </Badge>
-                      <span className="flex items-center gap-1.5 ml-auto">
-                        {a.isConnectedToAISetter && (
-                          <Sparkles className="h-3.5 w-3.5 text-purple-400" title="AI connected" />
-                        )}
-                        {a.linked_sender_status === "online" && (
-                          <span className="h-2 w-2 rounded-full bg-green-400" title="Browser connected" />
-                        )}
-                      </span>
+                      {a.isConnectedToAISetter && (
+                        <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" title="AI connected" />
+                      )}
                     </label>
                   ))}
                 </div>
