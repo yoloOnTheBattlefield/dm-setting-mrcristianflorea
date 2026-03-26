@@ -212,8 +212,8 @@ export default function CampaignDetail() {
   });
 
   const { data: sendersData } = useCampaignSenders(campaignId ?? null, true);
-  const { data: outboundData } = useOutboundAccounts({ page: 1, limit: 200 });
-  const outboundAccounts = outboundData?.accounts ?? [];
+  const { data: outboundData } = useOutboundAccounts({ page: 1, limit: 500, isBlacklisted: "false" });
+  const outboundAccounts = (outboundData?.accounts ?? []).filter((a) => a.status !== "disabled");
   const updateCampaignMutation = useUpdateCampaign();
 
   // Real-time ETA from scheduler (overrides polled data when a message is actually sent)
