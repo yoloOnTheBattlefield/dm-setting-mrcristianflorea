@@ -1838,8 +1838,8 @@ export default function CampaignDetail() {
           if (!open) setEditingSenders(false);
         }}
       >
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
             <div className="flex items-center justify-between">
               <DialogTitle>Campaign Senders</DialogTitle>
               {campaign && (campaign.status === "draft" || campaign.status === "paused") && !editingSenders && (
@@ -1859,14 +1859,14 @@ export default function CampaignDetail() {
           </DialogHeader>
 
           {editingSenders && campaign ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col min-h-0 gap-4">
+              <p className="text-sm text-muted-foreground shrink-0">
                 Select which outbound accounts to use for this campaign.
               </p>
               {outboundAccounts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No outbound accounts available.</p>
               ) : (
-                <div className="space-y-1.5 border rounded-md p-3">
+                <div className="space-y-1.5 border rounded-md p-3 overflow-y-auto min-h-0">
                   {outboundAccounts.map((a) => (
                     <label key={a._id} className="flex items-center gap-2 cursor-pointer py-1">
                       <Checkbox
@@ -1892,14 +1892,19 @@ export default function CampaignDetail() {
                       >
                         {a.status}
                       </Badge>
-                      {a.linked_sender_status === "online" && (
-                        <span className="h-2 w-2 rounded-full bg-green-400 ml-auto" title="Browser connected" />
-                      )}
+                      <span className="flex items-center gap-1.5 ml-auto">
+                        {a.isConnectedToAISetter && (
+                          <Sparkles className="h-3.5 w-3.5 text-purple-400" title="AI connected" />
+                        )}
+                        {a.linked_sender_status === "online" && (
+                          <span className="h-2 w-2 rounded-full bg-green-400" title="Browser connected" />
+                        )}
+                      </span>
                     </label>
                   ))}
                 </div>
               )}
-              <DialogFooter>
+              <DialogFooter className="shrink-0">
                 <Button variant="ghost" size="sm" onClick={() => setEditingSenders(false)}>
                   Cancel
                 </Button>
@@ -1929,9 +1934,9 @@ export default function CampaignDetail() {
               </DialogFooter>
             </div>
           ) : sendersData ? (
-            <div className="space-y-4">
+            <div className="flex flex-col min-h-0 gap-4">
               {/* Summary bar */}
-              <div className="flex gap-4 text-sm">
+              <div className="flex gap-4 text-sm shrink-0">
                 <span>Total: <span className="font-medium">{sendersData.summary.total}</span></span>
                 <span>Online: <span className="font-medium text-green-400">{sendersData.summary.online}</span></span>
                 <span>Offline: <span className="font-medium text-muted-foreground">{sendersData.summary.offline}</span></span>
@@ -1941,7 +1946,7 @@ export default function CampaignDetail() {
               </div>
 
               {/* Senders table */}
-              <div className="rounded-lg border bg-card">
+              <div className="rounded-lg border bg-card overflow-auto min-h-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
