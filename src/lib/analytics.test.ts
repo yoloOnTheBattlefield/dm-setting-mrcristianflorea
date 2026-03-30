@@ -130,8 +130,8 @@ describe("calculateGhostingBuckets", () => {
         ghostedDate: new Date(now.getTime() + 2 * 3600 * 1000).toISOString(), // same day
       }),
       makeContact({
-        dateCreated: daysAgo(3),
-        ghostedDate: daysAgo(1), // 2 days later
+        dateCreated: daysAgo(5),
+        ghostedDate: daysAgo(2), // 3 days later
       }),
     ];
     const result = calculateGhostingBuckets(contacts, 30);

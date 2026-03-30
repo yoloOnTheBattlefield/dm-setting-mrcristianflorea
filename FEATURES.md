@@ -1,5 +1,22 @@
 # Features
 
+## Outbound Lead Detail Page
+
+Detail page for outbound leads with contact info, pipeline stepper, IG DM conversation, notes, and deal info. Accessible by clicking any row in the outbound leads table.
+
+### Files
+
+- `src/pages/OutboundLeadDetail.tsx` — Main detail page with sidebar (contact, bio, deal) and right panel (notes composer, outbound DM, conversation, notes list)
+- `src/hooks/useOutboundLeadDetail.ts` — Hook to fetch/update a single outbound lead via `GET/PATCH /outbound-leads/:id`
+- `src/routes/outboundRoutes.tsx` — Route `/outbound-leads/:id`
+- `src/pages/OutboundLeads.tsx` — Table rows and mobile cards made clickable to navigate to detail
+
+### API Routes
+
+- `GET /outbound-leads/:id` — Fetch single outbound lead
+- `PATCH /outbound-leads/:id` — Update outbound lead fields
+- `GET /api/ig-conversations/by-lead/:id` — Fetch IG conversation by outbound lead ID
+
 ## Telegram Integration
 
 Telegram connection card in Settings > Integrations. Users provide a Bot Token and Chat ID to receive lead notifications.
@@ -1443,3 +1460,16 @@ Add/remove outbound accounts directly from the Campaign Senders modal on the cam
 ### API Routes
 
 - **`PATCH /api/campaigns/:id`** — Existing route; accepts `outbound_account_ids` to update which senders are assigned to the campaign (draft/paused only)
+
+## Source Analytics
+
+Shows which scraping source (seed account or import method) produces the best leads. A "Sources" tab in Outbound Analytics displays per-source funnel metrics: sent, replied, link sent, booked, revenue, reply rate, book rate, and average lead score.
+
+### Files
+
+- `src/pages/OutboundAnalytics.tsx` — Sources tab with sortable table
+- `src/hooks/useOutboundAnalytics.ts` — `useSourceAnalytics` hook + `SourcePerformance` interface
+
+### API Routes
+
+- **`GET /api/analytics/outbound/sources`** — Aggregates outbound leads by `source_seeds` / `source` field, returns per-source funnel metrics. Supports `start_date`, `end_date`, `campaign_id` query params.

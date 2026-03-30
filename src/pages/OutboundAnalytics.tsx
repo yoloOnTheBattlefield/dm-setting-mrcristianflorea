@@ -18,6 +18,7 @@ import {
   useQuestionTypes,
   useScoreBreakdown,
   useWeeklyHeatmap,
+  useSourceAnalytics,
   OutboundFunnelData,
 } from "@/hooks/useOutboundAnalytics";
 import { useCampaigns } from "@/hooks/useCampaigns";
@@ -68,6 +69,7 @@ import {
   MessageSquare,
   Link2,
   BarChart3,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -278,6 +280,12 @@ export default function OutboundAnalytics() {
   const { data: campaignsAnalytics, isLoading: campaignsAnalyticsLoading } =
     useCampaignAnalytics(filterParams);
   const { data: dailyData } = useDailyActivity(filterParams);
+  const currentYear = new Date().getFullYear();
+  const { data: heatmapDailyData } = useDailyActivity({
+    start_date: `${currentYear}-01-01`,
+    end_date: `${currentYear}-12-31`,
+    campaign_id: cid,
+  });
   const { data: responseSpeedData } = useResponseSpeed(filterParams);
   const { data: conversationDepthData } = useConversationDepth(filterParams);
   const { data: aiModelsData, isLoading: aiModelsLoading } =
@@ -297,6 +305,8 @@ export default function OutboundAnalytics() {
     useQuestionTypes(filterParams);
   const { data: scoreData, isLoading: scoreLoading } =
     useScoreBreakdown(filterParams);
+  const { data: sourcesData, isLoading: sourcesLoading } =
+    useSourceAnalytics(filterParams);
   const [weeklyHeatmapMetric, setWeeklyHeatmapMetric] = useState("sent");
   const { data: weeklyHeatmapData, isLoading: weeklyHeatmapLoading } =
     useWeeklyHeatmap({ ...filterParams, metric: weeklyHeatmapMetric });
@@ -306,6 +316,7 @@ export default function OutboundAnalytics() {
   const senders = sendersData?.senders || [];
   const campaignPerf = campaignsAnalytics?.campaigns || [];
   const dailyDays = dailyData?.days || [];
+  const heatmapDays = heatmapDailyData?.days || [];
   const aiModels = aiModelsData?.models || [];
   const todHours = todData?.hours || [];
   const trends = trendData?.trends || [];
@@ -313,6 +324,7 @@ export default function OutboundAnalytics() {
   const promptLabels = promptLabelsData?.labels || [];
   const questionTypes = questionTypesData?.types || [];
   const scoreTiers = scoreData?.tiers || [];
+  const sourcePerf = sourcesData?.sources || [];
   const insightsLoading = tiersLoading || labelsLoading || questionTypesLoading || scoreLoading;
 
   const latestAIHealth = aiReports?.[0]?.report?.overall_health;
@@ -411,6 +423,10 @@ export default function OutboundAnalytics() {
               <TabsTrigger value="campaigns" className="gap-1.5">
                 <Megaphone className="h-3.5 w-3.5" />
                 Campaigns
+              </TabsTrigger>
+              <TabsTrigger value="sources" className="gap-1.5">
+                <Globe className="h-3.5 w-3.5" />
+                Sources
               </TabsTrigger>
               <TabsTrigger value="ai-models" className="gap-1.5">
                 <Sparkles className="h-3.5 w-3.5" />
@@ -597,7 +613,7 @@ export default function OutboundAnalytics() {
                   open={showHeatmap}
                   onToggle={() => setShowHeatmap(!showHeatmap)}
                 >
-                  <ActivityHeatmap data={dailyDays} />
+                  <ActivityHeatmap data={heatmapDays} />
                 </CollapsibleSection>
 
                 <WeeklyHeatmap
@@ -911,6 +927,83 @@ export default function OutboundAnalytics() {
                             ) : (
                               <span className="text-[#A0AEC0]">—</span>
                             )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ─── Sources Tab ─── */}
+          <TabsContent value="sources">
+            {sourcesLoading ? (
+              <DashboardSkeleton />
+            ) : (
+              <div className="rounded-lg border bg-card overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Source</TableHead>
+                      <TableHead className="text-right">Sent</TableHead>
+                      <TableHead className="text-right">Replied</TableHead>
+                      <TableHead className="text-right">Reply Rate</TableHead>
+                      <TableHead className="text-right">Link Sent</TableHead>
+                      <TableHead className="text-right">Booked</TableHead>
+                      <TableHead className="text-right">Book Rate</TableHead>
+                      <TableHead className="text-right">Revenue</TableHead>
+                      <TableHead className="text-right">Avg Score</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sourcePerf.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="h-24 text-center">
+                          No source data available.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      sourcePerf.map((s) => (
+                        <TableRow key={s.source}>
+                          <TableCell className="font-medium">
+                            {s.source === "unknown" ? (
+                              <span className="text-muted-foreground italic">Unknown</span>
+                            ) : s.source === "import" || s.source === "xlsx-import" ? (
+                              s.source
+                            ) : (
+                              `@${s.source}`
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">{s.sent}</TableCell>
+                          <TableCell className="text-right">{s.replied}</TableCell>
+                          <TableCell
+                            className={`text-right font-medium ${rateColor(s.reply_rate)}`}
+                          >
+                            {fmtRate(s.reply_rate)}
+                          </TableCell>
+                          <TableCell className="text-right">{s.link_sent}</TableCell>
+                          <TableCell
+                            className={cn(
+                              "text-right",
+                              s.booked === 0 && "text-[#A0AEC0]",
+                            )}
+                          >
+                            {s.booked}
+                          </TableCell>
+                          <TableCell
+                            className={`text-right font-medium ${rateColor(s.book_rate)}`}
+                          >
+                            {fmtRate(s.book_rate)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {s.contract_value > 0
+                              ? `$${s.contract_value.toLocaleString()}`
+                              : "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {s.avg_score != null ? s.avg_score.toFixed(1) : "—"}
                           </TableCell>
                         </TableRow>
                       ))

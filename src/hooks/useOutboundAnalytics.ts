@@ -408,6 +408,34 @@ export function useScoreBreakdown(params?: AnalyticsParams) {
   });
 }
 
+// --- Source Analytics ---
+
+export interface SourcePerformance {
+  source: string;
+  sent: number;
+  replied: number;
+  link_sent: number;
+  booked: number;
+  contracts: number;
+  contract_value: number;
+  reply_rate: number;
+  link_sent_rate: number;
+  book_rate: number;
+  avg_score: number | null;
+}
+
+export function useSourceAnalytics(params?: AnalyticsParams) {
+  return useQuery({
+    queryKey: ["analytics-sources", params?.start_date, params?.end_date, params?.campaign_id],
+    queryFn: async (): Promise<{ sources: SourcePerformance[] }> => {
+      const res = await fetchWithAuth(buildUrl("/analytics/outbound/sources", params));
+      if (!res.ok) throw new Error(`Failed to fetch source analytics: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
 // --- Weekly Heatmap ---
 
 export interface WeeklyHeatmapCell {
