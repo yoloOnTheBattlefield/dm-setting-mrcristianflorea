@@ -161,15 +161,6 @@ describe("OutboundLeadDetail", () => {
     }
   });
 
-  it("shows outbound DM message", async () => {
-    mockAllFetches();
-    renderPage();
-
-    await waitFor(() => {
-      expect(screen.getByText("Hey Jane! Love your content.")).toBeInTheDocument();
-    });
-  });
-
   it("shows DM conversation messages", async () => {
     mockAllFetches();
     renderPage();

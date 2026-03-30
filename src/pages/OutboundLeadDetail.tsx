@@ -195,7 +195,7 @@ export default function OutboundLeadDetail() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="space-y-4 pb-8">
+      <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
         {/* Back nav */}
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
@@ -504,28 +504,6 @@ export default function OutboundLeadDetail() {
               </CardContent>
             </Card>
 
-            {/* DM that was sent */}
-            {lead.message && (
-              <Card>
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <Send className="h-3.5 w-3.5" />
-                    Outbound DM
-                    {lead.dmDate && (
-                      <span className="ml-auto font-normal normal-case text-muted-foreground/60">
-                        {formatShortDate(lead.dmDate)}
-                      </span>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="rounded-2xl bg-primary text-primary-foreground px-3 py-2 text-sm ml-auto max-w-[80%] rounded-tr-sm">
-                    {lead.message}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* DM Conversation */}
             {conversationData?.messages && conversationData.messages.length > 0 && (
               <Card>
@@ -581,7 +559,7 @@ export default function OutboundLeadDetail() {
             )}
 
             {/* No conversation state */}
-            {!conversationQuery.isLoading && (!conversationData?.messages || conversationData.messages.length === 0) && !lead.message && (
+            {!conversationQuery.isLoading && (!conversationData?.messages || conversationData.messages.length === 0) && (
               <Card>
                 <CardContent className="p-6 text-center text-sm text-muted-foreground">
                   <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-40" />
