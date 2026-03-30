@@ -797,7 +797,12 @@ export default function OutboundLeads() {
                   return (
                     <div
                       key={lead._id}
-                      className={`rounded-lg border bg-card${selectAll || selectedIds.has(lead._id) ? " bg-muted" : ""}`}
+                      className={`rounded-lg border bg-card cursor-pointer${selectAll || selectedIds.has(lead._id) ? " bg-muted" : ""}`}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.closest("button, a, input, [role=checkbox], [role=menuitem]")) return;
+                        navigate(`/outbound-leads/${lead._id}`);
+                      }}
                     >
                       {/* Primary row: checkbox, avatar, name, status badge */}
                       <div className="flex items-center gap-3 px-3 py-2.5">
@@ -1012,12 +1017,17 @@ export default function OutboundLeads() {
                       return (
                         <TableRow
                           key={lead._id}
-                          className="group"
+                          className="group cursor-pointer"
                           data-state={
                             selectedIds.has(lead._id) || selectAll
                               ? "selected"
                               : undefined
                           }
+                          onClick={(e) => {
+                            const target = e.target as HTMLElement;
+                            if (target.closest("button, a, input, [role=checkbox], [role=menuitem]")) return;
+                            navigate(`/outbound-leads/${lead._id}`);
+                          }}
                         >
                           <TableCell>
                             <Checkbox

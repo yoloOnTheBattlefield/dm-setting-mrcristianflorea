@@ -123,11 +123,10 @@ describe("calculateGhostingBuckets", () => {
   });
 
   it("categorizes ghosts by time to ghost", () => {
-    const now = new Date();
     const contacts = [
       makeContact({
-        dateCreated: now.toISOString(),
-        ghostedDate: new Date(now.getTime() + 2 * 3600 * 1000).toISOString(), // same day
+        dateCreated: daysAgo(1),
+        ghostedDate: daysAgo(1), // same day (< 24h)
       }),
       makeContact({
         dateCreated: daysAgo(5),

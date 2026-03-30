@@ -15,11 +15,13 @@ const OutboundAnalytics = lazyRetry(() => import("@/pages/OutboundAnalytics"));
 const Scraper = lazyRetry(() => import("@/pages/Scraper"));
 const DeepScraper = lazyRetry(() => import("@/pages/DeepScraper"));
 const CommentPost = lazyRetry(() => import("@/pages/CommentPost"));
+const OutboundLeadDetail = lazyRetry(() => import("@/pages/OutboundLeadDetail"));
 
 export const outboundRoutes: RouteObject[] = [
   { path: "/contacts/upload", element: outboundPage(UploadXlsx) },
   { path: "/outbound-leads", element: outboundPage(OutboundLeads) },
   { path: "/outbound-leads/import", element: outboundPage(ImportOutboundLeads) },
+  { path: "/outbound-leads/:id", element: outboundPage(OutboundLeadDetail) },
   { path: "/follow-ups", element: outboundPage(FollowUps) },
   { path: "/prompts", element: outboundPage(Prompts) },
   { path: "/outbound-accounts", element: outboundPage(OutboundAccounts) },
