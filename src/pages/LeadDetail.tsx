@@ -97,6 +97,7 @@ import {
   useDeleteLeadTask,
 } from "@/hooks/useLeadTasks";
 import { useLeadConversation } from "@/hooks/useLeadConversation";
+import { useGhlConversation } from "@/hooks/useGhlConversation";
 import { useLeadPayments } from "@/hooks/usePayments";
 
 // ---------------------------------------------------------------------------
@@ -503,6 +504,7 @@ export default function LeadDetail() {
   const { data: notes = [] } = useLeadNotes(lead?._id);
   const { data: tasks = [] } = useLeadTasks(lead?._id);
   const { data: conversationData } = useLeadConversation(lead?._id);
+  const { data: ghlConversation } = useGhlConversation(lead?._id);
   const { data: payments = [] } = useLeadPayments(lead?._id);
   const [linkConvOpen, setLinkConvOpen] = useState(false);
   const { data: allConversations } = useQuery<{ conversations: import("@/lib/types").IgConversation[] }>({
@@ -1597,7 +1599,7 @@ export default function LeadDetail() {
             )}
 
             {/* DM Conversation — link prompt when none found */}
-            {conversationData === null && (
+            {conversationData === null && !(ghlConversation?.messages?.length) && (
               <Card>
                 <CardContent className="px-4 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1691,6 +1693,48 @@ export default function LeadDetail() {
                       Showing {conversationData.messages.length} of {conversationData.total} messages
                     </p>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* GHL AI Conversation (from chat_memory) */}
+            {!conversationData?.messages?.length && ghlConversation?.messages && ghlConversation.messages.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    DM Conversation
+                    <span className="ml-auto font-normal normal-case text-muted-foreground/60">
+                      {ghlConversation.total} message{ghlConversation.total !== 1 ? "s" : ""}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+                    {ghlConversation.messages.map((msg) => (
+                      <div
+                        key={msg._id}
+                        className={cn(
+                          "flex flex-col max-w-[80%]",
+                          msg.direction === "outbound" ? "ml-auto items-end" : "items-start"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "rounded-2xl px-3 py-2 text-sm",
+                            msg.direction === "outbound"
+                              ? "bg-primary text-primary-foreground rounded-tr-sm"
+                              : "bg-muted rounded-tl-sm"
+                          )}
+                        >
+                          {msg.text}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground/60 mt-0.5 px-1">
+                          {msg.role === "bot" ? "AI Bot" : "Lead"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             )}

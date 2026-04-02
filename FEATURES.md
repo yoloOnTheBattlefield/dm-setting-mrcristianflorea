@@ -1,5 +1,22 @@
 # Features
 
+## GHL Inbound DM Conversation Storage
+
+Receives and stores the full AI chatbot conversation (`chat_memory`) from GoHighLevel workflows via webhook. The conversation is parsed into User/Bot messages and displayed as a chat thread on the inbound lead detail page.
+
+### Files
+
+- `models/Lead.js` — Added `chat_memory` field to store raw GHL conversation text
+- `routes/ghl-webhook.js` — `POST /api/ghl/conversation` webhook endpoint
+- `routes/leads.js` — `GET /leads/:id/ghl-conversation` endpoint (parses chat_memory into messages)
+- `src/hooks/useGhlConversation.ts` — Frontend hook to fetch parsed GHL conversation
+- `src/pages/LeadDetail.tsx` — Displays GHL conversation as chat bubbles when no IG conversation is linked
+
+### API Routes
+
+- `POST /api/ghl/conversation` — Webhook for GHL to POST chat_memory (open, no auth)
+- `GET /leads/:id/ghl-conversation` — Returns parsed User/Bot messages from chat_memory
+
 ## Outbound Lead Detail Page
 
 Detail page for outbound leads with contact info, pipeline stepper, IG DM conversation, notes, and deal info. Accessible by clicking any row in the outbound leads table.
