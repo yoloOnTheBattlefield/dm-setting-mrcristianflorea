@@ -105,6 +105,7 @@ export default function AllContacts() {
     contract_value: "",
     status: "new" as LeadStatus,
     summary: "",
+    source: "",
   });
 
   const resetLeadForm = () => {
@@ -117,6 +118,7 @@ export default function AllContacts() {
       contract_value: "",
       status: "new",
       summary: "",
+      source: "",
     });
   };
 
@@ -136,6 +138,7 @@ export default function AllContacts() {
       if (leadForm.score && leadForm.score !== "none") body.score = Number(leadForm.score);
       if (leadForm.contract_value) body.contract_value = Number(leadForm.contract_value);
       if (leadForm.summary.trim()) body.summary = leadForm.summary.trim();
+      if (leadForm.source.trim()) body.source = leadForm.source.trim();
 
       if (leadForm.status === "link_sent" || leadForm.status === "booked" || leadForm.status === "closed") {
         body.link_sent_at = now;
@@ -994,6 +997,15 @@ export default function AllContacts() {
                 value={leadForm.contact_id}
                 onChange={(e) => setLeadForm((f) => ({ ...f, contact_id: e.target.value }))}
                 placeholder="@handle"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="lead-source">Source</Label>
+              <Input
+                id="lead-source"
+                value={leadForm.source}
+                onChange={(e) => setLeadForm((f) => ({ ...f, source: e.target.value }))}
+                placeholder="e.g. Instagram, Referral, Website..."
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
