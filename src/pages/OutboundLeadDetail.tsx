@@ -558,8 +558,47 @@ export default function OutboundLeadDetail() {
               </Card>
             )}
 
+            {/* GHL AI Conversation (from linked inbound lead) */}
+            {lead?.inbound_lead?.ghl_messages && lead.inbound_lead.ghl_messages.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    GHL AI Conversation
+                    <span className="ml-auto font-normal normal-case text-muted-foreground/60">
+                      {lead.inbound_lead.ghl_messages.length} message{lead.inbound_lead.ghl_messages.length !== 1 ? "s" : ""}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+                    {lead.inbound_lead.ghl_messages.map((msg) => (
+                      <div
+                        key={msg._id}
+                        className={cn(
+                          "flex flex-col max-w-[80%]",
+                          msg.direction === "outbound" ? "ml-auto items-end" : "items-start"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "rounded-2xl px-3 py-2 text-sm",
+                            msg.direction === "outbound"
+                              ? "bg-primary text-primary-foreground rounded-tr-sm"
+                              : "bg-muted rounded-tl-sm"
+                          )}
+                        >
+                          {msg.message_text}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* No conversation state */}
-            {!conversationQuery.isLoading && (!conversationData?.messages || conversationData.messages.length === 0) && (
+            {!conversationQuery.isLoading && (!conversationData?.messages || conversationData.messages.length === 0) && !lead?.inbound_lead?.ghl_messages?.length && (
               <Card>
                 <CardContent className="p-6 text-center text-sm text-muted-foreground">
                   <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-40" />

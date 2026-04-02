@@ -39,6 +39,15 @@ export interface OutboundLeadDetail {
   source_seeds: string[];
   createdAt: string;
   updatedAt: string;
+  inbound_lead?: {
+    _id: string;
+    first_conversation_at: string | null;
+    last_conversation_at: string | null;
+    conversation_count: number;
+    ig_username: string | null;
+    contact_id: string | null;
+    ghl_messages: { _id: string; direction: "inbound" | "outbound"; message_text: string }[];
+  } | null;
 }
 
 const BASE_URL = `${API_URL}/outbound-leads`;
