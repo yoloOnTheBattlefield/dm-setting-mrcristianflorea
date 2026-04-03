@@ -1490,3 +1490,95 @@ Shows which scraping source (seed account or import method) produces the best le
 ### API Routes
 
 - **`GET /api/analytics/outbound/sources`** — Aggregates outbound leads by `source_seeds` / `source` field, returns per-source funnel metrics. Supports `start_date`, `end_date`, `campaign_id` query params.
+
+## Calendly Auto-Booking + Cancellation Handling
+
+Calendly webhook now automatically creates Booking records when someone books a call (`invitee.created`), and cancels them when the invitee cancels (`invitee.canceled`). The webhook also auto-links new inbound leads to existing outbound leads by matching email or IG username from Calendly Q&A answers. UTM params (utm_source, utm_medium, utm_campaign) are propagated from Calendly to both the Lead and Booking records.
+
+### Files
+
+- `models/Booking.js` — Added `calendly_event_uri`, `calendly_invitee_uri`, `utm_campaign`, `fathom_recording_url`, `fathom_recording_id` fields; sparse index on `calendly_event_uri`
+- `routes/calendly.js` — Refactored `resolveAccount` → `resolveAccountAndEvent` to also fetch event start time; added `upsertBooking`, `tryLinkOutboundLead`, `fetchCalendlyEvent` helpers; cancellation handler; webhook subscription now includes `invitee.canceled`
+
+### API Routes
+
+- **`POST /api/calendly`** — Handles `invitee.created` (creates Lead + Booking, auto-links outbound) and `invitee.canceled` (cancels Booking)
+- **`POST /calendly/add`** — Now subscribes to both `invitee.created` and `invitee.canceled` events
+
+## Source-Based Booking Analytics (Show Rate / Close Rate by Channel)
+
+Booking analytics endpoint now returns a `by_channel` breakdown that normalizes `utm_source` values (ig→Instagram, li→LinkedIn, yt→YouTube, etc.) and computes per-channel show rate, close rate, and revenue. The BookingAnalytics page now includes a date range filter and a "Performance by Channel" section with a grouped bar chart and detailed table.
+
+### Files
+
+- `routes/bookings.js` — Added `normalizeChannel` helper and `by_channel` array to `GET /bookings/analytics` response
+- `src/pages/BookingAnalytics.tsx` — Added date range filter (DateFilter component), channel performance bar chart (show rate vs close rate), and channel breakdown table
+- `src/hooks/useBookings.ts` — Added `ChannelMetrics` interface and `by_channel` to `BookingAnalytics` type
+
+### API Routes
+
+- **`GET /api/bookings/analytics`** — Now returns `by_channel` array with: channel, bookings, completed, no_show, show_rate, close_rate, revenue. Supports `start_date`, `end_date` query params.
+
+## ClickUp Error Reporting
+
+Automatically reports all 500-level server errors to a dedicated ClickUp list as tasks. Each task includes the HTTP method, URL, request ID, error message, and full stack trace. Errors are deduplicated within a 30-minute window to prevent flooding.
+
+### Files
+
+- `utils/clickupErrorReporter.js` — Fire-and-forget function that creates ClickUp tasks for server errors with deduplication
+- `middleware/errorHandler.js` — Integrated ClickUp reporting for all 5xx errors
+- `utils/clickupErrorReporter.test.js` — Unit tests for error reporter
+
+### API Routes
+
+- Uses ClickUp API: `POST https://api.clickup.com/api/v2/list/{CLICKUP_ERROR_LIST_ID}/task`
+
+### Environment Variables
+
+- `CLICKUP_API_TOKEN` — ClickUp personal API token
+- `CLICKUP_ERROR_LIST_ID` — ClickUp list ID for error tasks (currently: 901522601770)
+
+## Lead Detail UI Improvements (Inbound + Outbound)
+
+Comprehensive UI polish for both lead detail pages covering pipeline stepper clarity, layout hierarchy, conversation readability, and activity feed expressiveness.
+
+### Changes
+
+**Pipeline Stepper (Inbound)**
+- Added per-stage icons (CircleDot, Link, CalendarClock, CalendarCheck, CheckCircle) matching the outbound pattern
+- Icons collapse to icon-only on mobile, label visible on `sm+`
+- Improved tooltip copy: completed stages now say "click to reset to X"
+
+**Pipeline Stepper (Outbound)**
+- Added hover tooltips to each stage for discoverability
+
+**Header — Overdue Deduplication (Inbound)**
+- Removed redundant follow-up badge from header when a scheduled (non-overdue) follow-up exists — the NextActionBanner below already shows that info
+- Header badge now only appears for **overdue** follow-ups as a compact "Overdue" tag
+
+**Left Sidebar (Both)**
+- Made sidebar sticky on desktop (`lg:sticky lg:top-4`) so contact/deal info stays visible while scrolling
+- Increased grid gap from `gap-4` to `gap-6` for better breathing room (outbound)
+
+**Contact Card (Inbound)**
+- Hidden "Last Contacted: Never" — empty field no longer shown
+- Added tooltip to Score label: "Deal priority (1-5)" with explanation
+
+**Summary Cards (Inbound)**
+- Dash-list bullet items (`- item`) now render as proper styled bullet lists with dot indicators
+- Non-bullet text still renders as plain paragraphs
+
+**DM Conversations (Both)**
+- GHL AI bot messages now show a small purple "AI" badge directly on the message bubble (instead of below)
+- "Showing X of Y messages" now has a clearer visual separator (border-top + centered)
+
+**Activity Feed (Inbound)**
+- Replaced plain colored dots with contextual icons in colored circular backgrounds per event type:
+  - Notes → StickyNote (blue), Tasks → SquareCheckBig (green), Payments → DollarSign (green)
+  - Stage events → matching pipeline icon (Link, CalendarClock, CalendarCheck, CheckCircle, Ghost)
+- Removed redundant inline icons from task-completed and payment activity items
+
+### Files
+
+- `src/pages/LeadDetail.tsx` — All inbound improvements
+- `src/pages/OutboundLeadDetail.tsx` — Outbound improvements (sticky sidebar, bot badges, tooltips, load-more CTA)

@@ -33,6 +33,11 @@ import {
   Copy,
   AlertTriangle,
   Keyboard,
+  Bot,
+  CircleDot,
+  Link as LinkIcon,
+  CalendarCheck,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -137,16 +142,33 @@ function SummarySections({ html }: { html: string }) {
 
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      {entries.map(([title, content]) => (
-        <div key={title} className="rounded-lg border bg-muted/30 p-3 space-y-1">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {title}
-          </h4>
-          <p className="text-sm leading-relaxed whitespace-pre-line">
-            {String(content)}
-          </p>
-        </div>
-      ))}
+      {entries.map(([title, content]) => {
+        // Convert raw dash-lists to proper bullet formatting
+        const lines = String(content).split("\n").filter(Boolean);
+        const hasBullets = lines.some((l) => /^[-•]\s/.test(l.trim()));
+        return (
+          <div key={title} className="rounded-lg border bg-muted/30 p-3 space-y-1.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {title}
+            </h4>
+            {hasBullets ? (
+              <ul className="text-sm leading-relaxed space-y-0.5 list-none">
+                {lines.map((line, i) => {
+                  const cleaned = line.trim().replace(/^[-•]\s*/, "");
+                  return (
+                    <li key={i} className="flex items-start gap-1.5">
+                      <span className="text-muted-foreground mt-1.5 shrink-0 h-1 w-1 rounded-full bg-muted-foreground/50" />
+                      <span>{cleaned}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-sm leading-relaxed whitespace-pre-line">{String(content)}</p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -171,11 +193,11 @@ function getScoreInfo(score: number | null | undefined): {
 
 // Pipeline stages in order
 const PIPELINE_STAGES = [
-  { key: "new", label: "New", field: null, bg: "bg-slate-500", ring: "ring-slate-500", text: "text-slate-500" },
-  { key: "link_sent", label: "Link Sent", field: "link_sent_at", bg: "bg-blue-500", ring: "ring-blue-500", text: "text-blue-500" },
-  { key: "follow_up", label: "Follow Up", field: "follow_up_at", bg: "bg-amber-500", ring: "ring-amber-500", text: "text-amber-500" },
-  { key: "booked", label: "Booked", field: "booked_at", bg: "bg-emerald-500", ring: "ring-emerald-500", text: "text-emerald-500" },
-  { key: "closed", label: "Closed", field: "closed_at", bg: "bg-emerald-700", ring: "ring-emerald-700", text: "text-emerald-700" },
+  { key: "new", label: "New", field: null, icon: CircleDot, bg: "bg-slate-500", ring: "ring-slate-500", text: "text-slate-500" },
+  { key: "link_sent", label: "Link Sent", field: "link_sent_at", icon: LinkIcon, bg: "bg-blue-500", ring: "ring-blue-500", text: "text-blue-500" },
+  { key: "follow_up", label: "Follow Up", field: "follow_up_at", icon: CalendarClock, bg: "bg-amber-500", ring: "ring-amber-500", text: "text-amber-500" },
+  { key: "booked", label: "Booked", field: "booked_at", icon: CalendarCheck, bg: "bg-emerald-500", ring: "ring-emerald-500", text: "text-emerald-500" },
+  { key: "closed", label: "Closed", field: "closed_at", icon: CheckCircle, bg: "bg-emerald-700", ring: "ring-emerald-700", text: "text-emerald-700" },
 ] as const;
 
 function getCurrentStageIndex(lead: ApiLead): number {
@@ -252,21 +274,23 @@ function OutboundLeadLinker({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  useEffect(() => {
-    if (!outboundLeadId) { setLinkedLead(null); return; }
-    fetchWithAuth(`${API_URL}/outbound-leads/${outboundLeadId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setLinkedLead(d); });
-  }, [outboundLeadId]);
+  const safeOutboundId = outboundLeadId && typeof outboundLeadId === "string" ? outboundLeadId : outboundLeadId ? String(outboundLeadId) : null;
 
   useEffect(() => {
-    if (outboundLeadId || autoSearched || leadName.trim().length < 2) return;
+    if (!safeOutboundId) { setLinkedLead(null); return; }
+    fetchWithAuth(`${API_URL}/outbound-leads/${safeOutboundId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setLinkedLead(d); });
+  }, [safeOutboundId]);
+
+  useEffect(() => {
+    if (safeOutboundId || autoSearched || leadName.trim().length < 2) return;
     setAutoSearched(true);
     const sp = new URLSearchParams({ search: leadName.trim(), limit: "5", page: "1" });
     fetchWithAuth(`${API_URL}/outbound-leads?${sp}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d?.leads?.length) setAutoResults(d.leads); });
-  }, [outboundLeadId, leadName, autoSearched]);
+  }, [safeOutboundId, leadName, autoSearched]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -873,21 +897,16 @@ export default function LeadDetail() {
                     <Ghost className="h-3 w-3 mr-1" />Ghosted
                   </Badge>
                 )}
-                {/* Follow-up date in header */}
-                {hasFollowUp && (
+                {/* Follow-up badge — only show overdue in header since the banner below covers scheduled */}
+                {hasFollowUp && followUpIsPast && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Badge
                         variant="outline"
-                        className={cn(
-                          "shrink-0",
-                          followUpIsPast
-                            ? "border-red-200 text-red-600 bg-red-50 dark:border-red-800 dark:text-red-400 dark:bg-red-950"
-                            : "border-amber-200 text-amber-600 bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:bg-amber-950"
-                        )}
+                        className="shrink-0 border-red-200 text-red-600 bg-red-50 dark:border-red-800 dark:text-red-400 dark:bg-red-950"
                       >
                         <CalendarClock className="h-3 w-3 mr-1" />
-                        {followUpIsPast ? "Overdue" : "Follow-up"}: {formatShortDate(lead.follow_up_at)}
+                        Overdue
                       </Badge>
                     </TooltipTrigger>
                     <TooltipContent><p className="text-xs">{formatAbsoluteDateTime(lead.follow_up_at!)}</p></TooltipContent>
@@ -978,6 +997,7 @@ export default function LeadDetail() {
               const isCompleted = i < currentStageIndex;
               const isCurrent = i === currentStageIndex;
               const isFuture = i > currentStageIndex;
+              const Icon = stage.icon;
               return (
                 <div key={stage.key} className="flex items-center flex-1 last:flex-none">
                   <Tooltip>
@@ -986,16 +1006,15 @@ export default function LeadDetail() {
                         onClick={() => handleSetStage(i)}
                         disabled={isSaving || isCurrent}
                         className={cn(
-                          "relative flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap cursor-pointer rounded-full",
+                          "relative flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap cursor-pointer rounded-full",
                           isCompleted && `${stage.bg} text-white hover:opacity-80`,
                           isCurrent && `${stage.bg} text-white ring-2 ${stage.ring} ring-offset-2 ring-offset-background z-10 scale-110`,
                           isFuture && "bg-muted/60 text-muted-foreground hover:bg-muted",
                           isCurrent && isStuck && "ring-orange-500",
                         )}
                       >
-                        {isCompleted && <Check className="h-3 w-3" />}
-                        {isCurrent && isStuck && <AlertTriangle className="h-3 w-3" />}
-                        {stage.label}
+                        {isCompleted ? <Check className="h-3 w-3" /> : isCurrent && isStuck ? <AlertTriangle className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+                        <span className="hidden sm:inline">{stage.label}</span>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -1003,7 +1022,7 @@ export default function LeadDetail() {
                         {isCurrent
                           ? `In "${stage.label}" for ${daysInStage} day${daysInStage !== 1 ? "s" : ""}`
                           : isCompleted
-                          ? `Completed`
+                          ? `Completed — click to reset to ${stage.label}`
                           : `Click to advance to ${stage.label}`}
                       </p>
                     </TooltipContent>
@@ -1121,8 +1140,8 @@ export default function LeadDetail() {
 
         {/* ── Two-Panel Layout ── */}
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-          {/* Left Sidebar */}
-          <div className="flex flex-col gap-4">
+          {/* Left Sidebar — sticky on desktop */}
+          <div className="flex flex-col gap-4 lg:sticky lg:top-4 lg:self-start">
             {/* Contact Details */}
             <Card>
               <CardHeader className="pb-2 pt-4 px-4">
@@ -1186,20 +1205,18 @@ export default function LeadDetail() {
                   }}
                   disabled={isSaving}
                 />
-                {/* Last Contacted */}
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">Last Contacted</p>
-                  {lastContactedDate ? (
+                {/* Last Contacted — only show when there's actual data */}
+                {lastContactedDate && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Last Contacted</p>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <p className="text-sm font-medium cursor-default">{timeAgo(lastContactedDate)}</p>
                       </TooltipTrigger>
                       <TooltipContent><p className="text-xs">{formatAbsoluteDateTime(lastContactedDate)}</p></TooltipContent>
                     </Tooltip>
-                  ) : (
-                    <p className="text-sm text-muted-foreground/50 italic">Never</p>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Quick Action Icons */}
                 <div className="flex items-center gap-1 pt-1">
@@ -1254,7 +1271,12 @@ export default function LeadDetail() {
               <CardContent className="px-4 pb-4 space-y-3">
                 {/* Score */}
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Score</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className="text-xs text-muted-foreground cursor-default w-fit">Deal priority (1-5)</p>
+                    </TooltipTrigger>
+                    <TooltipContent><p className="text-xs">Rate this deal from 1 (low) to 5 (high) — maps to a /10 score</p></TooltipContent>
+                  </Tooltip>
                   <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map((n) => (
                       <button
@@ -1689,9 +1711,11 @@ export default function LeadDetail() {
                     ))}
                   </div>
                   {conversationData.total > conversationData.messages.length && (
-                    <p className="text-xs text-muted-foreground/60 text-center mt-2">
-                      Showing {conversationData.messages.length} of {conversationData.total} messages
-                    </p>
+                    <div className="text-center mt-3 pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Showing {conversationData.messages.length} of {conversationData.total} messages
+                      </p>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -1721,17 +1745,25 @@ export default function LeadDetail() {
                       >
                         <div
                           className={cn(
-                            "rounded-2xl px-3 py-2 text-sm",
+                            "rounded-2xl px-3 py-2 text-sm relative",
                             msg.direction === "outbound"
                               ? "bg-primary text-primary-foreground rounded-tr-sm"
                               : "bg-muted rounded-tl-sm"
                           )}
                         >
+                          {msg.role === "bot" && (
+                            <span className={cn(
+                              "inline-flex items-center gap-0.5 text-[9px] font-medium rounded-full px-1.5 py-0.5 mb-1",
+                              msg.direction === "outbound"
+                                ? "bg-white/20 text-primary-foreground/80"
+                                : "bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400"
+                            )}>
+                              <Bot className="h-2.5 w-2.5" />AI
+                            </span>
+                          )}
+                          {msg.role === "bot" && <br />}
                           {msg.text}
                         </div>
-                        <span className="text-[10px] text-muted-foreground/60 mt-0.5 px-1">
-                          {msg.role === "bot" ? "AI Bot" : "Lead"}
-                        </span>
                       </div>
                     ))}
                   </div>
@@ -1778,29 +1810,37 @@ export default function LeadDetail() {
                 ) : (
                   <div className="relative space-y-0">
                     {/* Vertical line */}
-                    <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
+                    <div className="absolute left-[13px] top-2 bottom-2 w-px bg-border" />
 
-                    {activityItems.map((item) => (
+                    {activityItems.map((item) => {
+                      // Pick icon + color per event type
+                      const iconInfo = item.type === "note"
+                        ? { IconComp: StickyNote, color: "text-blue-500 bg-blue-50 dark:bg-blue-950" }
+                        : item.type === "task_completed"
+                        ? { IconComp: SquareCheckBig, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950" }
+                        : item.type === "payment"
+                        ? { IconComp: DollarSign, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950" }
+                        : item.data.icon === "ghosted"
+                        ? { IconComp: Ghost, color: "text-red-500 bg-red-50 dark:bg-red-950" }
+                        : item.data.icon === "booked"
+                        ? { IconComp: CalendarCheck, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950" }
+                        : item.data.icon === "closed"
+                        ? { IconComp: CheckCircle, color: "text-emerald-700 bg-emerald-50 dark:bg-emerald-950" }
+                        : item.data.icon === "follow_up"
+                        ? { IconComp: CalendarClock, color: "text-amber-500 bg-amber-50 dark:bg-amber-950" }
+                        : item.data.icon === "link_sent"
+                        ? { IconComp: LinkIcon, color: "text-blue-500 bg-blue-50 dark:bg-blue-950" }
+                        : { IconComp: CircleDot, color: "text-muted-foreground bg-muted" };
+                      const { IconComp } = iconInfo;
+                      return (
                       <div key={item.id} className="relative flex gap-3 py-3 first:pt-0 last:pb-0">
-                        {/* Dot */}
+                        {/* Icon */}
                         <div className={cn(
-                          "relative z-10 mt-1 h-[9px] w-[9px] rounded-full border-2 shrink-0",
-                          item.type === "note"
-                            ? "bg-blue-500 border-blue-500"
-                            : item.type === "task_completed"
-                            ? "bg-emerald-500 border-emerald-500"
-                            : item.type === "payment"
-                            ? "bg-emerald-500 border-emerald-500"
-                            : item.data.icon === "ghosted"
-                            ? "bg-red-500 border-red-500"
-                            : item.data.icon === "booked" || item.data.icon === "closed"
-                            ? "bg-emerald-500 border-emerald-500"
-                            : item.data.icon === "follow_up"
-                            ? "bg-amber-500 border-amber-500"
-                            : item.data.icon === "link_sent"
-                            ? "bg-blue-500 border-blue-500"
-                            : "bg-muted-foreground/40 border-muted-foreground/40"
-                        )} />
+                          "relative z-10 mt-0.5 h-[26px] w-[26px] rounded-full flex items-center justify-center shrink-0",
+                          iconInfo.color
+                        )}>
+                          <IconComp className="h-3.5 w-3.5" />
+                        </div>
 
                         {/* Content */}
                         <div className="flex-1 min-w-0 -mt-0.5">
@@ -1829,14 +1869,13 @@ export default function LeadDetail() {
                           )}
                           {item.type === "task_completed" && (
                             <div className="flex items-center gap-2">
-                              <span className="text-sm"><CheckCircle className="h-3.5 w-3.5 inline mr-1 text-emerald-500" />Completed: {String(item.data.title)}</span>
+                              <span className="text-sm">Completed: {String(item.data.title)}</span>
                               <RelativeTime date={item.date} />
                             </div>
                           )}
                           {item.type === "payment" && (
                             <div className="flex items-center gap-2">
                               <span className="text-sm">
-                                <DollarSign className="h-3.5 w-3.5 inline mr-1 text-emerald-500" />
                                 ${((Number(item.data.amount) || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {String(item.data.currency || "usd").toUpperCase()} paid
                                 {item.data.description && <span className="text-muted-foreground"> — {String(item.data.description)}</span>}
                               </span>
@@ -1845,7 +1884,7 @@ export default function LeadDetail() {
                           )}
                         </div>
                       </div>
-                    ))}
+                    );})}
                   </div>
                 )}
               </CardContent>

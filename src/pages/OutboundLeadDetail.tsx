@@ -22,6 +22,7 @@ import {
   XCircle,
   Star,
   DollarSign,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -259,26 +260,35 @@ export default function OutboundLeadDetail() {
               const Icon = stage.icon;
               return (
                 <div key={stage.key} className="flex items-center gap-1 flex-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (stage.key === "messaged") handleToggleStage("isMessaged");
-                      else if (stage.key === "replied") handleToggleStage("replied");
-                      else if (stage.key === "link_sent") handleToggleStage("link_sent");
-                      else if (stage.key === "booked") handleToggleStage("booked");
-                    }}
-                    disabled={stage.key === "new"}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                      isActive
-                        ? `${stage.bg} text-white`
-                        : "bg-muted text-muted-foreground hover:bg-muted/80",
-                      stage.key === "new" && "cursor-default"
-                    )}
-                  >
-                    <Icon className="h-3 w-3" />
-                    <span className="hidden sm:inline">{stage.label}</span>
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (stage.key === "messaged") handleToggleStage("isMessaged");
+                          else if (stage.key === "replied") handleToggleStage("replied");
+                          else if (stage.key === "link_sent") handleToggleStage("link_sent");
+                          else if (stage.key === "booked") handleToggleStage("booked");
+                        }}
+                        disabled={stage.key === "new"}
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                          isActive
+                            ? `${stage.bg} text-white`
+                            : "bg-muted text-muted-foreground hover:bg-muted/80",
+                          stage.key === "new" && "cursor-default"
+                        )}
+                      >
+                        <Icon className="h-3 w-3" />
+                        <span className="hidden sm:inline">{stage.label}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">
+                        {isActive ? `${stage.label} — click to toggle` : `Click to mark as ${stage.label}`}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                   {i < PIPELINE_STAGES.length - 1 && (
                     <div className={cn("h-0.5 flex-1", i < stageIndex ? stage.bg : "bg-muted")} />
                   )}
@@ -289,9 +299,9 @@ export default function OutboundLeadDetail() {
         )}
 
         {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
-          {/* Sidebar */}
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+          {/* Sidebar — sticky on desktop */}
+          <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
             {/* Contact info */}
             <Card>
               <CardHeader className="pb-2 pt-4 px-4">
@@ -550,9 +560,11 @@ export default function OutboundLeadDetail() {
                     ))}
                   </div>
                   {conversationData.total > conversationData.messages.length && (
-                    <p className="text-xs text-muted-foreground/60 text-center mt-2">
-                      Showing {conversationData.messages.length} of {conversationData.total} messages
-                    </p>
+                    <div className="text-center mt-3 pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Showing {conversationData.messages.length} of {conversationData.total} messages
+                      </p>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -582,12 +594,20 @@ export default function OutboundLeadDetail() {
                       >
                         <div
                           className={cn(
-                            "rounded-2xl px-3 py-2 text-sm",
+                            "rounded-2xl px-3 py-2 text-sm relative",
                             msg.direction === "outbound"
                               ? "bg-primary text-primary-foreground rounded-tr-sm"
                               : "bg-muted rounded-tl-sm"
                           )}
                         >
+                          {msg.direction === "outbound" && (
+                            <>
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-medium rounded-full px-1.5 py-0.5 mb-1 bg-white/20 text-primary-foreground/80">
+                                <Bot className="h-2.5 w-2.5" />AI
+                              </span>
+                              <br />
+                            </>
+                          )}
                           {msg.message_text}
                         </div>
                       </div>
