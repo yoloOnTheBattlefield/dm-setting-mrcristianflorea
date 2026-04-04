@@ -482,3 +482,14 @@ export function useClearMessages() {
     },
   });
 }
+
+export function useRelaunchCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ campaignId, prompt }: { campaignId: string; prompt?: string }) =>
+      apiPost(`${API_URL}/api/campaigns/${campaignId}/relaunch`, { prompt }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+    },
+  });
+}

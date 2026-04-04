@@ -46,6 +46,10 @@ vi.mock("@/hooks/useAIReports", () => ({
   }),
 }));
 
+vi.mock("./RelaunchCampaignDialog", () => ({
+  RelaunchCampaignDialog: () => null,
+}));
+
 function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -67,6 +71,13 @@ describe("AIReportTab", () => {
     );
     expect(screen.getByText("No reports yet")).toBeInTheDocument();
     expect(screen.getByText("Generate Report")).toBeInTheDocument();
+  });
+
+  it("renders the Relaunch button", () => {
+    renderWithProviders(
+      <AIReportTab filterParams={{}} />
+    );
+    expect(screen.getByText("Relaunch")).toBeInTheDocument();
   });
 
   it("calls generate mutation when Generate Report is clicked", async () => {

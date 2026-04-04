@@ -28,6 +28,7 @@ import {
   ShieldAlert,
   ThumbsUp,
   ThumbsDown,
+  Rocket,
 } from "lucide-react";
 import {
   useGenerateAIReport,
@@ -36,6 +37,7 @@ import {
   type AIReportContent,
   type AIReportListItem,
 } from "@/hooks/useAIReports";
+import { RelaunchCampaignDialog } from "./RelaunchCampaignDialog";
 
 interface AIReportTabProps {
   filterParams: {
@@ -87,6 +89,7 @@ function priorityBadge(priority: string) {
 
 export function AIReportTab({ filterParams }: AIReportTabProps) {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [showRelaunch, setShowRelaunch] = useState(false);
 
   const generateMutation = useGenerateAIReport();
   const { data: reportsList, isLoading: isListLoading } = useAIReports();
@@ -111,19 +114,30 @@ export function AIReportTab({ filterParams }: AIReportTabProps) {
             Claude analyzes your outreach data and generates actionable insights
           </p>
         </div>
-        <Button
-          onClick={handleGenerate}
-          disabled={isGenerating}
-          size="sm"
-          className="gap-1.5"
-        >
-          {isGenerating ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Sparkles className="h-3.5 w-3.5" />
-          )}
-          {isGenerating ? "Generating…" : "Generate Report"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowRelaunch(true)}
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+          >
+            <Rocket className="h-3.5 w-3.5" />
+            Relaunch
+          </Button>
+          <Button
+            onClick={handleGenerate}
+            disabled={isGenerating}
+            size="sm"
+            className="gap-1.5"
+          >
+            {isGenerating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            {isGenerating ? "Generating…" : "Generate Report"}
+          </Button>
+        </div>
       </div>
 
       {/* Generating skeleton */}
@@ -224,6 +238,8 @@ export function AIReportTab({ filterParams }: AIReportTabProps) {
           </CardContent>
         </Card>
       )}
+
+      <RelaunchCampaignDialog open={showRelaunch} onOpenChange={setShowRelaunch} />
     </div>
   );
 }

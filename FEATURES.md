@@ -1582,3 +1582,18 @@ Comprehensive UI polish for both lead detail pages covering pipeline stepper cla
 
 - `src/pages/LeadDetail.tsx` — All inbound improvements
 - `src/pages/OutboundLeadDetail.tsx` — Outbound improvements (sticky sidebar, bot badges, tooltips, load-more CTA)
+
+## Campaign Relaunch
+
+Relaunch unsent leads from an existing campaign into a new versioned campaign (e.g. "My Campaign V2", "V3", etc.) with an updated AI prompt. Accessible from the AI Analytics Report tab.
+
+### Files
+
+- `routes/campaigns.js` — `POST /campaigns/:id/relaunch` backend endpoint
+- `src/hooks/useCampaigns.ts` — `useRelaunchCampaign` mutation hook
+- `src/components/outbound-analytics/RelaunchCampaignDialog.tsx` — Dialog with campaign selector, prompt editor, and pending lead count
+- `src/components/outbound-analytics/AIReportTab.tsx` — Relaunch button in report header
+
+### API Routes
+
+- `POST /api/campaigns/:id/relaunch` — Creates a new versioned campaign with pending leads from the source and an optional updated AI prompt
