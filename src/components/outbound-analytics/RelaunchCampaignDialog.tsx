@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -118,6 +119,7 @@ export function RelaunchCampaignDialog({ open, onOpenChange, report, preselected
   const [step, setStep] = useState<Step>("select");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
   const [enhancedPrompt, setEnhancedPrompt] = useState("");
+  const [promptName, setPromptName] = useState("");
 
   const campaigns = campaignsData?.campaigns || [];
   const selectedCampaign = campaigns.find((c: Campaign) => c._id === selectedCampaignId);
@@ -143,6 +145,7 @@ export function RelaunchCampaignDialog({ open, onOpenChange, report, preselected
       setStep("select");
       setSelectedCampaignId("");
       setEnhancedPrompt("");
+      setPromptName("");
     }
   }, [open]);
 
@@ -157,6 +160,7 @@ export function RelaunchCampaignDialog({ open, onOpenChange, report, preselected
       const result = await relaunchMutation.mutateAsync({
         campaignId: selectedCampaignId,
         prompt: enhancedPrompt || undefined,
+        prompt_name: promptName || undefined,
       });
       toast({
         title: "Campaign relaunched",
@@ -281,6 +285,19 @@ export function RelaunchCampaignDialog({ open, onOpenChange, report, preselected
 
             <div className="text-xs text-muted-foreground">
               <span className="inline-block w-3 h-3 bg-emerald-100 dark:bg-emerald-950/40 rounded mr-1 align-middle" /> Highlighted text = new guidelines from the report. Only message-related recommendations are included.
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Save prompt as</Label>
+              <Input
+                value={promptName}
+                onChange={(e) => setPromptName(e.target.value)}
+                placeholder={`${selectedCampaign?.name || "Campaign"} — report enhanced`}
+                className="text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                This prompt will be saved so you can reuse it in other campaigns.
+              </p>
             </div>
 
             <DialogFooter className="flex-row justify-between sm:justify-between">

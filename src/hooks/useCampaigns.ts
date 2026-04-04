@@ -494,10 +494,11 @@ export function useClearMessages() {
 export function useRelaunchCampaign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ campaignId, prompt }: { campaignId: string; prompt?: string }) =>
-      apiPost(`${API_URL}/api/campaigns/${campaignId}/relaunch`, { prompt }),
+    mutationFn: ({ campaignId, prompt, prompt_name }: { campaignId: string; prompt?: string; prompt_name?: string }) =>
+      apiPost(`${API_URL}/api/campaigns/${campaignId}/relaunch`, { prompt, prompt_name }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["ai-prompts"] });
     },
   });
 }
