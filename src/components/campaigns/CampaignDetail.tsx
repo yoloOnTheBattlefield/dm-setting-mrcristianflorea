@@ -1678,6 +1678,26 @@ export default function CampaignDetail() {
                 </DropdownMenu>
               </div>
             )}
+            {/* Prompt History */}
+            {campaign.prompt_history && campaign.prompt_history.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground font-medium">Prompt History</Label>
+                <div className="max-h-32 overflow-y-auto space-y-1 border rounded-md p-2">
+                  {[...campaign.prompt_history].reverse().map((entry, i) => (
+                    <button
+                      key={i}
+                      className="w-full text-left text-xs rounded px-2 py-1.5 hover:bg-muted/50 transition-colors flex items-center justify-between gap-2"
+                      onClick={() => setAiPrompt(entry.prompt)}
+                    >
+                      <span className="truncate text-foreground">{entry.prompt.slice(0, 80)}{entry.prompt.length > 80 ? "…" : ""}</span>
+                      <span className="shrink-0 text-muted-foreground">
+                        {entry.leads_count} leads · {entry.provider || "openai"} · {new Date(entry.used_at).toLocaleDateString()}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <Textarea
               placeholder="You are a friendly outreach specialist. Write a short, personalized Instagram DM based on the lead's bio. Keep it casual and under 2 sentences."
               value={aiPrompt}

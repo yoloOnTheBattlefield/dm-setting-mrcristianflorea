@@ -38,6 +38,13 @@ export interface CampaignAIPersonalization {
   error: string | null;
 }
 
+export interface PromptHistoryEntry {
+  prompt: string;
+  used_at: string;
+  leads_count: number;
+  provider: string | null;
+}
+
 export interface Campaign {
   _id: string;
   account_id: string;
@@ -52,6 +59,7 @@ export interface Campaign {
   warmup_start_date?: string | null;
   stats: CampaignStats;
   ai_personalization?: CampaignAIPersonalization;
+  prompt_history?: PromptHistoryEntry[];
   last_sent_at: string | null;
   createdAt: string;
   updatedAt: string;

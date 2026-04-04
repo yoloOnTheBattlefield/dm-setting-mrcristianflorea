@@ -46,6 +46,16 @@ export interface AIReportContent {
     negative_patterns: { pattern: string; example: string; why_it_fails: string }[];
     recommendations: string[];
   };
+  message_recommendations?: {
+    summary: string;
+    do_more: string[];
+    avoid: string[];
+    example_openers: string[];
+  };
+  operational_recommendations?: {
+    summary: string;
+    items: { category: string; action: string; expected_impact: string }[];
+  };
   action_items: AIReportActionItem[];
 }
 

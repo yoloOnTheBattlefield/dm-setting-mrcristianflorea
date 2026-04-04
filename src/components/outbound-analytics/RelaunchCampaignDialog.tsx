@@ -32,79 +32,80 @@ interface RelaunchCampaignDialogProps {
   preselectedCampaignId?: string;
 }
 
-/** Extract all recommendations from a report into a flat list grouped by section */
-function extractRecommendations(report: AIReportContent): string[] {
-  const recs: string[] = [];
+/**
+ * Extract only MESSAGE-RELATED recommendations from a report.
+ * Operational stuff (timing, senders, targeting) is excluded —
+ * the DM-writing AI can't act on those.
+ */
+function extractMessageGuidelines(report: AIReportContent): string[] {
+  const lines: string[] = [];
 
+  // New structured fields (from reports generated after the schema split)
+  if (report.message_recommendations) {
+    const mr = report.message_recommendations;
+    if (mr.summary) lines.push(mr.summary, "");
+    if (mr.do_more?.length) {
+      lines.push("## Do More");
+      mr.do_more.forEach((r) => lines.push(`- ${r}`));
+      lines.push("");
+    }
+    if (mr.avoid?.length) {
+      lines.push("## Avoid");
+      mr.avoid.forEach((r) => lines.push(`- ${r}`));
+      lines.push("");
+    }
+    if (mr.example_openers?.length) {
+      lines.push("## Example Openers");
+      mr.example_openers.forEach((o) => lines.push(`- "${o}"`));
+    }
+    return lines;
+  }
+
+  // Backwards-compatible fallback for older reports without the split
   if (report.message_strategy?.recommendations?.length) {
-    recs.push("## Message Strategy");
-    report.message_strategy.recommendations.forEach((r) => recs.push(`- ${r}`));
+    lines.push("## Message Strategy");
+    report.message_strategy.recommendations.forEach((r) => lines.push(`- ${r}`));
   }
-
   if (report.message_strategy?.top_performers?.length) {
-    recs.push("## Top Performing Messages");
+    lines.push("## Top Performing Messages");
     report.message_strategy.top_performers.forEach((m) =>
-      recs.push(`- "${m.preview}" — ${m.why_it_works}`),
+      lines.push(`- "${m.preview}" — ${m.why_it_works}`),
     );
   }
-
   if (report.message_strategy?.worst_performers?.length) {
-    recs.push("## Messages to Avoid");
+    lines.push("## Messages to Avoid");
     report.message_strategy.worst_performers.forEach((m) =>
-      recs.push(`- "${m.preview}" — ${m.why_it_fails}`),
+      lines.push(`- "${m.preview}" — ${m.why_it_fails}`),
     );
   }
-
-  if (report.conversation_analysis?.recommendations?.length) {
-    recs.push("## Conversation Insights");
-    report.conversation_analysis.recommendations.forEach((r) => recs.push(`- ${r}`));
-  }
-
   if (report.conversation_analysis?.positive_patterns?.length) {
-    recs.push("## Patterns That Convert");
+    lines.push("## Patterns That Convert");
     report.conversation_analysis.positive_patterns.forEach((p) =>
-      recs.push(`- ${p.pattern}: ${p.why_it_works}`),
+      lines.push(`- ${p.pattern}: ${p.why_it_works}`),
     );
   }
-
   if (report.conversation_analysis?.negative_patterns?.length) {
-    recs.push("## Patterns to Avoid");
+    lines.push("## Patterns to Avoid");
     report.conversation_analysis.negative_patterns.forEach((p) =>
-      recs.push(`- ${p.pattern}: ${p.why_it_fails}`),
+      lines.push(`- ${p.pattern}: ${p.why_it_fails}`),
     );
   }
-
-  if (report.industry_analysis?.recommendations?.length) {
-    recs.push("## Industry Targeting");
-    report.industry_analysis.recommendations.forEach((r) => recs.push(`- ${r}`));
-  }
-
-  if (report.timing_analysis?.recommendations?.length) {
-    recs.push("## Timing");
-    report.timing_analysis.recommendations.forEach((r) => recs.push(`- ${r}`));
-  }
-
-  if (report.sender_analysis?.recommendations?.length) {
-    recs.push("## Sender Strategy");
-    report.sender_analysis.recommendations.forEach((r) => recs.push(`- ${r}`));
-  }
-
-  return recs;
+  return lines;
 }
 
-/** Build enhanced prompt by appending report recommendations */
+/** Build enhanced prompt using only message-related guidelines */
 function buildEnhancedPrompt(originalPrompt: string, report: AIReportContent): string {
-  const recs = extractRecommendations(report);
-  if (recs.length === 0) return originalPrompt;
+  const lines = extractMessageGuidelines(report);
+  if (lines.length === 0) return originalPrompt;
 
-  const guidelines = recs.join("\n");
+  const guidelines = lines.join("\n");
   const separator = "\n\n---\n\n";
 
   if (!originalPrompt.trim()) {
-    return `# Guidelines from AI Report Analysis\n\n${guidelines}`;
+    return `# Message Guidelines from AI Report\n\n${guidelines}`;
   }
 
-  return `${originalPrompt.trim()}${separator}# Guidelines from AI Report Analysis\n\n${guidelines}`;
+  return `${originalPrompt.trim()}${separator}# Message Guidelines from AI Report\n\n${guidelines}`;
 }
 
 type Step = "select" | "diff" | "edit";

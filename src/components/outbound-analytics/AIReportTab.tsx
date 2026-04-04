@@ -701,6 +701,85 @@ function ReportDisplay({ report, onRelaunch }: { report: AIReportContent; onRela
         </Card>
       )}
 
+      {/* Message Recommendations */}
+      {report.message_recommendations && (
+        <Card>
+          <CardContent className="py-4 px-6">
+            <div className="flex items-center gap-2 mb-2">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-medium">Message Recommendations</h3>
+              <Badge variant="outline" className="text-[10px]">Feeds into prompt</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">{report.message_recommendations.summary}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {report.message_recommendations.do_more?.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-emerald-600 mb-1.5">Do More</p>
+                  <ul className="space-y-1">
+                    {report.message_recommendations.do_more.map((item, i) => (
+                      <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500 mt-0.5 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {report.message_recommendations.avoid?.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-red-600 mb-1.5">Avoid</p>
+                  <ul className="space-y-1">
+                    {report.message_recommendations.avoid.map((item, i) => (
+                      <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                        <AlertTriangle className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {report.message_recommendations.example_openers?.length > 0 && (
+              <div className="mt-3 pt-3 border-t">
+                <p className="text-xs font-medium mb-1.5">Example Openers</p>
+                <div className="space-y-1.5">
+                  {report.message_recommendations.example_openers.map((opener, i) => (
+                    <div key={i} className="text-xs font-mono bg-muted/50 rounded px-2 py-1.5">"{opener}"</div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Operational Recommendations */}
+      {report.operational_recommendations?.items?.length > 0 && (
+        <Card>
+          <CardContent className="py-4 px-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-medium">Operational Recommendations</h3>
+              <Badge variant="secondary" className="text-[10px]">Campaign settings</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">{report.operational_recommendations.summary}</p>
+            <ul className="space-y-2">
+              {report.operational_recommendations.items.map((item, i) => (
+                <li key={i} className="text-xs flex items-start gap-2">
+                  <Badge variant="outline" className="text-[10px] capitalize shrink-0 mt-0.5">{item.category}</Badge>
+                  <div>
+                    <span className="text-foreground">{item.action}</span>
+                    <span className="text-muted-foreground ml-1">— {item.expected_impact}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Relaunch CTA */}
       <Card className="border-dashed">
         <CardContent className="py-6 px-6">
@@ -708,7 +787,7 @@ function ReportDisplay({ report, onRelaunch }: { report: AIReportContent; onRela
             <div>
               <h3 className="text-sm font-medium">Ready to improve?</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Relaunch unsent leads with an AI-improved prompt based on this report's findings.
+                Relaunch unsent leads with an AI-improved prompt based on message recommendations only.
               </p>
             </div>
             <Button onClick={onRelaunch} size="sm" className="gap-1.5">

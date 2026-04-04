@@ -1605,3 +1605,27 @@ Collapsible AI Report section on the campaign detail page. Generates a report sc
 ### Files
 
 - `src/components/campaigns/CampaignDetail.tsx` — Collapsible AI Report card between progress bar and leads table
+
+## Split Report Recommendations (Message vs Operational)
+
+AI reports now output two separate recommendation buckets:
+- **Message Recommendations** — tone, structure, phrasing, opener examples. Fed into the DM-writing prompt on relaunch.
+- **Operational Recommendations** — timing, sender accounts, targeting, scheduling. Displayed separately, NOT fed into the prompt.
+
+### Files
+
+- `services/analyticsReportGenerator.js` — Updated report schema with `message_recommendations` and `operational_recommendations` fields
+- `src/hooks/useAIReports.ts` — Added TypeScript interfaces for new fields
+- `src/components/outbound-analytics/AIReportTab.tsx` — Separate UI cards for message vs operational recommendations
+- `src/components/outbound-analytics/RelaunchCampaignDialog.tsx` — Only uses `message_recommendations` for prompt enhancement
+
+## Prompt History
+
+Tracks every prompt used to generate messages on a campaign, with timestamp, lead count, and AI provider. Displayed in the AI Personalization modal — click any past prompt to reload it.
+
+### Files
+
+- `models/Campaign.js` — Added `prompt_history` array field
+- `routes/campaigns.js` — Pushes to `prompt_history` on `POST /campaigns/:id/generate-messages`
+- `src/hooks/useCampaigns.ts` — Added `PromptHistoryEntry` interface and `prompt_history` to `Campaign`
+- `src/components/campaigns/CampaignDetail.tsx` — Clickable prompt history list in AI Personalization modal
