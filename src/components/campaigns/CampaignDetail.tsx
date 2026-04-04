@@ -932,7 +932,8 @@ export default function CampaignDetail() {
             <div className="rounded-lg border bg-card p-6 text-center text-muted-foreground">No leads found.</div>
           ) : (
             leads.map((cl) => {
-              const lb = LEAD_STATUS_BADGE[cl.status] || LEAD_STATUS_BADGE.pending;
+              const effectiveStatus = cl.outbound_lead_id?.replied && cl.status !== "replied" ? "replied" : cl.status;
+              const lb = LEAD_STATUS_BADGE[effectiveStatus] || LEAD_STATUS_BADGE.pending;
               const lead = cl.outbound_lead_id;
               const sender = cl.sender_id;
               const isExpanded = expandedLeadIds.has(cl._id);
@@ -947,14 +948,13 @@ export default function CampaignDetail() {
                     <div className="flex-1 min-w-0">
                       {lead ? (
                         <div className="flex items-center gap-1">
-                          <a
-                            href={lead.profileLink || `https://instagram.com/${lead.username}`}
-                            target="_blank" rel="noopener noreferrer"
-                            rel="noopener noreferrer"
-                            className="font-medium text-foreground hover:underline text-sm truncate"
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/outbound-leads/${lead._id}`)}
+                            className="font-medium text-foreground hover:underline text-sm truncate text-left"
                           >
                             @{lead.username}
-                          </a>
+                          </button>
                           <button
                             type="button"
                             onClick={() => { navigator.clipboard.writeText(lead.username); toast({ title: "Copied", description: `@${lead.username}` }); }}
@@ -971,6 +971,13 @@ export default function CampaignDetail() {
 
                     {/* Status ticks */}
                     <div className="flex items-center gap-3 shrink-0">
+                      <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                        <Checkbox
+                          checked={lead?.link_sent ?? false}
+                          onCheckedChange={() => lead && toggleLeadField(lead._id, "link_sent", lead.link_sent ?? false)}
+                        />
+                        <span className="text-[10px] text-muted-foreground leading-none">Link</span>
+                      </label>
                       <label className="flex flex-col items-center gap-0.5 cursor-pointer">
                         <Checkbox
                           checked={lead?.replied ?? false}
@@ -1165,7 +1172,8 @@ export default function CampaignDetail() {
                 </TableRow>
               ) : (
                 leads.map((cl) => {
-                  const lb = LEAD_STATUS_BADGE[cl.status] || LEAD_STATUS_BADGE.pending;
+                  const effectiveStatus = cl.outbound_lead_id?.replied && cl.status !== "replied" ? "replied" : cl.status;
+                  const lb = LEAD_STATUS_BADGE[effectiveStatus] || LEAD_STATUS_BADGE.pending;
                   const lead = cl.outbound_lead_id;
                   const sender = cl.sender_id;
                   const profileUrl = lead ? (lead.profileLink || `https://instagram.com/${lead.username}`) : null;
@@ -1180,18 +1188,16 @@ export default function CampaignDetail() {
                       <TableCell className="font-medium">
                         {lead ? (
                           <div className="flex items-center gap-1">
-                            <a
-                              href={profileUrl!}
-                              target="_blank" rel="noopener noreferrer"
-                              rel="noopener noreferrer"
-                              className="text-foreground hover:underline"
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/outbound-leads/${lead._id}`)}
+                              className="text-foreground hover:underline text-left"
                             >
                               @{lead.username}
-                            </a>
+                            </button>
                             <a
                               href={profileUrl!}
                               target="_blank" rel="noopener noreferrer"
-                              rel="noopener noreferrer"
                               className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <ExternalLink className="h-3 w-3" />
@@ -1233,25 +1239,25 @@ export default function CampaignDetail() {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        {lead?.link_sent ? (
-                          <Check className="h-4 w-4 text-green-400 mx-auto" />
-                        ) : (
-                          <Minus className="h-4 w-4 text-muted-foreground/40 mx-auto" />
-                        )}
+                        <Checkbox
+                          checked={lead?.link_sent ?? false}
+                          onCheckedChange={() => lead && toggleLeadField(lead._id, "link_sent", lead.link_sent ?? false)}
+                          className="mx-auto"
+                        />
                       </TableCell>
                       <TableCell className="text-center">
-                        {lead?.replied ? (
-                          <Check className="h-4 w-4 text-green-400 mx-auto" />
-                        ) : (
-                          <Minus className="h-4 w-4 text-muted-foreground/40 mx-auto" />
-                        )}
+                        <Checkbox
+                          checked={lead?.replied ?? false}
+                          onCheckedChange={() => lead && toggleLeadField(lead._id, "replied", lead.replied ?? false)}
+                          className="mx-auto"
+                        />
                       </TableCell>
                       <TableCell className="text-center">
-                        {lead?.booked ? (
-                          <Check className="h-4 w-4 text-green-400 mx-auto" />
-                        ) : (
-                          <Minus className="h-4 w-4 text-muted-foreground/40 mx-auto" />
-                        )}
+                        <Checkbox
+                          checked={lead?.booked ?? false}
+                          onCheckedChange={() => lead && toggleLeadField(lead._id, "booked", lead.booked ?? false)}
+                          className="mx-auto"
+                        />
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {cl.template_index != null ? `#${cl.template_index + 1}` : "-"}
