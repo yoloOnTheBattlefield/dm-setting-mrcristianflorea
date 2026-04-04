@@ -20,7 +20,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Rocket, ArrowRight, Pencil } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCampaigns, useRelaunchCampaign, type Campaign } from "@/hooks/useCampaigns";
 import type { AIReportContent } from "@/hooks/useAIReports";
@@ -176,7 +175,7 @@ export function RelaunchCampaignDialog({ open, onOpenChange, report, preselected
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("max-h-[85vh] overflow-y-auto", step === "diff" ? "sm:max-w-3xl" : "sm:max-w-lg")}>
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {step === "select" && "Relaunch Campaign"}
@@ -261,32 +260,27 @@ export function RelaunchCampaignDialog({ open, onOpenChange, report, preselected
         {/* Step 2: Diff view */}
         {step === "diff" && (
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Original */}
-              <div className="space-y-1.5">
-                <Label className="text-xs">
-                  <Badge variant="outline" className="text-[10px] mr-1.5">Original</Badge>
-                  Current prompt
-                </Label>
-                <div className="rounded-md border bg-red-50 dark:bg-red-950/20 p-3 text-xs font-mono whitespace-pre-wrap max-h-[50vh] overflow-y-auto leading-relaxed">
-                  {originalPrompt || <span className="italic text-muted-foreground">No prompt</span>}
-                </div>
-              </div>
-
-              {/* Enhanced */}
-              <div className="space-y-1.5">
-                <Label className="text-xs">
-                  <Badge variant="default" className="text-[10px] mr-1.5">Enhanced</Badge>
-                  With report insights
-                </Label>
-                <div className="rounded-md border bg-emerald-50 dark:bg-emerald-950/20 p-3 text-xs font-mono whitespace-pre-wrap max-h-[50vh] overflow-y-auto leading-relaxed">
-                  {enhancedPrompt}
-                </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Enhanced Prompt</Label>
+              <div className="rounded-md border p-3 text-xs font-mono whitespace-pre-wrap max-h-[50vh] overflow-y-auto leading-relaxed">
+                {originalPrompt && (
+                  <span>{originalPrompt}</span>
+                )}
+                {enhancedPrompt.length > originalPrompt.length && (
+                  <span className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">
+                    {enhancedPrompt.slice(originalPrompt.length)}
+                  </span>
+                )}
+                {!originalPrompt && (
+                  <span className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">
+                    {enhancedPrompt}
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="text-xs text-muted-foreground">
-              The enhanced prompt includes guidelines extracted from the report's message strategy, conversation patterns, and recommendations.
+              <span className="inline-block w-3 h-3 bg-emerald-100 dark:bg-emerald-950/40 rounded mr-1 align-middle" /> Highlighted text = new guidelines from the report. Only message-related recommendations are included.
             </div>
 
             <DialogFooter className="flex-row justify-between sm:justify-between">

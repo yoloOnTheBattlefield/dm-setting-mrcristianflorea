@@ -92,7 +92,7 @@ export function AIReportTab({ filterParams }: AIReportTabProps) {
   const [showRelaunch, setShowRelaunch] = useState(false);
 
   const generateMutation = useGenerateAIReport();
-  const { data: reportsList, isLoading: isListLoading } = useAIReports();
+  const { data: reportsList, isLoading: isListLoading } = useAIReports(10, filterParams.campaign_id);
   const { data: selectedReport } = useAIReport(selectedReportId);
 
   const handleGenerate = async () => {

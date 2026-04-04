@@ -107,11 +107,13 @@ export function useGenerateAIReport() {
   });
 }
 
-export function useAIReports(limit = 10) {
+export function useAIReports(limit = 10, campaignId?: string) {
   return useQuery({
-    queryKey: ["ai-reports", limit],
+    queryKey: ["ai-reports", limit, campaignId],
     queryFn: async (): Promise<AIReportListItem[]> => {
-      const res = await fetchWithAuth(`${API_URL}/analytics/outbound/ai-reports?limit=${limit}`);
+      const sp = new URLSearchParams({ limit: String(limit) });
+      if (campaignId) sp.append("campaign_id", campaignId);
+      const res = await fetchWithAuth(`${API_URL}/analytics/outbound/ai-reports?${sp.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch reports");
       const data = await res.json();
       return data.reports;
