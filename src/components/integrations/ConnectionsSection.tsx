@@ -43,6 +43,8 @@ interface ConnectionsSectionProps {
   onTelegramSave: () => void;
   onTelegramDisconnect: () => void;
   isSavingTelegram: boolean;
+  onTelegramTestReport: () => void;
+  isSendingTestReport: boolean;
 }
 
 export default function ConnectionsSection({
@@ -72,6 +74,8 @@ export default function ConnectionsSection({
   onTelegramSave,
   onTelegramDisconnect,
   isSavingTelegram,
+  onTelegramTestReport,
+  isSendingTestReport,
 }: ConnectionsSectionProps) {
   const stripeWebhookUrl = `https://quddify-server.vercel.app/api/stripe/webhook?account=${userGhl || "YOUR_ACCOUNT_ID"}`;
   return (
@@ -263,9 +267,24 @@ export default function ConnectionsSection({
           </CardHeader>
           <CardContent className="space-y-3">
             {telegramConnected ? (
-              <Button onClick={onTelegramDisconnect} variant="outline" className="w-full">
-                Disconnect Telegram
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={onTelegramTestReport} variant="outline" className="flex-1" disabled={isSendingTestReport}>
+                  {isSendingTestReport ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-3.5 w-3.5 mr-1.5" />
+                      Test Report
+                    </>
+                  )}
+                </Button>
+                <Button onClick={onTelegramDisconnect} variant="outline" className="flex-1">
+                  Disconnect
+                </Button>
+              </div>
             ) : (
               <>
                 <div>
