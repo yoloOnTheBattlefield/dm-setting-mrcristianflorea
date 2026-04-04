@@ -24,6 +24,10 @@ import {
   ArrowDown,
   Minus,
   Download,
+  MessageSquare,
+  ShieldAlert,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import {
   useGenerateAIReport,
@@ -339,6 +343,48 @@ function exportReportAsPDF(report: AIReportContent) {
       </div>${recList(report.timing_analysis.recommendations)}`);
   }
 
+  // Conversation Analysis
+  if (report.conversation_analysis) {
+    let convContent = `<p style="font-size:12px;color:#6b7280;margin:0 0 8px">${report.conversation_analysis.summary}</p>`;
+
+    if (report.conversation_analysis.common_objections?.length) {
+      convContent += `<p style="font-size:12px;font-weight:600;color:#d97706;margin:0 0 6px">Common Objections</p>`;
+      convContent += report.conversation_analysis.common_objections.map((obj) =>
+        `<div class="msg-box" style="background:#fffbeb;border:1px solid #fde68a">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <p style="font-weight:500;margin:0;color:#92400e">"${obj.objection}"</p>
+            <span class="badge" style="background:#f59e0b;font-size:10px">${obj.frequency}</span>
+          </div>
+          <p style="margin:0;color:#b45309"><strong>Best response:</strong> ${obj.best_response}</p>
+        </div>`
+      ).join("");
+    }
+
+    convContent += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">`;
+    if (report.conversation_analysis.positive_patterns?.length) {
+      convContent += `<div><p style="font-size:12px;font-weight:600;color:#10b981;margin:0 0 6px">Patterns That Convert</p>`;
+      convContent += report.conversation_analysis.positive_patterns.map((p) =>
+        `<div class="msg-box" style="background:#ecfdf5;border:1px solid #a7f3d0">
+          <p style="font-weight:500;margin:0;color:#065f46">${p.pattern}</p>
+          ${p.example ? `<p style="font-family:monospace;margin:4px 0;color:#047857;font-size:11px">"${p.example}"</p>` : ""}
+          <p style="margin:2px 0 0;color:#047857">${p.why_it_works}</p>
+        </div>`
+      ).join("") + `</div>`;
+    }
+    if (report.conversation_analysis.negative_patterns?.length) {
+      convContent += `<div><p style="font-size:12px;font-weight:600;color:#ef4444;margin:0 0 6px">Patterns That Lose Leads</p>`;
+      convContent += report.conversation_analysis.negative_patterns.map((p) =>
+        `<div class="msg-box" style="background:#fef2f2;border:1px solid #fecaca">
+          <p style="font-weight:500;margin:0;color:#991b1b">${p.pattern}</p>
+          ${p.example ? `<p style="font-family:monospace;margin:4px 0;color:#dc2626;font-size:11px">"${p.example}"</p>` : ""}
+          <p style="margin:2px 0 0;color:#dc2626">${p.why_it_fails}</p>
+        </div>`
+      ).join("") + `</div>`;
+    }
+    convContent += `</div>${recList(report.conversation_analysis.recommendations)}`;
+    html += section("Conversation Analysis", convContent);
+  }
+
   html += `</body></html>`;
 
   const printWindow = window.open("", "_blank");
@@ -564,6 +610,83 @@ function ReportDisplay({ report }: { report: AIReportContent }) {
             </div>
 
             <RecommendationsList items={report.timing_analysis.recommendations} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Conversation Analysis */}
+      {report.conversation_analysis && (
+        <Card>
+          <CardContent className="py-4 px-6">
+            <h3 className="text-sm font-medium mb-1 flex items-center gap-1.5">
+              <MessageSquare className="h-3.5 w-3.5" /> Conversation Analysis
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">{report.conversation_analysis.summary}</p>
+
+            {/* Common Objections */}
+            {report.conversation_analysis.common_objections?.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs font-medium mb-2 flex items-center gap-1 text-amber-600">
+                  <ShieldAlert className="h-3 w-3" /> Common Objections
+                </p>
+                <div className="space-y-2">
+                  {report.conversation_analysis.common_objections.map((obj, i) => (
+                    <div key={i} className="p-3 rounded-md bg-amber-50 border border-amber-100">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="text-xs font-medium text-amber-800">"{obj.objection}"</p>
+                        <Badge variant="outline" className="text-[10px] shrink-0 capitalize">{obj.frequency}</Badge>
+                      </div>
+                      <p className="text-xs text-amber-700">
+                        <span className="font-medium">Best response:</span> {obj.best_response}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Positive & Negative Patterns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+              {report.conversation_analysis.positive_patterns?.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-emerald-600 mb-2 flex items-center gap-1">
+                    <ThumbsUp className="h-3 w-3" /> Patterns That Convert
+                  </p>
+                  <div className="space-y-2">
+                    {report.conversation_analysis.positive_patterns.map((p, i) => (
+                      <div key={i} className="p-2.5 rounded-md bg-emerald-50 border border-emerald-100">
+                        <p className="text-xs font-medium text-emerald-800">{p.pattern}</p>
+                        {p.example && (
+                          <p className="text-xs font-mono text-emerald-700 mt-1 line-clamp-2">"{p.example}"</p>
+                        )}
+                        <p className="text-xs text-emerald-600 mt-1">{p.why_it_works}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {report.conversation_analysis.negative_patterns?.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-red-600 mb-2 flex items-center gap-1">
+                    <ThumbsDown className="h-3 w-3" /> Patterns That Lose Leads
+                  </p>
+                  <div className="space-y-2">
+                    {report.conversation_analysis.negative_patterns.map((p, i) => (
+                      <div key={i} className="p-2.5 rounded-md bg-red-50 border border-red-100">
+                        <p className="text-xs font-medium text-red-800">{p.pattern}</p>
+                        {p.example && (
+                          <p className="text-xs font-mono text-red-700 mt-1 line-clamp-2">"{p.example}"</p>
+                        )}
+                        <p className="text-xs text-red-600 mt-1">{p.why_it_fails}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <RecommendationsList items={report.conversation_analysis.recommendations} />
           </CardContent>
         </Card>
       )}

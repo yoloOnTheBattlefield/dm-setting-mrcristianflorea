@@ -39,6 +39,13 @@ export interface AIReportContent {
     worst_times: string;
     recommendations: string[];
   };
+  conversation_analysis?: {
+    summary: string;
+    common_objections: { objection: string; frequency: string; best_response: string }[];
+    positive_patterns: { pattern: string; example: string; why_it_works: string }[];
+    negative_patterns: { pattern: string; example: string; why_it_fails: string }[];
+    recommendations: string[];
+  };
   action_items: AIReportActionItem[];
 }
 

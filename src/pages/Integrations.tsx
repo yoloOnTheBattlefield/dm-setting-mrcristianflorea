@@ -421,24 +421,6 @@ export default function Integrations() {
     }
   };
 
-  const [isSendingTestReport, setIsSendingTestReport] = useState(false);
-  const handleTelegramTestReport = async () => {
-    setIsSendingTestReport(true);
-    try {
-      const res = await fetchWithAuth(`${API_URL}/api/telegram/test-report`, { method: "POST" });
-      if (res.ok) {
-        toast({ title: "Report sent", description: "Check your Telegram chat" });
-      } else {
-        const data = await res.json().catch(() => ({}));
-        toast({ title: "Failed to send report", description: data.error || "Unknown error", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Failed to send report", variant: "destructive" });
-    } finally {
-      setIsSendingTestReport(false);
-    }
-  };
-
   const handleConnectInstagram = async () => {
     setIsConnectingIg(true);
     try {
@@ -619,8 +601,6 @@ export default function Integrations() {
         onTelegramSave={handleTelegramSave}
         onTelegramDisconnect={handleTelegramDisconnect}
         isSavingTelegram={isSavingTelegram}
-        onTelegramTestReport={handleTelegramTestReport}
-        isSendingTestReport={isSendingTestReport}
       />
 
       {/* Calendly Token Modal */}
