@@ -73,11 +73,12 @@ describe("AIReportTab", () => {
     expect(screen.getByText("Generate Report")).toBeInTheDocument();
   });
 
-  it("renders the Relaunch button", () => {
+  it("renders the Relaunch Campaign button when report is shown", () => {
+    mockSelectedReport = { _id: "r1", status: "completed", report: fullReport };
     renderWithProviders(
       <AIReportTab filterParams={{}} />
     );
-    expect(screen.getByText("Relaunch")).toBeInTheDocument();
+    expect(screen.getByText("Relaunch Campaign")).toBeInTheDocument();
   });
 
   it("calls generate mutation when Generate Report is clicked", async () => {

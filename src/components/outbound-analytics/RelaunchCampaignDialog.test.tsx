@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RelaunchCampaignDialog } from "./RelaunchCampaignDialog";
+import type { AIReportContent } from "@/hooks/useAIReports";
 
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", () => ({
@@ -54,12 +55,23 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
-function renderDialog(open = true) {
+const mockReport: AIReportContent = {
+  executive_summary: "Test summary",
+  overall_health: "green",
+  sender_analysis: { summary: "", rankings: [], recommendations: ["Use sender A more"] },
+  message_strategy: { summary: "", top_performers: [], worst_performers: [], recommendations: ["Keep openers short"] },
+  industry_analysis: { summary: "", best_niches: [], worst_niches: [], recommendations: [] },
+  campaign_analysis: { summary: "", highlights: [], recommendations: [] },
+  timing_analysis: { best_times: "9am", worst_times: "midnight", recommendations: [] },
+  action_items: [],
+};
+
+function renderDialog(open = true, report: AIReportContent | null = mockReport) {
   const onOpenChange = vi.fn();
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const result = render(
     <QueryClientProvider client={qc}>
-      <RelaunchCampaignDialog open={open} onOpenChange={onOpenChange} />
+      <RelaunchCampaignDialog open={open} onOpenChange={onOpenChange} report={report} />
     </QueryClientProvider>,
   );
   return { ...result, onOpenChange };
@@ -77,9 +89,9 @@ describe("RelaunchCampaignDialog", () => {
     expect(screen.getByText("Select a campaign")).toBeInTheDocument();
   });
 
-  it("disables relaunch button when no campaign is selected", () => {
+  it("disables Review Changes button when no campaign is selected", () => {
     renderDialog();
-    const btn = screen.getByRole("button", { name: /relaunch/i });
+    const btn = screen.getByRole("button", { name: /review changes/i });
     expect(btn).toBeDisabled();
   });
 

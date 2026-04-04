@@ -114,30 +114,19 @@ export function AIReportTab({ filterParams }: AIReportTabProps) {
             Claude analyzes your outreach data and generates actionable insights
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => setShowRelaunch(true)}
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-          >
-            <Rocket className="h-3.5 w-3.5" />
-            Relaunch
-          </Button>
-          <Button
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            size="sm"
-            className="gap-1.5"
-          >
-            {isGenerating ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="h-3.5 w-3.5" />
-            )}
-            {isGenerating ? "Generating…" : "Generate Report"}
-          </Button>
-        </div>
+        <Button
+          onClick={handleGenerate}
+          disabled={isGenerating}
+          size="sm"
+          className="gap-1.5"
+        >
+          {isGenerating ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5" />
+          )}
+          {isGenerating ? "Generating…" : "Generate Report"}
+        </Button>
       </div>
 
       {/* Generating skeleton */}
@@ -174,7 +163,7 @@ export function AIReportTab({ filterParams }: AIReportTabProps) {
 
       {/* Report content */}
       {selectedReport?.status === "completed" && selectedReport.report && (
-        <ReportDisplay report={selectedReport.report} />
+        <ReportDisplay report={selectedReport.report} onRelaunch={() => setShowRelaunch(true)} />
       )}
 
       {/* Past reports */}
@@ -239,7 +228,11 @@ export function AIReportTab({ filterParams }: AIReportTabProps) {
         </Card>
       )}
 
-      <RelaunchCampaignDialog open={showRelaunch} onOpenChange={setShowRelaunch} />
+      <RelaunchCampaignDialog
+        open={showRelaunch}
+        onOpenChange={setShowRelaunch}
+        report={selectedReport?.report || null}
+      />
     </div>
   );
 }
@@ -414,7 +407,7 @@ function exportReportAsPDF(report: AIReportContent) {
 
 // ── Report Display ───────────────────────────────────────
 
-function ReportDisplay({ report }: { report: AIReportContent }) {
+function ReportDisplay({ report, onRelaunch }: { report: AIReportContent; onRelaunch: () => void }) {
   return (
     <div className="space-y-4">
       {/* Executive Summary */}
@@ -706,6 +699,24 @@ function ReportDisplay({ report }: { report: AIReportContent }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Relaunch CTA */}
+      <Card className="border-dashed">
+        <CardContent className="py-6 px-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium">Ready to improve?</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Relaunch unsent leads with an AI-improved prompt based on this report's findings.
+              </p>
+            </div>
+            <Button onClick={onRelaunch} size="sm" className="gap-1.5">
+              <Rocket className="h-3.5 w-3.5" />
+              Relaunch Campaign
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
