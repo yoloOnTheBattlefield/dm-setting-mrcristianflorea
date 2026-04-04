@@ -232,6 +232,7 @@ export function AIReportTab({ filterParams }: AIReportTabProps) {
         open={showRelaunch}
         onOpenChange={setShowRelaunch}
         report={selectedReport?.report || null}
+        preselectedCampaignId={filterParams.campaign_id}
       />
     </div>
   );

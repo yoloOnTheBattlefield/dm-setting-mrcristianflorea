@@ -29,6 +29,7 @@ interface RelaunchCampaignDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   report: AIReportContent | null;
+  preselectedCampaignId?: string;
 }
 
 /** Extract all recommendations from a report into a flat list grouped by section */
@@ -108,7 +109,7 @@ function buildEnhancedPrompt(originalPrompt: string, report: AIReportContent): s
 
 type Step = "select" | "diff" | "edit";
 
-export function RelaunchCampaignDialog({ open, onOpenChange, report }: RelaunchCampaignDialogProps) {
+export function RelaunchCampaignDialog({ open, onOpenChange, report, preselectedCampaignId }: RelaunchCampaignDialogProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: campaignsData } = useCampaigns({ limit: 200 });
@@ -123,9 +124,16 @@ export function RelaunchCampaignDialog({ open, onOpenChange, report }: RelaunchC
   const originalPrompt = selectedCampaign?.ai_personalization?.prompt || "";
   const pendingCount = selectedCampaign?.stats?.pending || 0;
 
+  // Pre-select campaign when provided
+  useEffect(() => {
+    if (open && preselectedCampaignId && !selectedCampaignId) {
+      setSelectedCampaignId(preselectedCampaignId);
+    }
+  }, [open, preselectedCampaignId]);
+
   // Build enhanced prompt when campaign is selected
   const autoEnhancedPrompt = useMemo(() => {
-    if (!originalPrompt || !report) return originalPrompt;
+    if (!report) return originalPrompt;
     return buildEnhancedPrompt(originalPrompt, report);
   }, [originalPrompt, report]);
 
