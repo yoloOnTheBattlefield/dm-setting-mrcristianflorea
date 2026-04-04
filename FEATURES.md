@@ -1597,3 +1597,11 @@ Relaunch unsent leads from an existing campaign into a new versioned campaign (e
 ### API Routes
 
 - `POST /api/campaigns/:id/relaunch` — Creates a new versioned campaign with pending leads from the source and an optional updated AI prompt
+
+## Per-Campaign AI Report
+
+Collapsible AI Report section on the campaign detail page. Generates a report scoped to that specific campaign's data, with the same insights (message strategy, sender analysis, conversation patterns, etc.) and relaunch functionality.
+
+### Files
+
+- `src/components/campaigns/CampaignDetail.tsx` — Collapsible AI Report card between progress bar and leads table

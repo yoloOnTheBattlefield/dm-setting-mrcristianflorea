@@ -128,6 +128,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AIReportTab } from "@/components/outbound-analytics/AIReportTab";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   draft: { label: "Draft", className: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
@@ -206,6 +208,7 @@ export default function CampaignDetail() {
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [showDuplicate, setShowDuplicate] = useState(false);
   const [dupLeadFilter, setDupLeadFilter] = useState("all");
+  const [showAiReport, setShowAiReport] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
     message: false,
     error: false,
@@ -731,6 +734,26 @@ export default function CampaignDetail() {
         </div>
         <Progress value={progressPct} className="h-2 md:h-3" indicatorClassName={progressColor} />
       </div>
+
+      {/* AI Report */}
+      <Collapsible open={showAiReport} onOpenChange={setShowAiReport}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardContent className="py-3 px-4 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">AI Report</span>
+              </div>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showAiReport ? "rotate-180" : ""}`} />
+            </CardContent>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-4 pb-4">
+              <AIReportTab filterParams={{ campaign_id: campaignId }} />
+            </div>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Leads */}
       <div className="space-y-3">
