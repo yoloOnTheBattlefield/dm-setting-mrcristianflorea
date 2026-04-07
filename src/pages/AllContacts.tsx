@@ -127,10 +127,13 @@ export default function AllContacts() {
     setAddLeadSubmitting(true);
     try {
       const now = new Date().toISOString();
+      // account_id is set server-side from the authenticated session — do
+      // NOT pass it from the client. Sending user.ghl here previously caused
+      // the new lead to be saved with the wrong account_id (or undefined for
+      // accounts that don't use GHL), making it invisible in the list.
       const body: Record<string, unknown> = {
         first_name: leadForm.first_name.trim(),
         date_created: now,
-        account_id: user?.ghl,
       };
       if (leadForm.last_name.trim()) body.last_name = leadForm.last_name.trim();
       if (leadForm.email.trim()) body.email = leadForm.email.trim();
