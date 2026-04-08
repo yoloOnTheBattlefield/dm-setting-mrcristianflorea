@@ -33,6 +33,7 @@ interface LoginResponse {
   has_outbound?: boolean;
   token?: string;
   has_research?: boolean;
+  lead_visibility?: { dms: boolean; outbound: boolean };
   accounts?: AccountMembership[];
   needs_account_selection?: boolean;
   selection_token?: string;
@@ -80,6 +81,7 @@ export function LoginForm({
       data.token,
       data.has_research,
       data.accounts,
+      data.lead_visibility,
     );
     toast({
       title: "Login successful",

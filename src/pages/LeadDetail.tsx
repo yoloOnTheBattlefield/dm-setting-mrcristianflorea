@@ -448,6 +448,7 @@ export default function LeadDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const dmsVisible = user?.lead_visibility?.dms !== false;
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
   const [contractInput, setContractInput] = useState("");
@@ -1338,8 +1339,8 @@ export default function LeadDetail() {
               </CardContent>
             </Card>
 
-            {/* Outbound Lead (if has_outbound) */}
-            {user?.has_outbound && (
+            {/* Outbound Lead (if has_outbound and visible) */}
+            {user?.has_outbound && user?.lead_visibility?.outbound !== false && (
               <Card>
                 <CardHeader className="pb-2 pt-4 px-4">
                   <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Outbound Lead</CardTitle>
@@ -1621,7 +1622,7 @@ export default function LeadDetail() {
             )}
 
             {/* DM Conversation — link prompt when none found */}
-            {conversationData === null && !(ghlConversation?.messages?.length) && (
+            {dmsVisible && conversationData === null && !(ghlConversation?.messages?.length) && (
               <Card>
                 <CardContent className="px-4 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1668,7 +1669,7 @@ export default function LeadDetail() {
             </Dialog>
 
             {/* DM Conversation */}
-            {conversationData?.messages && conversationData.messages.length > 0 && (
+            {dmsVisible && conversationData?.messages && conversationData.messages.length > 0 && (
               <Card>
                 <CardHeader className="pb-2 pt-4 px-4">
                   <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -1722,7 +1723,7 @@ export default function LeadDetail() {
             )}
 
             {/* GHL AI Conversation (from chat_memory) */}
-            {!conversationData?.messages?.length && ghlConversation?.messages && ghlConversation.messages.length > 0 && (
+            {dmsVisible && !conversationData?.messages?.length && ghlConversation?.messages && ghlConversation.messages.length > 0 && (
               <Card>
                 <CardHeader className="pb-2 pt-4 px-4">
                   <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">

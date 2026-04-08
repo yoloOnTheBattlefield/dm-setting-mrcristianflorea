@@ -11,6 +11,11 @@ export interface AccountMembership {
   is_default: boolean
 }
 
+export interface LeadVisibility {
+  dms: boolean
+  outbound: boolean
+}
+
 interface User {
   id?: string
   account_id?: string
@@ -23,6 +28,7 @@ interface User {
   api_key?: string
   has_outbound?: boolean
   has_research?: boolean
+  lead_visibility?: LeadVisibility
 }
 
 interface AuthContextType {
@@ -30,7 +36,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   accounts: AccountMembership[]
-  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accounts?: AccountMembership[]) => void
+  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accounts?: AccountMembership[], lead_visibility?: LeadVisibility) => void
   updateUser: (updates: Partial<User>) => void
   switchAccount: (accountId: string) => Promise<void>
   logout: () => void
@@ -54,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAuthenticated(true)
       const parsed = JSON.parse(userDataString)
       if (parsed.has_research === undefined) parsed.has_research = true
+      if (!parsed.lead_visibility) parsed.lead_visibility = { dms: true, outbound: true }
       setUser(parsed)
       if (accountsString) {
         try { setAccounts(JSON.parse(accountsString)) } catch { /* ignore */ }
@@ -62,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [])
 
-  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accts?: AccountMembership[]) => {
+  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accts?: AccountMembership[], lead_visibility?: LeadVisibility) => {
     const fullName = firstName && lastName
       ? `${firstName} ${lastName}`
       : firstName || email.split('@')[0]
@@ -79,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api_key,
       has_outbound,
       has_research: has_research ?? true,
+      lead_visibility: lead_visibility ?? { dms: true, outbound: true },
     }
 
     localStorage.setItem("isAuthenticated", "true")
@@ -135,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api_key: data.api_key,
       has_outbound: data.has_outbound,
       has_research: data.has_research ?? true,
+      lead_visibility: data.lead_visibility ?? { dms: true, outbound: true },
     }
 
     localStorage.setItem("token", data.token)

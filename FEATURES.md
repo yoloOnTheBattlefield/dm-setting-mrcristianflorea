@@ -1648,3 +1648,23 @@ Tracks every prompt used to generate messages on a campaign, with timestamp, lea
 - `routes/campaigns.js` — Pushes to `prompt_history` on `POST /campaigns/:id/generate-messages`
 - `src/hooks/useCampaigns.ts` — Added `PromptHistoryEntry` interface and `prompt_history` to `Campaign`
 - `src/components/campaigns/CampaignDetail.tsx` — Clickable prompt history list in AI Personalization modal
+
+## Lead Page Field Visibility
+
+Account admins/owners can hide specific sections on the lead detail page for everyone in the account. Useful for clients who only use inbound AI + Calendly and shouldn't see Instagram DM history or outbound campaign data. Configured per-account in User Settings; persisted on the `Account` document so all members see the same view.
+
+Currently toggleable sections:
+- **Instagram DM conversations** — hides the IG DM history card, the GHL chat-memory card, and the "Link conversation" prompt
+- **Outbound campaign data** — hides the Outbound Lead linker card on the lead sidebar
+
+### Files
+
+- `models/Account.js` — `lead_visibility: { dms, outbound }` schema (defaults true)
+- `routes/accounts.js` — `PATCH /accounts/:id` accepts `lead_visibility` from admins/owners; `/accounts/me` and login responses return it
+- `src/contexts/AuthContext.tsx` — `LeadVisibility` exposed on `user.lead_visibility`
+- `src/pages/UserSettings.tsx` — "Lead Page Visibility" card with two switches (admin/owner only)
+- `src/pages/LeadDetail.tsx` — `dmsVisible` derived flag gates the DM cards; outbound section gated by `user.lead_visibility.outbound`
+
+### API Routes
+
+- `PATCH /accounts/:id` with body `{ lead_visibility: { dms, outbound } }` — admins/owners only

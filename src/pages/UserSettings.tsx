@@ -60,6 +60,21 @@ export default function UserSettings() {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [isSavingNotif, setIsSavingNotif] = useState(false);
 
+  const [leadVisibility, setLeadVisibility] = useState({
+    dms: user?.lead_visibility?.dms ?? true,
+    outbound: user?.lead_visibility?.outbound ?? true,
+  });
+  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+
+  useEffect(() => {
+    if (user?.lead_visibility) {
+      setLeadVisibility({
+        dms: user.lead_visibility.dms,
+        outbound: user.lead_visibility.outbound,
+      });
+    }
+  }, [user?.lead_visibility]);
+
   useEffect(() => {
     fetchWithAuth(NOTIF_SETTINGS_URL)
       .then((r) => r.json())
@@ -137,6 +152,34 @@ export default function UserSettings() {
       toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleVisibilityToggle = async (key: "dms" | "outbound", value: boolean) => {
+    if (!user?.id) return;
+    const next = { ...leadVisibility, [key]: value };
+    setLeadVisibility(next);
+    setIsSavingVisibility(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/accounts/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_visibility: next }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        updateUser({ lead_visibility: data.lead_visibility });
+        toast({ title: "Saved", description: "Lead page visibility updated." });
+      } else {
+        setLeadVisibility(leadVisibility);
+        const data = await response.json().catch(() => ({}));
+        toast({ title: "Error", description: data.error || "Failed to update", variant: "destructive" });
+      }
+    } catch {
+      setLeadVisibility(leadVisibility);
+      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
+    } finally {
+      setIsSavingVisibility(false);
     }
   };
 
@@ -264,6 +307,45 @@ export default function UserSettings() {
             )}
           </CardContent>
         </Card>
+
+        {(user?.role === 0 || user?.role === 1) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Lead Page Visibility</CardTitle>
+              <CardDescription>
+                Choose which sections everyone in this account sees on the lead detail page
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Instagram DM conversations</p>
+                  <p className="text-xs text-muted-foreground">
+                    Show the DM conversation history panel on lead pages
+                  </p>
+                </div>
+                <Switch
+                  checked={leadVisibility.dms}
+                  onCheckedChange={(v) => handleVisibilityToggle("dms", v)}
+                  disabled={isSavingVisibility}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Outbound campaign data</p>
+                  <p className="text-xs text-muted-foreground">
+                    Show the linked outbound lead section on lead pages
+                  </p>
+                </div>
+                <Switch
+                  checked={leadVisibility.outbound}
+                  onCheckedChange={(v) => handleVisibilityToggle("outbound", v)}
+                  disabled={isSavingVisibility}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

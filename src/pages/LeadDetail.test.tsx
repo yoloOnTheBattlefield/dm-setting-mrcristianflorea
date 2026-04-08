@@ -15,8 +15,13 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+const mockUser: { has_outbound: boolean; lead_visibility?: { dms: boolean; outbound: boolean } } = {
+  has_outbound: true,
+  lead_visibility: { dms: true, outbound: true },
+};
+
 vi.mock("@/contexts/AuthContext", () => ({
-  useAuth: () => ({ user: { has_outbound: true } }),
+  useAuth: () => ({ user: mockUser }),
 }));
 
 vi.mock("@/hooks/useLeadNotes", () => ({
@@ -189,6 +194,56 @@ describe("LeadDetail — Delete", () => {
     // The overflow menu button (containing MoreHorizontal icon) should be present
     const buttons = screen.getAllByRole("button");
     expect(buttons.length).toBeGreaterThan(0);
+  });
+});
+
+describe("LeadDetail — Lead Visibility", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser.has_outbound = true;
+    mockUser.lead_visibility = { dms: true, outbound: true };
+  });
+
+  it("hides outbound lead section when outbound visibility is false", async () => {
+    mockUser.lead_visibility = { dms: true, outbound: false };
+    mockAllFetches();
+    renderLeadDetail();
+
+    await waitFor(() => {
+      expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
+    });
+
+    expect(screen.queryByText("Outbound Lead")).not.toBeInTheDocument();
+  });
+
+  it("hides DM link prompt when dms visibility is false", async () => {
+    mockUser.lead_visibility = { dms: false, outbound: true };
+    mockFetchWithAuth.mockImplementation((url: string) => {
+      if (url.includes("/leads/lead1")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(baseLead) });
+      }
+      if (url.includes("/conversation")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(null) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ leads: [] }) });
+    });
+    renderLeadDetail();
+
+    await waitFor(() => {
+      expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
+    });
+
+    expect(screen.queryByText("No DM conversation linked")).not.toBeInTheDocument();
+    expect(screen.queryByText("Link conversation")).not.toBeInTheDocument();
+  });
+
+  it("shows outbound lead section when outbound visibility is true", async () => {
+    mockAllFetches();
+    renderLeadDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText("Outbound Lead")).toBeInTheDocument();
+    });
   });
 });
 
