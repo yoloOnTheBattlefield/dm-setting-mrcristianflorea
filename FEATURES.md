@@ -1,5 +1,24 @@
 # Features
 
+## Telegram Notification on AI Follow-Up
+
+Sends a Telegram notification whenever the DM Assistant marks an outbound lead with a follow-up. Two triggers:
+
+1. **New Follow-Up created** — AI analyzes a thread for a lead that doesn't yet have a `FollowUp` doc and creates one (any status).
+2. **Transition to `follow_up_later`** — existing follow-up moves into `follow_up_later` (conversation stalled / 3 follow-ups exhausted).
+
+Each notification includes the lead username, full name, status, IG sender account, and a link to the prospect's Instagram profile.
+
+### Files (backend — `quddify-crm`)
+
+- `services/telegramNotifier.js` — `notifyAiFollowUp(account, { lead, status, reason, outboundAccount })`
+- `services/dmAssistantService.js` — `upsertLeadAndFollowUp` reads the prior FollowUp state, then fires the notification on new-creation or transition into `follow_up_later`
+- `services/telegramNotifier.test.js` — Unit tests for both notification reasons
+
+### API Routes
+
+- None (triggered automatically by the DM Assistant analysis path)
+
 ## GHL Inbound DM Conversation Storage
 
 Receives and stores the full AI chatbot conversation (`chat_memory`) from GoHighLevel workflows via webhook. The conversation is parsed into User/Bot messages and displayed as a chat thread on the inbound lead detail page.
