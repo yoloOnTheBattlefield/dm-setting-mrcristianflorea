@@ -19,6 +19,19 @@ Each notification includes the lead username, full name, status, IG sender accou
 
 - None (triggered automatically by the DM Assistant analysis path)
 
+## Telegram Notification on Campaign Completion
+
+Sends a Telegram notification when a campaign completes because there are no more leads to send. The notification includes the campaign name and final stats (sent, delivered, replied, failed, skipped).
+
+### Files
+
+- `services/telegramNotifier.js` — Added `notifyCampaignCompleted()` function
+- `services/campaignScheduler.js` — Calls `notifyCampaignCompleted()` when a campaign has no remaining pending/queued leads
+
+### API Routes
+
+- None (triggered automatically by the campaign scheduler)
+
 ## GHL Inbound DM Conversation Storage
 
 Receives and stores the full AI chatbot conversation (`chat_memory`) from GoHighLevel workflows via webhook. The conversation is parsed into User/Bot messages and displayed as a chat thread on the inbound lead detail page.
@@ -828,6 +841,42 @@ Shows a purple sparkles icon next to each outbound account on the campaign edit 
 - **Frontend page:** `src/pages/CampaignEdit.tsx` (Outbound Accounts section)
 - **Frontend type:** `src/hooks/useOutboundAccounts.ts` (`OutboundAccount.isConnectedToAISetter`)
 - **Backend model:** `quddify-crm/models/OutboundAccount.js` (`isConnectedToAISetter`)
+
+---
+
+## Deep Scrape Apify Token Guard
+
+When a user opens the Deep Scrape page, checks if any active Apify token exists. If none are configured (no tokens, or all are `disabled`/`limit_reached`), shows an `AlertDialog` explaining an Apify token is required and redirects the user to `/settings/integrations` when dismissed or when they click "Go to Integrations".
+
+### Location
+
+- **Frontend page:** `src/pages/DeepScraper.tsx` (guard effect + `AlertDialog`)
+- **Frontend hook:** `src/hooks/useApifyTokens.ts` (`useApifyTokens`)
+- **Tests:** `src/pages/DeepScraper.test.tsx` (`DeepScraper — Apify token guard`)
+
+---
+
+## Deep Scrape Qualification Preflight (OpenAI key + prompt)
+
+When a user clicks "Start Deep Scrape" in outbound mode (which runs lead qualification with AI), runs two preflight checks before submitting the job:
+
+1. **OpenAI key check** — if `accounts/me.openai_token` is not set, shows an `AlertDialog` ("OpenAI API Key Required") and redirects to `/settings/integrations`.
+2. **Prompt check** — if the user has no classification prompts, shows an `AlertDialog` ("No Classification Prompt Set") and redirects to `/prompts`.
+
+Research-mode scrapes skip these checks since they don't qualify leads.
+
+On the Prompts page, an inline warning card ("OpenAI API Key Missing") lets the user save an OpenAI API key directly without navigating away. The card is hidden once a key is configured.
+
+### Location
+
+- **Frontend pages:** `src/pages/DeepScraper.tsx` (preflight + 2 `AlertDialog`s), `src/pages/Prompts.tsx` (inline OpenAI key banner)
+- **Frontend hook:** `src/hooks/useAccountMe.ts` (`useAccountMe`, `useUpdateAccountTokens`)
+- **Tests:** `src/pages/DeepScraper.test.tsx` (`DeepScraper — Qualification preflight`), `src/pages/Prompts.test.tsx` (`Prompts — OpenAI key inline banner`)
+
+### API
+
+- **`GET /accounts/me`** — Returns current account including `openai_token`, `claude_token`, `gemini_token`.
+- **`PATCH /accounts/:id`** — Body: `{ openai_token?: string | null }` to set/clear the per-account OpenAI API key.
 
 ---
 

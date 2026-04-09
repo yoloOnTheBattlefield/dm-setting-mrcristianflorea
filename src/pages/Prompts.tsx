@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AlertTriangle } from "lucide-react";
+import { useAccountMe, useUpdateAccountTokens } from "@/hooks/useAccountMe";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +75,30 @@ export default function Prompts() {
   const updateMutation = useUpdatePrompt();
   const deleteMutation = useDeletePrompt();
 
+  // OpenAI API key inline setup
+  const { data: accountMe } = useAccountMe();
+  const updateTokens = useUpdateAccountTokens();
+  const [openaiKeyInput, setOpenaiKeyInput] = useState("");
+  const hasOpenaiKey = !!accountMe?.openai_token;
+
+  const handleSaveOpenaiKey = async () => {
+    if (!user?.id || !openaiKeyInput.trim()) return;
+    try {
+      await updateTokens.mutateAsync({
+        accountId: user.id,
+        body: { openai_token: openaiKeyInput.trim() },
+      });
+      toast({ title: "Saved", description: "OpenAI API key saved." });
+      setOpenaiKeyInput("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save API key",
+        variant: "destructive",
+      });
+    }
+  };
+
   const emptyForm = { label: "", promptText: "", isDefault: false, filters: { ...DEFAULT_FILTERS } };
 
   const openCreate = () => {
@@ -141,6 +167,39 @@ export default function Prompts() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
+      {!hasOpenaiKey && (
+        <Card className="border-yellow-500/40 bg-yellow-500/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              <CardTitle className="text-base">OpenAI API Key Missing</CardTitle>
+            </div>
+            <CardDescription>
+              Prompts use OpenAI to qualify leads. Add your API key below to enable qualification.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-2">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="prompts-openai-key">OpenAI API Key</Label>
+                <Input
+                  id="prompts-openai-key"
+                  type="password"
+                  placeholder="sk-..."
+                  value={openaiKeyInput}
+                  onChange={(e) => setOpenaiKeyInput(e.target.value)}
+                />
+              </div>
+              <Button
+                onClick={handleSaveOpenaiKey}
+                disabled={!openaiKeyInput.trim() || updateTokens.isPending}
+              >
+                {updateTokens.isPending ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>

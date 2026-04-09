@@ -1,9 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import DeepScraper from "./DeepScraper";
 import { useDeepScrapeJobs } from "@/hooks/useDeepScrapeJobs";
+import { useApifyTokens } from "@/hooks/useApifyTokens";
+import { useAccountMe } from "@/hooks/useAccountMe";
+
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
+vi.mock("@/hooks/useApifyTokens", () => ({
+  useApifyTokens: vi.fn(() => ({
+    data: { tokens: [{ _id: "t1", label: "Default", token: "***", status: "active", last_error: null, usage_count: 0, last_used_at: null, createdAt: "", updatedAt: "" }] },
+    isLoading: false,
+  })),
+}));
+
+vi.mock("@/hooks/useAccountMe", () => ({
+  useAccountMe: vi.fn(() => ({
+    data: { openai_token: "sk-test" },
+    isLoading: false,
+  })),
+}));
 
 // Mock all hooks used by DeepScraper
 vi.mock("@/hooks/useDeepScrapeJobs", () => ({
@@ -24,8 +46,9 @@ vi.mock("@/hooks/useDeepScrapeJobs", () => ({
   useAddDeepScrapeLeadsToCampaign: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
+const mockPromptsData: { current: any[] } = { current: [] };
 vi.mock("@/hooks/usePrompts", () => ({
-  usePrompts: () => ({ data: [] }),
+  usePrompts: () => ({ data: mockPromptsData.current }),
 }));
 
 vi.mock("@/hooks/useCampaigns", () => ({
@@ -284,5 +307,149 @@ describe("DeepScraper — Add to Campaign button", () => {
     const buttonTexts = Array.from(actionButtons).map((b) => b.textContent);
     // None of the buttons should trigger the campaign dialog
     expect(screen.queryByText("Add Qualified Leads to Campaign")).not.toBeInTheDocument();
+  });
+});
+
+const mockUseApifyTokens = vi.mocked(useApifyTokens);
+
+describe("DeepScraper — Apify token guard", () => {
+  beforeEach(() => {
+    mockNavigate.mockClear();
+  });
+
+  it("shows modal when no Apify tokens are configured", async () => {
+    mockUseApifyTokens.mockReturnValue({
+      data: { tokens: [] },
+      isLoading: false,
+    } as any);
+    renderDeepScraper();
+    await waitFor(() => {
+      expect(screen.getByText("Apify Token Required")).toBeInTheDocument();
+    });
+  });
+
+  it("shows modal when all Apify tokens are non-active", async () => {
+    mockUseApifyTokens.mockReturnValue({
+      data: {
+        tokens: [
+          { _id: "t1", label: "Disabled", token: "***", status: "disabled", last_error: null, usage_count: 0, last_used_at: null, createdAt: "", updatedAt: "" },
+        ],
+      },
+      isLoading: false,
+    } as any);
+    renderDeepScraper();
+    await waitFor(() => {
+      expect(screen.getByText("Apify Token Required")).toBeInTheDocument();
+    });
+  });
+
+  it("navigates to integrations when clicking Go to Integrations", async () => {
+    mockUseApifyTokens.mockReturnValue({
+      data: { tokens: [] },
+      isLoading: false,
+    } as any);
+    renderDeepScraper();
+    await waitFor(() => {
+      expect(screen.getByText("Apify Token Required")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("Go to Integrations"));
+    expect(mockNavigate).toHaveBeenCalledWith("/settings/integrations");
+  });
+
+  it("does not show modal when an active Apify token exists", () => {
+    mockUseApifyTokens.mockReturnValue({
+      data: {
+        tokens: [
+          { _id: "t1", label: "Default", token: "***", status: "active", last_error: null, usage_count: 0, last_used_at: null, createdAt: "", updatedAt: "" },
+        ],
+      },
+      isLoading: false,
+    } as any);
+    renderDeepScraper();
+    expect(screen.queryByText("Apify Token Required")).not.toBeInTheDocument();
+  });
+
+  it("does not show modal while tokens are still loading", () => {
+    mockUseApifyTokens.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    } as any);
+    renderDeepScraper();
+    expect(screen.queryByText("Apify Token Required")).not.toBeInTheDocument();
+  });
+});
+
+const mockUseAccountMe = vi.mocked(useAccountMe);
+
+function fillOutboundSeedAndStart() {
+  openNewDialog();
+  const textarea = screen.getByLabelText("Seed Usernames");
+  fireEvent.change(textarea, { target: { value: "someuser" } });
+  const startBtn = screen.getByText("Start Deep Scrape").closest("button")!;
+  fireEvent.click(startBtn);
+}
+
+describe("DeepScraper — Qualification preflight", () => {
+  beforeEach(() => {
+    mockNavigate.mockClear();
+    mockPromptsData.current = [];
+    mockUseApifyTokens.mockReturnValue({
+      data: { tokens: [{ _id: "t1", label: "Default", token: "***", status: "active", last_error: null, usage_count: 0, last_used_at: null, createdAt: "", updatedAt: "" }] },
+      isLoading: false,
+    } as any);
+  });
+
+  it("shows OpenAI required modal when starting outbound scrape without openai_token", async () => {
+    mockUseAccountMe.mockReturnValue({
+      data: { openai_token: null },
+      isLoading: false,
+    } as any);
+    renderDeepScraper();
+    fillOutboundSeedAndStart();
+    await waitFor(() => {
+      expect(screen.getByText("OpenAI API Key Required")).toBeInTheDocument();
+    });
+  });
+
+  it("navigates to integrations from OpenAI required modal", async () => {
+    mockUseAccountMe.mockReturnValue({
+      data: { openai_token: null },
+      isLoading: false,
+    } as any);
+    renderDeepScraper();
+    fillOutboundSeedAndStart();
+    await waitFor(() => {
+      expect(screen.getByText("OpenAI API Key Required")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("Go to Integrations"));
+    expect(mockNavigate).toHaveBeenCalledWith("/settings/integrations");
+  });
+
+  it("shows No Prompt modal when openai is set but no prompts exist", async () => {
+    mockUseAccountMe.mockReturnValue({
+      data: { openai_token: "sk-test" },
+      isLoading: false,
+    } as any);
+    mockPromptsData.current = [];
+    renderDeepScraper();
+    fillOutboundSeedAndStart();
+    await waitFor(() => {
+      expect(screen.getByText("No Classification Prompt Set")).toBeInTheDocument();
+    });
+  });
+
+  it("navigates to prompts page from No Prompt modal", async () => {
+    mockUseAccountMe.mockReturnValue({
+      data: { openai_token: "sk-test" },
+      isLoading: false,
+    } as any);
+    mockPromptsData.current = [];
+    renderDeepScraper();
+    fillOutboundSeedAndStart();
+    await waitFor(() => {
+      expect(screen.getByText("No Classification Prompt Set")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("Go to Prompts"));
+    expect(mockNavigate).toHaveBeenCalledWith("/prompts");
   });
 });

@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { formatDateTime } from "@/lib/formatters";
+import { useApifyTokens } from "@/hooks/useApifyTokens";
+import { useAccountMe } from "@/hooks/useAccountMe";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -698,6 +701,24 @@ function JobInlineDetail({ jobId }: { jobId: string }) {
 
 export default function DeepScraper() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { data: apifyTokensData, isLoading: isLoadingApifyTokens } = useApifyTokens();
+  const hasActiveApifyToken = (apifyTokensData?.tokens || []).some(
+    (t) => t.status === "active"
+  );
+  const [showNoApifyTokenDialog, setShowNoApifyTokenDialog] = useState(false);
+  const [showNoOpenAIDialog, setShowNoOpenAIDialog] = useState(false);
+  const [showNoPromptDialog, setShowNoPromptDialog] = useState(false);
+
+  const { data: accountMe } = useAccountMe();
+  const hasOpenAIKey = !!accountMe?.openai_token;
+
+  useEffect(() => {
+    if (!isLoadingApifyTokens && !hasActiveApifyToken) {
+      setShowNoApifyTokenDialog(true);
+    }
+  }, [isLoadingApifyTokens, hasActiveApifyToken]);
+
   const [statusFilter, setStatusFilter] = usePersistedState("deep-scraper-status", "all");
   const [currentPage, setCurrentPage] = useState(1);
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -875,6 +896,18 @@ export default function DeepScraper() {
 
   const handleStart = async () => {
     if (!canStart) return;
+
+    // Qualification preflight: outbound mode qualifies leads with AI using a prompt
+    if (jobMode === "outbound") {
+      if (!hasOpenAIKey) {
+        setShowNoOpenAIDialog(true);
+        return;
+      }
+      if (promptsList.length === 0) {
+        setShowNoPromptDialog(true);
+        return;
+      }
+    }
 
     try {
       const isDirectMode = jobSource === "direct_urls";
@@ -1575,6 +1608,98 @@ export default function DeepScraper() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* No Apify Token Dialog */}
+      <AlertDialog
+        open={showNoApifyTokenDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowNoApifyTokenDialog(false);
+            navigate("/settings/integrations");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apify Token Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              You need to configure an Apify token before you can run deep scrape jobs. You'll be redirected to the Integrations page to set one up.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => {
+                setShowNoApifyTokenDialog(false);
+                navigate("/settings/integrations");
+              }}
+            >
+              Go to Integrations
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* No OpenAI Key Dialog */}
+      <AlertDialog
+        open={showNoOpenAIDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowNoOpenAIDialog(false);
+            navigate("/settings/integrations");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>OpenAI API Key Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              Qualifying leads requires an OpenAI API key. You'll be redirected to the Integrations page to add one.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowNoOpenAIDialog(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowNoOpenAIDialog(false);
+                navigate("/settings/integrations");
+              }}
+            >
+              Go to Integrations
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* No Prompt Dialog */}
+      <AlertDialog
+        open={showNoPromptDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowNoPromptDialog(false);
+            navigate("/prompts");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>No Classification Prompt Set</AlertDialogTitle>
+            <AlertDialogDescription>
+              You need at least one classification prompt before you can qualify leads. You'll be redirected to the Prompts page to create one.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowNoPromptDialog(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowNoPromptDialog(false);
+                navigate("/prompts");
+              }}
+            >
+              Go to Prompts
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
