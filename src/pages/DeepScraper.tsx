@@ -66,7 +66,8 @@ import {
   useAddDeepScrapeLeadsToCampaign,
 } from "@/hooks/useDeepScrapeJobs";
 import type { DeepScrapeJob, DeepScrapeJobStatus, DeepScrapeLeadEntry } from "@/lib/types";
-import { useCampaigns } from "@/hooks/useCampaigns";
+import { useCampaigns, useCreateCampaign, type Campaign } from "@/hooks/useCampaigns";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -787,26 +788,43 @@ export default function DeepScraper() {
   const resumeCommentsMutation = useResumeComments();
   const updateMutation = useUpdateDeepScrape();
   const addToCampaignMutation = useAddDeepScrapeLeadsToCampaign();
+  const createCampaignMutation = useCreateCampaign();
 
   // Add to Campaign dialog state
   const [addToCampaignJobId, setAddToCampaignJobId] = useState<string | null>(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+  const [addToCampaignMode, setAddToCampaignMode] = useState<"existing" | "new">("existing");
+  const [newCampaignName, setNewCampaignName] = useState<string>("");
   const { data: campaignsData } = useCampaigns({ limit: 100 });
   const campaigns = campaignsData?.campaigns || [];
 
+  const resetAddToCampaignDialog = () => {
+    setAddToCampaignJobId(null);
+    setSelectedCampaignId("");
+    setAddToCampaignMode("existing");
+    setNewCampaignName("");
+  };
+
   const handleAddToCampaign = async () => {
-    if (!addToCampaignJobId || !selectedCampaignId) return;
+    if (!addToCampaignJobId) return;
     try {
+      let campaignId = selectedCampaignId;
+      if (addToCampaignMode === "new") {
+        const trimmed = newCampaignName.trim();
+        if (!trimmed) return;
+        const created = await createCampaignMutation.mutateAsync({ name: trimmed }) as Campaign;
+        campaignId = created._id;
+      }
+      if (!campaignId) return;
       const result = await addToCampaignMutation.mutateAsync({
         jobId: addToCampaignJobId,
-        campaign_id: selectedCampaignId,
+        campaign_id: campaignId,
       });
       toast({
-        title: "Leads added to campaign",
+        title: addToCampaignMode === "new" ? "Campaign created & leads added" : "Leads added to campaign",
         description: `${result.added} added, ${result.duplicates_skipped} duplicates skipped`,
       });
-      setAddToCampaignJobId(null);
-      setSelectedCampaignId("");
+      resetAddToCampaignDialog();
     } catch (err) {
       toast({ title: "Failed to add leads", description: err instanceof Error ? err.message : "Failed to add leads", variant: "destructive" });
     }
@@ -1439,7 +1457,12 @@ export default function DeepScraper() {
                                     tooltip="Add to Campaign"
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => { setAddToCampaignJobId(job._id); setSelectedCampaignId(""); }}
+                                    onClick={() => {
+                                      setAddToCampaignJobId(job._id);
+                                      setSelectedCampaignId("");
+                                      setAddToCampaignMode("existing");
+                                      setNewCampaignName("");
+                                    }}
                                   >
                                     <SendHorizontal className="h-3.5 w-3.5 text-blue-400" />
                                   </ActionBtn>
@@ -1706,7 +1729,7 @@ export default function DeepScraper() {
       </AlertDialog>
 
       {/* Add to Campaign Dialog */}
-      <Dialog open={!!addToCampaignJobId} onOpenChange={(open) => { if (!open) { setAddToCampaignJobId(null); setSelectedCampaignId(""); } }}>
+      <Dialog open={!!addToCampaignJobId} onOpenChange={(open) => { if (!open) resetAddToCampaignDialog(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Qualified Leads to Campaign</DialogTitle>
@@ -1715,31 +1738,68 @@ export default function DeepScraper() {
             <p className="text-sm text-muted-foreground">
               All qualified leads from this job will be added to the selected campaign. Duplicates will be skipped.
             </p>
-            <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a campaign" />
-              </SelectTrigger>
-              <SelectContent>
-                {campaigns.map((c) => (
-                  <SelectItem key={c._id} value={c._id}>
-                    {c.name} ({c.status})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={addToCampaignMode === "existing" ? "default" : "outline"}
+                onClick={() => setAddToCampaignMode("existing")}
+              >
+                Existing campaign
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={addToCampaignMode === "new" ? "default" : "outline"}
+                onClick={() => setAddToCampaignMode("new")}
+              >
+                New campaign
+              </Button>
+            </div>
+            {addToCampaignMode === "existing" ? (
+              <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a campaign" />
+                </SelectTrigger>
+                <SelectContent>
+                  {campaigns.map((c) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.name} ({c.status})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Campaign name</label>
+                <Input
+                  autoFocus
+                  placeholder="e.g. Spring outreach"
+                  value={newCampaignName}
+                  onChange={(e) => setNewCampaignName(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  A new draft campaign will be created and these leads will be added to it.
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setAddToCampaignJobId(null); setSelectedCampaignId(""); }}>
+            <Button variant="outline" onClick={resetAddToCampaignDialog}>
               Cancel
             </Button>
             <Button
               onClick={handleAddToCampaign}
-              disabled={!selectedCampaignId || addToCampaignMutation.isPending}
+              disabled={
+                (addToCampaignMode === "existing" ? !selectedCampaignId : !newCampaignName.trim()) ||
+                addToCampaignMutation.isPending ||
+                createCampaignMutation.isPending
+              }
             >
-              {addToCampaignMutation.isPending ? (
-                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Adding...</>
+              {addToCampaignMutation.isPending || createCampaignMutation.isPending ? (
+                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />{createCampaignMutation.isPending ? "Creating..." : "Adding..."}</>
               ) : (
-                "Add Leads"
+                addToCampaignMode === "new" ? "Create & Add Leads" : "Add Leads"
               )}
             </Button>
           </DialogFooter>

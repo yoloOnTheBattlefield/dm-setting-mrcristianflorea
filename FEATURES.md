@@ -882,7 +882,7 @@ On the Prompts page, an inline warning card ("OpenAI API Key Missing") lets the 
 
 ## Add Deep Scrape Leads to Campaign
 
-Adds an "Add to Campaign" button on each completed deep scrape job that has qualified leads. Opens a dialog to pick a campaign, then bulk-adds all qualified leads from that job to the selected campaign. Duplicates already in the campaign are skipped.
+Adds an "Add to Campaign" button on each completed deep scrape job that has qualified leads. Opens a dialog where the user can either pick an existing campaign or create a new draft campaign on the fly (just a name is required). The qualified leads from that job are then bulk-added to the chosen/created campaign. Duplicates already in the campaign are skipped.
 
 ### Location
 

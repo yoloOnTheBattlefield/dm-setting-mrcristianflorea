@@ -53,6 +53,7 @@ vi.mock("@/hooks/usePrompts", () => ({
 
 vi.mock("@/hooks/useCampaigns", () => ({
   useCampaigns: () => ({ data: { campaigns: [{ _id: "camp1", name: "Test Campaign", status: "active" }] } }),
+  useCreateCampaign: () => ({ mutateAsync: vi.fn().mockResolvedValue({ _id: "new-camp" }), isPending: false }),
 }));
 
 vi.mock("@/hooks/use-toast", () => ({
