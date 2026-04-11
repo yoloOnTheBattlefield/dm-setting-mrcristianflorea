@@ -1,5 +1,6 @@
 import { API_URL } from "@/lib/api"
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react"
+import { queryClient } from "@/App"
 
 export interface AccountMembership {
   account_id: string
@@ -149,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", data.token)
     localStorage.setItem("user", JSON.stringify(userData))
     if (data.accounts) localStorage.setItem("accounts", JSON.stringify(data.accounts))
+    queryClient.clear()
     setUser(userData)
     if (data.accounts) setAccounts(data.accounts)
   }, [user?.email])
@@ -158,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("user")
     localStorage.removeItem("token")
     localStorage.removeItem("accounts")
+    queryClient.clear()
     setIsAuthenticated(false)
     setUser(null)
     setAccounts([])
