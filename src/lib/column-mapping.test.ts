@@ -1,5 +1,24 @@
-import { describe, it, expect } from "vitest";
-import { autoSuggestMapping, validateMapping, MAPPABLE_FIELDS, IDENTIFIER_FIELDS } from "./column-mapping";
+import { describe, it, expect, vi } from "vitest";
+import { autoSuggestMapping, validateMapping, MAPPABLE_FIELDS, IDENTIFIER_FIELDS, parseXlsxPreview } from "./column-mapping";
+
+const mockRows = [
+  { Username: "alice", Email: "alice@test.com", Bio: "Coach" },
+  { Username: "bob", Email: "bob@test.com", Bio: "Consultant" },
+  { Username: "carol", Email: "carol@test.com", Bio: "Trainer" },
+];
+
+vi.mock("xlsx", () => {
+  const mod = {
+    read: () => ({
+      SheetNames: ["Sheet1"],
+      Sheets: { Sheet1: {} },
+    }),
+    utils: {
+      sheet_to_json: () => [...mockRows],
+    },
+  };
+  return { ...mod, default: mod };
+});
 
 describe("autoSuggestMapping", () => {
   it("maps exact header matches", () => {
@@ -88,5 +107,35 @@ describe("MAPPABLE_FIELDS", () => {
 describe("IDENTIFIER_FIELDS", () => {
   it("contains the three identifier field keys", () => {
     expect(IDENTIFIER_FIELDS).toEqual(["username", "email", "profileLink"]);
+  });
+});
+
+describe("parseXlsxPreview", () => {
+  function makeFile(name: string) {
+    const file = new File(["data"], name);
+    Object.defineProperty(file, "arrayBuffer", {
+      value: () => Promise.resolve(new ArrayBuffer(0)),
+    });
+    return file;
+  }
+
+  it("parses a .xlsx file and returns headers and preview rows", async () => {
+    const result = await parseXlsxPreview(makeFile("leads.xlsx"));
+    expect(result.headers).toEqual(["Username", "Email", "Bio"]);
+    // mockRows has 3 rows, last row removed by scraper notice logic → 2 rows
+    expect(result.previewRows).toHaveLength(2);
+  });
+
+  it("parses a .csv file the same way as .xlsx", async () => {
+    const result = await parseXlsxPreview(makeFile("leads.csv"));
+    expect(result.headers).toEqual(["Username", "Email", "Bio"]);
+    expect(result.previewRows).toHaveLength(2);
+  });
+
+  it("returns the same headers for both file types", async () => {
+    const xlsx = await parseXlsxPreview(makeFile("data.xlsx"));
+    const csv = await parseXlsxPreview(makeFile("data.csv"));
+    expect(xlsx.headers).toEqual(csv.headers);
+    expect(xlsx.previewRows).toEqual(csv.previewRows);
   });
 });

@@ -98,7 +98,7 @@ export default function ImportOutboundLeads() {
     e.preventDefault();
     setIsDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith(".xlsx") || file.name.endsWith(".xls"))) {
+    if (file && (file.name.endsWith(".xlsx") || file.name.endsWith(".xls") || file.name.endsWith(".csv"))) {
       setSelectedFile(file);
     }
   }, []);
@@ -119,9 +119,9 @@ export default function ImportOutboundLeads() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Import XLSX</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Import Leads</h2>
           <p className="text-sm text-muted-foreground">
-            Import outbound leads from a pre-processed XLSX file
+            Import outbound leads from a pre-processed XLSX or CSV file
           </p>
         </div>
       </div>
@@ -157,9 +157,9 @@ export default function ImportOutboundLeads() {
                 <>
                   <Upload className="h-10 w-10 text-muted-foreground" />
                   <div className="text-center">
-                    <p className="text-sm font-medium">Drop your .xlsx file here or click to browse</p>
+                    <p className="text-sm font-medium">Drop your .xlsx or .csv file here or click to browse</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Supports any spreadsheet with lead data
+                      Supports any spreadsheet or CSV with lead data
                     </p>
                   </div>
                 </>
@@ -167,7 +167,7 @@ export default function ImportOutboundLeads() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".xlsx,.xls"
+                accept=".xlsx,.xls,.csv"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];

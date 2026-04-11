@@ -1717,3 +1717,16 @@ Currently toggleable sections:
 ### API Routes
 
 - `PATCH /accounts/:id` with body `{ lead_visibility: { dms, outbound } }` — admins/owners only
+
+---
+
+## CSV Support for Lead Uploads
+
+Both lead upload pages now accept `.csv` files in addition to `.xlsx`. The SheetJS library already parses CSV natively, so no parser changes were needed — only UI acceptance filters and backend filename validation were updated.
+
+### Location
+
+- **Upload page (scrape jobs):** `src/pages/UploadXlsx.tsx` — accepts `.xlsx` and `.csv`, filename regex updated
+- **Import page (outbound leads):** `src/pages/ImportOutboundLeads.tsx` — accepts `.xlsx`, `.xls`, and `.csv`
+- **Column mapping lib:** `src/lib/column-mapping.ts` — `parseXlsxPreview()` works for both formats via SheetJS
+- **Backend service:** `quddify-crm/services/uploadService.js` — `FILENAME_REGEX` updated to accept `.csv`

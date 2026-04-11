@@ -32,7 +32,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-const FILENAME_REGEX = /^(follower|following)-of-(.+)-(\d{8})\.xlsx$/;
+const FILENAME_REGEX = /^(follower|following)-of-(.+)-(\d{8})\.(xlsx|csv)$/;
 
 function parseFilename(name: string) {
   const match = name.match(FILENAME_REGEX);
@@ -100,14 +100,14 @@ export default function UploadXlsx() {
     (incoming: FileList | File[]) => {
       const newFiles: File[] = [];
       for (const f of Array.from(incoming)) {
-        if (!f.name.endsWith(".xlsx")) {
-          toast({ title: "Invalid file", description: `${f.name}: Only .xlsx files are accepted`, variant: "destructive" });
+        if (!f.name.endsWith(".xlsx") && !f.name.endsWith(".csv")) {
+          toast({ title: "Invalid file", description: `${f.name}: Only .xlsx and .csv files are accepted`, variant: "destructive" });
           continue;
         }
         if (!FILENAME_REGEX.test(f.name)) {
           toast({
             title: "Invalid filename",
-            description: `${f.name}: Must match follower-of-{account}-{YYYYMMDD}.xlsx or following-of-...`,
+            description: `${f.name}: Must match follower-of-{account}-{YYYYMMDD}.xlsx/.csv or following-of-...`,
             variant: "destructive",
           });
           continue;
@@ -241,15 +241,15 @@ export default function UploadXlsx() {
         <CardContent className="flex flex-col items-center gap-3 py-12">
           <Upload className="h-10 w-10 text-muted-foreground" />
           <div className="text-center">
-            <p className="text-sm font-medium">Drop your .xlsx files here or click to browse</p>
+            <p className="text-sm font-medium">Drop your .xlsx or .csv files here or click to browse</p>
             <p className="text-xs text-muted-foreground mt-1">
-              follower-of-&#123;account&#125;-&#123;YYYYMMDD&#125;.xlsx or following-of-&#123;account&#125;-&#123;YYYYMMDD&#125;.xlsx
+              follower-of-&#123;account&#125;-&#123;YYYYMMDD&#125;.xlsx/.csv or following-of-&#123;account&#125;-&#123;YYYYMMDD&#125;.xlsx/.csv
             </p>
           </div>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".xlsx"
+            accept=".xlsx,.csv"
             multiple
             className="hidden"
             onChange={(e) => {
