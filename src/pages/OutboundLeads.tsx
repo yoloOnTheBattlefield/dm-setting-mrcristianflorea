@@ -232,6 +232,112 @@ function formatNumber(n?: number): string {
   return String(n);
 }
 
+// ── Status helpers ──
+
+export function buildStatusPatch(
+  stageKey: string,
+  existingDmDate?: string | null,
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  switch (stageKey) {
+    case "new":
+      patch.isMessaged = false;
+      patch.dmDate = null;
+      patch.link_sent = false;
+      patch.replied = false;
+      patch.booked = false;
+      patch.qualified = null;
+      break;
+    case "messaged":
+      patch.isMessaged = true;
+      patch.dmDate = existingDmDate || new Date().toISOString();
+      patch.link_sent = false;
+      patch.replied = false;
+      patch.booked = false;
+      patch.qualified = null;
+      break;
+    case "link_sent":
+      patch.isMessaged = true;
+      patch.dmDate = existingDmDate || new Date().toISOString();
+      patch.link_sent = true;
+      patch.replied = false;
+      patch.booked = false;
+      patch.qualified = null;
+      break;
+    case "replied":
+      patch.isMessaged = true;
+      patch.dmDate = existingDmDate || new Date().toISOString();
+      patch.link_sent = true;
+      patch.replied = true;
+      patch.booked = false;
+      patch.qualified = null;
+      break;
+    case "converted":
+      patch.isMessaged = true;
+      patch.dmDate = existingDmDate || new Date().toISOString();
+      patch.link_sent = true;
+      patch.replied = true;
+      patch.booked = true;
+      patch.qualified = null;
+      break;
+    case "dq":
+      patch.qualified = false;
+      break;
+  }
+  return patch;
+}
+
+// ── Status Badge Dropdown ──
+
+function StatusBadgeDropdown({
+  lead,
+  stage,
+  onSetStatus,
+  size = "default",
+}: {
+  lead: OutboundLead;
+  stage: (typeof PIPELINE_STAGES)[number];
+  onSetStatus: (lead: OutboundLead, stageKey: string) => void;
+  size?: "default" | "small";
+}) {
+  const [open, setOpen] = useState(false);
+
+  const badgeClass =
+    size === "small"
+      ? `inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${stage.bg} ${stage.text}`
+      : `inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${stage.bg} ${stage.text}`;
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={badgeClass}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${stage.dot}`} />
+          {stage.label}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-44">
+        {PIPELINE_STAGES.map((s) => (
+          <DropdownMenuItem
+            key={s.key}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (s.key !== stage.key) onSetStatus(lead, s.key);
+            }}
+            className={s.key === stage.key ? "bg-accent" : ""}
+          >
+            <span className={`h-2 w-2 rounded-full ${s.dot} mr-2 shrink-0`} />
+            {s.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 // ── Row Actions Dropdown ──
 
 function RowActions({
@@ -640,6 +746,24 @@ export default function OutboundLeads() {
     [queryClient, toast],
   );
 
+  const setLeadStatus = useCallback(
+    async (lead: OutboundLead, stageKey: string) => {
+      const patch = buildStatusPatch(stageKey, lead.dmDate);
+      try {
+        await patchOutboundLead(lead._id, patch);
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: err instanceof Error ? err.message : "Failed to update",
+          variant: "destructive",
+        });
+      }
+    },
+    [queryClient, toast],
+  );
+
   const saveContractValue = useCallback(
     async (lead: OutboundLead, value: string) => {
       const num = value === "" ? null : parseFloat(value);
@@ -842,12 +966,12 @@ export default function OutboundLeads() {
                         </div>
 
                         {/* Status badge */}
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 ${stage.bg} ${stage.text}`}
-                        >
-                          <span className={`h-1.5 w-1.5 rounded-full ${stage.dot}`} />
-                          {stage.label}
-                        </span>
+                        <StatusBadgeDropdown
+                          lead={lead}
+                          stage={stage}
+                          onSetStatus={setLeadStatus}
+                          size="small"
+                        />
 
                         {/* Expand toggle */}
                         <button
@@ -1088,12 +1212,11 @@ export default function OutboundLeads() {
 
                           {/* Status Badge */}
                           <TableCell>
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${stage.bg} ${stage.text}`}
-                            >
-                              <span className={`h-1.5 w-1.5 rounded-full ${stage.dot}`} />
-                              {stage.label}
-                            </span>
+                            <StatusBadgeDropdown
+                              lead={lead}
+                              stage={stage}
+                              onSetStatus={setLeadStatus}
+                            />
                           </TableCell>
 
                           <TableCell className="text-right">
