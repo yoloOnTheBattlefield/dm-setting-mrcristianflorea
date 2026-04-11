@@ -55,31 +55,31 @@ function renderPage() {
   );
 }
 
-describe("UploadXlsx — CSV support", () => {
+describe("UploadXlsx — file acceptance", () => {
   beforeEach(() => {
     mockToast.mockClear();
   });
 
-  it("accepts .xlsx files with valid filename", () => {
+  it("accepts .xlsx files with any filename", () => {
     renderPage();
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     expect(input.accept).toBe(".xlsx,.csv");
 
-    const file = new File(["data"], "follower-of-testaccount-20260401.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const file = new File(["data"], "my-leads.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     fireEvent.change(input, { target: { files: [file] } });
 
-    expect(screen.getByText("follower-of-testaccount-20260401.xlsx")).toBeInTheDocument();
+    expect(screen.getByText("my-leads.xlsx")).toBeInTheDocument();
     expect(mockToast).not.toHaveBeenCalled();
   });
 
-  it("accepts .csv files with valid filename", () => {
+  it("accepts .csv files with any filename", () => {
     renderPage();
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
-    const file = new File(["data"], "follower-of-testaccount-20260401.csv", { type: "text/csv" });
+    const file = new File(["data"], "ALL_IG_LEADS.csv", { type: "text/csv" });
     fireEvent.change(input, { target: { files: [file] } });
 
-    expect(screen.getByText("follower-of-testaccount-20260401.csv")).toBeInTheDocument();
+    expect(screen.getByText("ALL_IG_LEADS.csv")).toBeInTheDocument();
     expect(mockToast).not.toHaveBeenCalled();
   });
 
@@ -87,7 +87,7 @@ describe("UploadXlsx — CSV support", () => {
     renderPage();
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
-    const file = new File(["data"], "follower-of-testaccount-20260401.pdf", { type: "application/pdf" });
+    const file = new File(["data"], "leads.pdf", { type: "application/pdf" });
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(mockToast).toHaveBeenCalledWith(
@@ -98,19 +98,29 @@ describe("UploadXlsx — CSV support", () => {
     );
   });
 
-  it("rejects csv files with invalid filename pattern", () => {
+  it("shows metadata badges for follower-of pattern filenames", () => {
+    renderPage();
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    const file = new File(["data"], "follower-of-testaccount-20260401.xlsx");
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(screen.getByText("follower")).toBeInTheDocument();
+    expect(screen.getByText("@testaccount")).toBeInTheDocument();
+    expect(screen.getByText("2026-04-01")).toBeInTheDocument();
+  });
+
+  it("shows no metadata badges for arbitrary filenames", () => {
     renderPage();
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     const file = new File(["data"], "random-leads.csv", { type: "text/csv" });
     fireEvent.change(input, { target: { files: [file] } });
 
-    expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "Invalid filename",
-        variant: "destructive",
-      }),
-    );
+    expect(screen.getByText("random-leads.csv")).toBeInTheDocument();
+    // No badges rendered for non-matching filenames
+    expect(screen.queryByText("follower")).not.toBeInTheDocument();
+    expect(screen.queryByText("following")).not.toBeInTheDocument();
   });
 
   it("shows drop zone text mentioning both xlsx and csv", () => {

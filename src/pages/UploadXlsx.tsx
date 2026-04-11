@@ -104,14 +104,6 @@ export default function UploadXlsx() {
           toast({ title: "Invalid file", description: `${f.name}: Only .xlsx and .csv files are accepted`, variant: "destructive" });
           continue;
         }
-        if (!FILENAME_REGEX.test(f.name)) {
-          toast({
-            title: "Invalid filename",
-            description: `${f.name}: Must match follower-of-{account}-{YYYYMMDD}.xlsx/.csv or following-of-...`,
-            variant: "destructive",
-          });
-          continue;
-        }
         newFiles.push(f);
       }
       if (newFiles.length > 0) {
@@ -243,7 +235,7 @@ export default function UploadXlsx() {
           <div className="text-center">
             <p className="text-sm font-medium">Drop your .xlsx or .csv files here or click to browse</p>
             <p className="text-xs text-muted-foreground mt-1">
-              follower-of-&#123;account&#125;-&#123;YYYYMMDD&#125;.xlsx/.csv or following-of-&#123;account&#125;-&#123;YYYYMMDD&#125;.xlsx/.csv
+              Any spreadsheet or CSV with lead data
             </p>
           </div>
           <input
