@@ -339,7 +339,7 @@ export default function OutboundLeads() {
 
   const [source, setSource] = useState(searchParams.get("source") || readPersisted("ob-source", "all"));
   const [qualifiedFilter, setQualifiedFilter] = useState(
-    searchParams.get("qualified") || readPersisted("ob-qualified", "true"),
+    searchParams.get("qualified") || readPersisted("ob-qualified", "all"),
   );
   const [messagedFilter, setMessagedFilter] = useState(
     searchParams.get("isMessaged") || readPersisted("ob-messaged", "all"),
@@ -869,7 +869,7 @@ export default function OutboundLeads() {
                             </div>
                             <div>
                               <span className="text-muted-foreground">Source</span>
-                              <p><Badge variant="outline" className="text-xs">@{lead.source}</Badge></p>
+                              <p><Badge variant="outline" className="text-xs">{lead.source}</Badge></p>
                             </div>
                             {lead.promptLabel && (
                               <div>
@@ -1100,7 +1100,7 @@ export default function OutboundLeads() {
                             {formatNumber(lead.followersCount)}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">@{lead.source}</Badge>
+                            <Badge variant="outline">{lead.source}</Badge>
                           </TableCell>
                           <TableCell>
                             {lead.promptLabel ? (

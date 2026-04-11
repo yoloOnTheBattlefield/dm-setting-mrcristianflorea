@@ -143,7 +143,7 @@ describe("OutboundLeadDetail", () => {
       expect(screen.getAllByText("jane@test.com").length).toBeGreaterThanOrEqual(1);
     });
     expect(screen.getByText("5.2K")).toBeInTheDocument();
-    expect(screen.getByText("@competitor1")).toBeInTheDocument();
+    expect(screen.getByText("competitor1")).toBeInTheDocument();
     expect(screen.getByText("Sales Intro")).toBeInTheDocument();
   });
 

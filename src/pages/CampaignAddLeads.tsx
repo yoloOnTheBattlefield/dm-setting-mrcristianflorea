@@ -357,7 +357,7 @@ export default function CampaignAddLeads() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">
-                            @{lead.source}
+                            {lead.source}
                           </Badge>
                         </TableCell>
                       </TableRow>

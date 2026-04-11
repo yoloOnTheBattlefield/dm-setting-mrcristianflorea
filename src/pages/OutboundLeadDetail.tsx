@@ -365,7 +365,7 @@ export default function OutboundLeadDetail() {
 
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Source</span>
-                  <Badge variant="outline">@{lead.source}</Badge>
+                  <Badge variant="outline">{lead.source}</Badge>
                 </div>
 
                 {lead.promptLabel && (
