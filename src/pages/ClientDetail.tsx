@@ -151,6 +151,7 @@ export default function ClientDetail() {
         last_name: newMember.last_name,
         role: 2,
         has_outbound: newMember.has_outbound,
+        account_id: client?.account_id,
       });
       toast({ title: "Success", description: "Team member added" });
       setNewMember({ first_name: "", last_name: "", email: "", password: "", has_outbound: false });
@@ -240,7 +241,7 @@ export default function ClientDetail() {
   // Handle toggle member outbound
   const handleToggleOutbound = async (memberId: string, current: boolean) => {
     try {
-      await updateMember.mutateAsync({ id: memberId, body: { has_outbound: !current } });
+      await updateMember.mutateAsync({ id: memberId, body: { has_outbound: !current, account_id: client?.account_id } });
       toast({ title: "Updated", description: `Outbound access ${!current ? "enabled" : "disabled"}` });
     } catch (error) {
       toast({

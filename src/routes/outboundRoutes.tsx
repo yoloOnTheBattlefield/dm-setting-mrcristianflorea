@@ -9,7 +9,6 @@ const Campaigns = lazyRetry(() => import("@/pages/Campaigns"));
 const CampaignDetail = lazyRetry(() => import("@/components/campaigns/CampaignDetail"));
 const CampaignAddLeads = lazyRetry(() => import("@/pages/CampaignAddLeads"));
 const CampaignEdit = lazyRetry(() => import("@/pages/CampaignEdit"));
-const FollowUps = lazyRetry(() => import("@/pages/FollowUps"));
 const OutboundAccounts = lazyRetry(() => import("@/pages/OutboundAccounts"));
 const OutboundAnalytics = lazyRetry(() => import("@/pages/OutboundAnalytics"));
 const Scraper = lazyRetry(() => import("@/pages/Scraper"));
@@ -22,7 +21,6 @@ export const outboundRoutes: RouteObject[] = [
   { path: "/outbound-leads", element: outboundPage(OutboundLeads) },
   { path: "/outbound-leads/import", element: outboundPage(ImportOutboundLeads) },
   { path: "/outbound-leads/:id", element: outboundPage(OutboundLeadDetail) },
-  { path: "/follow-ups", element: outboundPage(FollowUps) },
   { path: "/prompts", element: outboundPage(Prompts) },
   { path: "/outbound-accounts", element: outboundPage(OutboundAccounts) },
   { path: "/analytics/outbound", element: outboundPage(OutboundAnalytics) },

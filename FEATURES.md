@@ -243,7 +243,6 @@ Polished shimmer loading skeletons for every page. Uses a gradient shimmer anima
 - Dashboard (Index) — shimmer stat cards, chart bars, radar circle, table
 - All Contacts — shimmer stats bar + contacts table/kanban
 - Bookings — shimmer table rows with varying widths
-- Follow-Ups — shimmer kanban columns with card skeletons
 - EOD Report — shimmer stat cards (replaced "—" placeholders)
 - Booking Analytics — shimmer stat cards + chart/pie placeholders
 - Comment Post — shimmer table (replaced "Loading tasks..." text)
@@ -514,36 +513,6 @@ Comprehensive UI improvements across the Outbound Leads table and Campaign Detai
 - **Outbound Leads:** `src/pages/OutboundLeads.tsx`
 - **Campaign Detail:** `src/components/campaigns/CampaignDetail.tsx`
 - **Sidebar nav:** `src/hooks/useNavSections.ts`
-
-## Follow-Up Tracker
-
-Track and manage outbound leads who have replied to DMs. Syncs replied leads from campaigns into a dedicated follow-up pipeline with status tracking, scheduling, and notes.
-
-### Location
-
-- **Frontend page:** `src/pages/FollowUps.tsx`
-- **Frontend hook:** `src/hooks/useFollowUps.ts`
-- **Sidebar nav:** `src/hooks/useNavSections.ts` (badge showing new + contacted + hot_lead count)
-- **Nav badge rendering:** `src/components/nav-main.tsx`
-- **Route:** `src/App.tsx` (`/follow-ups`)
-- **Backend model:** `quddify-crm/models/FollowUp.js`
-- **Backend routes:** `quddify-crm/routes/follow-ups.js`
-
-### API Routes
-
-- **GET `/api/follow-ups`** — Paginated list with outbound lead data. Params: `page`, `limit`, `status`, `search`, `sort` (newest/oldest/follow_up_date), `outbound_account_id`
-- **GET `/api/follow-ups/stats`** — Count per status + total
-- **POST `/api/follow-ups/sync`** — Upsert follow-up for every replied outbound lead. Resolves outbound account via CampaignLead -> SenderAccount chain
-- **PATCH `/api/follow-ups/:id`** — Update status, follow_up_date, and/or note
-
-### Statuses
-
-new (amber), contacted (blue), interested (green), not_interested (red), booked (purple), no_response (gray), ghosted (gray), hot_lead (orange)
-
-### Tests
-
-- `src/pages/FollowUps.test.tsx` — Frontend component tests
-- `quddify-crm/routes/follow-ups.test.js` — Backend route tests
 
 ## Component Extraction Refactor
 
@@ -1186,7 +1155,7 @@ Add and view notes on outbound leads directly from the Follow-Ups kanban board a
 
 - **Frontend component:** `src/components/QuickNoteDialog.tsx`
 - **Frontend hook:** `src/hooks/useLeadNotes.ts` (`useOutboundLeadNotes`, `useCreateOutboundLeadNote`)
-- **Integrated in:** `src/pages/OutboundLeads.tsx` (StickyNote icon per row), `src/pages/FollowUps.tsx` (FileText icon per kanban card)
+- **Integrated in:** `src/pages/OutboundLeads.tsx` (StickyNote icon per row)
 - **Backend model:** `quddify-crm/models/LeadNote.js` (`outbound_lead_id` field added, `lead_id` made optional)
 - **Backend route:** `quddify-crm/routes/lead-notes.js` (GET/POST accept `outbound_lead_id`)
 

@@ -45,6 +45,16 @@ export interface BookingStats {
   today_count: number;
 }
 
+export interface ChannelMetrics {
+  channel: string;
+  bookings: number;
+  completed: number;
+  no_show: number;
+  show_rate: number;
+  close_rate: number;
+  revenue: number;
+}
+
 export interface BookingAnalytics {
   total: number;
   close_rate: number;
@@ -52,6 +62,7 @@ export interface BookingAnalytics {
   avg_cash_collected: number;
   over_time: { date: string; count: number }[];
   source_distribution: { source: string; count: number }[];
+  by_channel: ChannelMetrics[];
 }
 
 interface BookingsResponse {

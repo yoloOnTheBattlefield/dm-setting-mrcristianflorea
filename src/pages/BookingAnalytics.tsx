@@ -1,7 +1,18 @@
-import { useState } from "react";
-import { useBookingAnalytics } from "@/hooks/useBookings";
+import { useMemo } from "react";
+import { usePersistedState } from "@/hooks/usePersistedState";
+import { useBookingAnalytics, type ChannelMetrics } from "@/hooks/useBookings";
+import { DateRangeFilter } from "@/lib/types";
+import { DateFilter } from "@/components/dashboard/DateFilter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   BarChart,
   Bar,
@@ -13,6 +24,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from "recharts";
 import { cn } from "@/lib/utils";
 import {
@@ -30,14 +42,48 @@ function rateColor(rate: number): string {
 }
 
 const PIE_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444"];
+const CHANNEL_COLORS: Record<string, string> = {
+  Instagram: "#E1306C",
+  LinkedIn: "#0A66C2",
+  YouTube: "#FF0000",
+  Facebook: "#1877F2",
+  TikTok: "#000000",
+  Email: "#6B7280",
+  "Direct": "#8B5CF6",
+  "Outbound DM": "#F59E0B",
+};
+
+function getChannelColor(channel: string, idx: number): string {
+  return CHANNEL_COLORS[channel] || PIE_COLORS[idx % PIE_COLORS.length];
+}
 
 export default function BookingAnalytics() {
-  const { data, isLoading } = useBookingAnalytics();
+  const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>(
+    "booking-analytics-dateRange",
+    30,
+  );
+
+  const endDate = useMemo(() => {
+    if (dateRange === "all") return undefined;
+    return new Date().toISOString().split("T")[0];
+  }, [dateRange]);
+
+  const startDate = useMemo(() => {
+    if (dateRange === "all") return undefined;
+    const d = new Date();
+    d.setDate(d.getDate() - dateRange);
+    return d.toISOString().split("T")[0];
+  }, [dateRange]);
+
+  const { data, isLoading } = useBookingAnalytics({ start_date: startDate, end_date: endDate });
 
   if (isLoading) {
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
-        <h1 className="text-2xl font-bold tracking-tight">Booking Analytics</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">Booking Analytics</h1>
+          <DateFilter value={dateRange} onChange={setDateRange} />
+        </div>
         <StatCardsSkeleton count={4} />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
@@ -50,12 +96,16 @@ export default function BookingAnalytics() {
   }
 
   const analytics = data;
+  const byChannel = analytics?.by_channel ?? [];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Booking Analytics</h1>
-        <p className="text-sm text-muted-foreground">{analytics?.total ?? 0} total bookings analyzed</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Booking Analytics</h1>
+          <p className="text-sm text-muted-foreground">{analytics?.total ?? 0} total bookings analyzed</p>
+        </div>
+        <DateFilter value={dateRange} onChange={setDateRange} />
       </div>
 
       {/* KPI Cards */}
@@ -94,7 +144,7 @@ export default function BookingAnalytics() {
         </Card>
       </div>
 
-      {/* Charts */}
+      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Bookings Over Time */}
         <Card className="lg:col-span-2">
@@ -162,6 +212,88 @@ export default function BookingAnalytics() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Channel Performance */}
+      {byChannel.length > 0 && (
+        <>
+          <h2 className="text-lg font-semibold tracking-tight">Performance by Channel</h2>
+
+          {/* Channel Bar Chart — show rate vs close rate */}
+          <Card>
+            <CardContent className="py-4 px-5">
+              <h3 className="text-sm font-medium mb-4">Show Rate vs Close Rate by Channel</h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={byChannel} layout="vertical" barGap={4}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 10 }} domain={[0, 100]} unit="%" />
+                  <YAxis
+                    type="category"
+                    dataKey="channel"
+                    tick={{ fontSize: 12 }}
+                    width={100}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{ fontSize: 12 }}
+                    formatter={(value: number) => `${value.toFixed(1)}%`}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="show_rate" name="Show Rate" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={16} />
+                  <Bar dataKey="close_rate" name="Close Rate" fill="#10B981" radius={[0, 4, 4, 0]} barSize={16} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Channel Table */}
+          <Card>
+            <CardContent className="py-4 px-5">
+              <h3 className="text-sm font-medium mb-4">Channel Breakdown</h3>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Channel</TableHead>
+                      <TableHead className="text-right">Bookings</TableHead>
+                      <TableHead className="text-right">Showed</TableHead>
+                      <TableHead className="text-right">No-show</TableHead>
+                      <TableHead className="text-right">Show Rate</TableHead>
+                      <TableHead className="text-right">Close Rate</TableHead>
+                      <TableHead className="text-right">Revenue</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {byChannel.map((ch, i) => (
+                      <TableRow key={ch.channel}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="h-2.5 w-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: getChannelColor(ch.channel, i) }}
+                            />
+                            <span className="font-medium">{ch.channel}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">{ch.bookings}</TableCell>
+                        <TableCell className="text-right">{ch.completed}</TableCell>
+                        <TableCell className="text-right">{ch.no_show}</TableCell>
+                        <TableCell className="text-right">
+                          <span className={rateColor(ch.show_rate)}>{ch.show_rate.toFixed(1)}%</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className={rateColor(ch.close_rate)}>{ch.close_rate.toFixed(1)}%</span>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          ${ch.revenue.toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

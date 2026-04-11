@@ -14,6 +14,7 @@ interface AddTeamMemberBody {
   last_name?: string;
   role: number;
   has_outbound?: boolean;
+  account_id?: string;
 }
 
 async function fetchTeamMembers(accountId?: string): Promise<TeamMember[]> {
@@ -53,7 +54,7 @@ async function deleteTeamMember(id: string): Promise<void> {
   }
 }
 
-async function updateTeamMember({ id, body }: { id: string; body: { has_outbound?: boolean } }): Promise<void> {
+async function updateTeamMember({ id, body }: { id: string; body: { has_outbound?: boolean; account_id?: string } }): Promise<void> {
   const response = await fetchWithAuth(`${ACCOUNTS_URL}/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
