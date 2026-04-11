@@ -242,9 +242,7 @@ Polished shimmer loading skeletons for every page. Uses a gradient shimmer anima
 
 - Dashboard (Index) — shimmer stat cards, chart bars, radar circle, table
 - All Contacts — shimmer stats bar + contacts table/kanban
-- Bookings — shimmer table rows with varying widths
 - EOD Report — shimmer stat cards (replaced "—" placeholders)
-- Booking Analytics — shimmer stat cards + chart/pie placeholders
 - Comment Post — shimmer table (replaced "Loading tasks..." text)
 - Campaign Edit — shimmer form cards (replaced mismatched DashboardSkeleton)
 - Client Detail — shimmer detail page (replaced "Loading..." text)
@@ -1231,41 +1229,6 @@ A 7-day x 24-hour heatmap grid showing outbound activity patterns by day of week
 
 ---
 
-## Bookings Module
-
-Manage booked calls and appointments with status tracking, sync, search, creation, and analytics. Includes a main bookings table page and a dedicated analytics page with close rate, show-up rate, and charts.
-
-### Routes
-
-- `/bookings` — Bookings list with status filter tabs, stat cards, search, create dialog, sync, and pagination
-- `/analytics/bookings` — Booking analytics with KPI cards (close rate, show-up rate, avg cash collected), bookings-over-time bar chart, and source distribution pie chart
-
-### API Endpoints Consumed
-
-- `GET /api/bookings` — Paginated list with status, search, sort, source, date range, and today filters
-- `GET /api/bookings/stats` — Count per status + today count
-- `GET /api/bookings/analytics` — Close rate, show-up rate, avg cash collected, over-time series, source distribution
-- `GET /api/bookings/:id` — Single booking
-- `POST /api/bookings` — Create a booking
-- `PATCH /api/bookings/:id` — Update a booking (status, cash_collected, etc.)
-- `DELETE /api/bookings/:id` — Delete a booking
-- `POST /api/bookings/sync` — Sync bookings from external sources
-
-### Location
-
-- **Hook:** `src/hooks/useBookings.ts`
-- **Pages:** `src/pages/Bookings.tsx`, `src/pages/BookingAnalytics.tsx`
-- **Routing:** `src/App.tsx` (lazy-loaded routes)
-- **Sidebar:** `src/hooks/useNavSections.ts` (Bookings item in Outbound section, EOD Report in Workspace section)
-
-### Backend
-
-- **Model:** `quddify-crm/models/Booking.js`
-- **Routes:** `quddify-crm/routes/bookings.js`
-- **Wired in:** `quddify-crm/index.js`
-
----
-
 ## Inbound Analytics
 
 Dashboard page at `/analytics/inbound` showing inbound lead funnel metrics, source attribution, post performance, and daily volume trends.
@@ -1436,7 +1399,6 @@ Supports Calendly-specific status mapping: "Active" → scheduled, "Canceled" �
 ### Location
 
 - **Dialog:** `src/components/ImportBookingsDialog.tsx`
-- **Hook:** `src/hooks/useBookings.ts` (`useImportBookings`)
 - **Page:** `src/pages/Import.tsx` (Calendly card)
 - **Backend:** `quddify-crm/routes/bookings.js` (`POST /api/bookings/import`)
 - **Tests:** `src/components/ImportBookingsDialog.test.tsx`
@@ -1541,20 +1503,6 @@ Calendly webhook now automatically creates Booking records when someone books a 
 
 - **`POST /api/calendly`** — Handles `invitee.created` (creates Lead + Booking, auto-links outbound) and `invitee.canceled` (cancels Booking)
 - **`POST /calendly/add`** — Now subscribes to both `invitee.created` and `invitee.canceled` events
-
-## Source-Based Booking Analytics (Show Rate / Close Rate by Channel)
-
-Booking analytics endpoint now returns a `by_channel` breakdown that normalizes `utm_source` values (ig→Instagram, li→LinkedIn, yt→YouTube, etc.) and computes per-channel show rate, close rate, and revenue. The BookingAnalytics page now includes a date range filter and a "Performance by Channel" section with a grouped bar chart and detailed table.
-
-### Files
-
-- `routes/bookings.js` — Added `normalizeChannel` helper and `by_channel` array to `GET /bookings/analytics` response
-- `src/pages/BookingAnalytics.tsx` — Added date range filter (DateFilter component), channel performance bar chart (show rate vs close rate), and channel breakdown table
-- `src/hooks/useBookings.ts` — Added `ChannelMetrics` interface and `by_channel` to `BookingAnalytics` type
-
-### API Routes
-
-- **`GET /api/bookings/analytics`** — Now returns `by_channel` array with: channel, bookings, completed, no_show, show_rate, close_rate, revenue. Supports `start_date`, `end_date` query params.
 
 ## ClickUp Error Reporting
 

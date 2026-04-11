@@ -4,7 +4,6 @@ import {
   type LucideIcon,
   BarChart3,
   Building2,
-  CalendarCheck,
   ClipboardCheck,
   Database,
   MessageSquareText,
@@ -69,7 +68,6 @@ export function useNavSections(): NavSection[] {
         label: "Outbound",
         items: [
           { title: "Leads", url: "/outbound-leads", icon: Users, description: "Manage your outbound leads pipeline" },
-          { title: "Bookings", url: "/bookings", icon: CalendarCheck, description: "Manage booked calls and appointments" },
           { title: "Campaigns", url: "/campaigns", icon: Send, description: "Manage your outbound campaigns" },
           { title: "Accounts", url: "/outbound-accounts", icon: Building2, description: "Manage outbound Instagram accounts, credentials, and proxies" },
           { title: "Analytics", url: "/analytics/outbound", icon: TrendingUp, description: "Performance metrics across your outbound pipeline" },
