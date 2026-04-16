@@ -326,7 +326,7 @@ export default function OutboundAccounts() {
       <div className="sticky top-16 z-50 bg-background border-b border-border">
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <a href="/extension.zip" download="instagram-dm-automator.zip">
+            <a href="/extension.zip" download="ig-dm-app.zip">
               <Button variant="outline">
                 <Download className="h-4 w-4 mr-2" />
                 Download Extension

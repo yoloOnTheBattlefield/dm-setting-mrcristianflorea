@@ -98,16 +98,17 @@ export function useNavSections(): NavSection[] {
       })
     }
 
-    sections.push({
-      label: "Workspace",
-      items: [
-        { title: "EOD Report", url: "/eod-report", icon: ClipboardCheck, description: "Daily summary, checklist, and self-assessment" },
-        { title: "Settings", url: "/settings", icon: Settings2, description: "Manage your account settings" },
-        { title: "Team", url: "/settings/team", icon: UsersRound, description: "Manage your team members" },
-        { title: "Integrations", url: "/settings/integrations", icon: Plug, description: "Connect and manage your third-party integrations" },
-        { title: "Import", url: "/import", icon: Upload, description: "Import data from Calendly, Stripe, and more" },
-      ],
-    })
+    const workspaceItems: NavItem[] = [
+      { title: "EOD Report", url: "/eod-report", icon: ClipboardCheck, description: "Daily summary, checklist, and self-assessment" },
+      { title: "Settings", url: "/settings", icon: Settings2, description: "Manage your account settings" },
+      { title: "Team", url: "/settings/team", icon: UsersRound, description: "Manage your team members" },
+      { title: "Integrations", url: "/settings/integrations", icon: Plug, description: "Connect and manage your third-party integrations" },
+      { title: "Import", url: "/import", icon: Upload, description: "Import data from Calendly, Stripe, and more" },
+    ]
+    if (user?.role === 0) {
+      workspaceItems.push({ title: "Data Migration", url: "/data-migration", icon: Database, description: "Migrate scrape data between accounts or databases" })
+    }
+    sections.push({ label: "Workspace", items: workspaceItems })
 
     if (user?.role === 0) {
       sections.push({
@@ -122,7 +123,6 @@ export function useNavSections(): NavSection[] {
               { title: "Clients Overview", url: "/clients" },
             ],
           },
-          { title: "Data Migration", url: "/data-migration", icon: Database },
         ],
       })
     }

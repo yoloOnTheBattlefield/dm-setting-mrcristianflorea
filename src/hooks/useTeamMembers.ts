@@ -54,7 +54,7 @@ async function deleteTeamMember(id: string): Promise<void> {
   }
 }
 
-async function updateTeamMember({ id, body }: { id: string; body: { has_outbound?: boolean; account_id?: string } }): Promise<void> {
+async function updateTeamMember({ id, body }: { id: string; body: { has_outbound?: boolean; role?: number; account_id?: string } }): Promise<void> {
   const response = await fetchWithAuth(`${ACCOUNTS_URL}/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

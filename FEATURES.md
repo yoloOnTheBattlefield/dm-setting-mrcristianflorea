@@ -1647,3 +1647,16 @@ Both lead upload pages now accept `.csv` files in addition to `.xlsx`. The Sheet
 - **Import page (outbound leads):** `src/pages/ImportOutboundLeads.tsx` — accepts `.xlsx`, `.xls`, and `.csv`
 - **Column mapping lib:** `src/lib/column-mapping.ts` — `parseXlsxPreview()` works for both formats via SheetJS
 - **Backend service:** `quddify-crm/services/uploadService.js` — `FILENAME_REGEX` updated to accept `.csv`
+
+## Editable Team Member Role
+
+The client detail page (`/clients/:id`) now allows admins/owners to change a team member's role inline via a dropdown. Roles available: Owner (1) and Team Member (2). Users cannot change their own role to avoid lockout.
+
+### Location
+
+- **Frontend:** `src/pages/ClientDetail.tsx` — Role column replaced with `<Select>` dropdown calling `handleChangeRole`; `useTeamMembers.ts` update body now accepts `role?: number`
+- **Backend:** `quddify-crm/routes/accounts.js` — `PATCH /accounts/:id` now accepts `role` in `membershipUpdates`; only global admins (user.role === 0) or account owners (membership.role === 1) can change it; self-edits rejected; role validated to be 0/1/2
+
+### API
+
+- **`PATCH /api/accounts/:id`** — Body now optionally accepts `role: 0|1|2`. Returns 403 if caller is not admin/owner; 400 for invalid role or self-edit.

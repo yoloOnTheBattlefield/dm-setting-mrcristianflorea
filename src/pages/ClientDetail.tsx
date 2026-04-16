@@ -41,6 +41,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeamMembers, useAddTeamMember, useUpdateTeamMember, useDeleteTeamMember, useResetPassword } from "@/hooks/useTeamMembers";
@@ -235,6 +242,20 @@ export default function ClientDetail() {
       toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
     } finally {
       setIsTogglingResearch(false);
+    }
+  };
+
+  // Handle change member role
+  const handleChangeRole = async (memberId: string, newRole: number) => {
+    try {
+      await updateMember.mutateAsync({ id: memberId, body: { role: newRole, account_id: client?.account_id } });
+      toast({ title: "Updated", description: "Role updated" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update role",
+        variant: "destructive",
+      });
     }
   };
 
@@ -660,8 +681,26 @@ export default function ClientDetail() {
                         {member.first_name} {member.last_name}
                       </TableCell>
                       <TableCell>{member.email}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {member.role === 1 ? "Owner" : "Team Member"}
+                      <TableCell>
+                        {member._id === user?.id ? (
+                          <span className="text-muted-foreground">
+                            {member.role === 1 ? "Owner" : "Team Member"}
+                          </span>
+                        ) : (
+                          <Select
+                            value={String(member.role ?? 2)}
+                            onValueChange={(v) => handleChangeRole(member.user_id, Number(v))}
+                            disabled={updateMember.isPending}
+                          >
+                            <SelectTrigger className="h-8 w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">Owner</SelectItem>
+                              <SelectItem value="2">Team Member</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Switch
