@@ -492,7 +492,6 @@ export default function PostsLibrary() {
                           <a
                             href={`https://www.instagram.com/${post.competitorHandle}/`}
                             target="_blank" rel="noopener noreferrer"
-                            rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 hover:underline"
                             onClick={(e) => e.stopPropagation()}
                           >

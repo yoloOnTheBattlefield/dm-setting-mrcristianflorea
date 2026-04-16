@@ -1038,7 +1038,6 @@ export default function OutboundLeads() {
                             <a
                               href={lead.profileLink || `https://instagram.com/${lead.username}`}
                               target="_blank" rel="noopener noreferrer"
-                              rel="noopener noreferrer"
                               className="font-medium text-foreground hover:underline text-sm truncate"
                             >
                               @{lead.username}
