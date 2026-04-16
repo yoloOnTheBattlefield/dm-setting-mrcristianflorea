@@ -1660,3 +1660,41 @@ The client detail page (`/clients/:id`) now allows admins/owners to change a tea
 ### API
 
 - **`PATCH /api/accounts/:id`** — Body now optionally accepts `role: 0|1|2`. Returns 403 if caller is not admin/owner; 400 for invalid role or self-edit.
+
+## Bulk Import Outbound Accounts
+
+Upload a CSV or XLSX file to create outbound accounts in bulk. The dialog parses the file client-side, auto-maps column headers to account fields using synonym matching, shows a preview, and then sends the mapped rows to a bulk endpoint. Duplicate usernames (both within the file and against existing accounts) are skipped with a count.
+
+### Location
+
+- **Dialog component:** `src/components/outbound-accounts/BulkImportAccountsDialog.tsx` — 3-step flow (upload → map columns → result)
+- **Hook:** `src/hooks/useOutboundAccounts.ts` — `useBulkImportOutboundAccounts()` mutation
+- **Page integration:** `src/pages/OutboundAccounts.tsx` — "Bulk Import" button in header bar
+
+### API
+
+- **`POST /api/outbound-accounts/bulk`** — Accepts `{ accounts: Array<{ username, password?, email?, emailPassword?, proxy?, status?, assignedTo?, notes?, twoFA?, hidemyacc_profile_id? }> }`. Max 5000 rows. Returns `{ created, duplicates, errors }`. Deduplicates within batch and against existing DB records. Uses `insertMany({ ordered: false })` for partial-failure tolerance.
+
+## AI API Key Usage Tracking
+
+Shows how much of each AI API key's credits/budget has been used, directly in the Integrations page. Fetches usage data from OpenAI, Anthropic (Claude), and Google (Gemini) APIs when a custom key is connected. Displays monthly spend, credit balance, and token counts depending on the provider.
+
+- **OpenAI**: Shows monthly cost (via org costs endpoint) or credit grant balance (granted/used/remaining with progress bar)
+- **Anthropic**: Shows monthly spend and input/output token counts (requires admin API key)
+- **Gemini**: Notes that Google AI does not provide a billing API for API keys
+
+### Files (backend — `quddify-crm`)
+
+- `routes/ai-usage.js` — `GET /api/ai-usage` fetches usage from each provider using decrypted tokens
+- `index.js` — Registers route at `/api/ai-usage`
+
+### Files (frontend — `dm-setting`)
+
+- `src/hooks/useAIUsage.ts` — React Query hook to fetch usage data
+- `src/components/integrations/AITokenCard.tsx` — Updated to accept and display usage info (progress bars, token counts, error messages)
+- `src/components/integrations/AIModelsSection.tsx` — Passes usage data to each AITokenCard
+- `src/pages/Integrations.tsx` — Calls `useAIUsage` hook and passes data to AIModelsSection
+
+### API
+
+- **`GET /api/ai-usage`** — Returns `{ openai?: AIProviderUsage, claude?: AIProviderUsage, gemini?: AIProviderUsage }`. Each provider object contains usage metrics or an error message if the API key lacks billing permissions.

@@ -15,6 +15,7 @@ import {
   useDeleteApifyToken,
   useResetApifyToken,
 } from "@/hooks/useApifyTokens";
+import { useAIUsage } from "@/hooks/useAIUsage";
 
 import AIModelsSection from "@/components/integrations/AIModelsSection";
 import ApifyTokensCard from "@/components/integrations/ApifyTokensCard";
@@ -48,6 +49,10 @@ export default function Integrations() {
   const [geminiToken, setGeminiToken] = useState("");
   const [savedGeminiToken, setSavedGeminiToken] = useState("");
   const [isSavingGemini, setIsSavingGemini] = useState(false);
+
+  // AI usage tracking
+  const hasAnyAIToken = !!(savedOpenaiToken || savedClaudeToken || savedGeminiToken);
+  const { data: aiUsageData, isLoading: aiUsageLoading } = useAIUsage(hasAnyAIToken);
 
   // Apify tokens (multi-token)
   const { data: apifyTokensData, isLoading: apifyTokensLoading } = useApifyTokens();
@@ -475,6 +480,8 @@ export default function Integrations() {
         isSavingGemini={isSavingGemini}
         onGeminiTokenChange={setGeminiToken}
         onSaveGemini={handleSaveGeminiToken}
+        usageData={aiUsageData}
+        usageLoading={aiUsageLoading}
       />
 
       {/* ── Data Acquisition ── */}

@@ -1,4 +1,5 @@
 import AITokenCard from "./AITokenCard";
+import type { AIUsageData } from "@/hooks/useAIUsage";
 
 interface AIModelsSectionProps {
   openaiToken: string;
@@ -18,6 +19,9 @@ interface AIModelsSectionProps {
   isSavingGemini: boolean;
   onGeminiTokenChange: (value: string) => void;
   onSaveGemini: () => void;
+
+  usageData?: AIUsageData;
+  usageLoading?: boolean;
 }
 
 export default function AIModelsSection({
@@ -36,6 +40,8 @@ export default function AIModelsSection({
   isSavingGemini,
   onGeminiTokenChange,
   onSaveGemini,
+  usageData,
+  usageLoading,
 }: AIModelsSectionProps) {
   return (
     <section className="space-y-3">
@@ -53,6 +59,8 @@ export default function AIModelsSection({
           isSaving={isSavingOpenai}
           onTokenChange={onOpenaiTokenChange}
           onSave={onSaveOpenai}
+          usage={usageData?.openai}
+          usageLoading={usageLoading}
         />
         <AITokenCard
           title="Claude"
@@ -64,6 +72,8 @@ export default function AIModelsSection({
           isSaving={isSavingClaude}
           onTokenChange={onClaudeTokenChange}
           onSave={onSaveClaude}
+          usage={usageData?.claude}
+          usageLoading={usageLoading}
         />
         <AITokenCard
           title="Gemini"
@@ -75,6 +85,8 @@ export default function AIModelsSection({
           isSaving={isSavingGemini}
           onTokenChange={onGeminiTokenChange}
           onSave={onSaveGemini}
+          usage={usageData?.gemini}
+          usageLoading={usageLoading}
         />
       </div>
     </section>
