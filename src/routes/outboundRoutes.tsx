@@ -14,6 +14,7 @@ const OutboundAnalytics = lazyRetry(() => import("@/pages/OutboundAnalytics"));
 const Scraper = lazyRetry(() => import("@/pages/Scraper"));
 const DeepScraper = lazyRetry(() => import("@/pages/DeepScraper"));
 const CommentPost = lazyRetry(() => import("@/pages/CommentPost"));
+const SeedNetwork = lazyRetry(() => import("@/pages/SeedNetwork"));
 const OutboundLeadDetail = lazyRetry(() => import("@/pages/OutboundLeadDetail"));
 
 export const outboundRoutes: RouteObject[] = [
@@ -30,5 +31,6 @@ export const outboundRoutes: RouteObject[] = [
   { path: "/campaigns/:id", element: outboundPage(CampaignDetail) },
   { path: "/scraper", element: outboundPage(Scraper) },
   { path: "/deep-scraper", element: outboundPage(DeepScraper) },
+  { path: "/seed-network", element: outboundPage(SeedNetwork) },
   { path: "/comment-post", element: outboundPage(CommentPost) },
 ];

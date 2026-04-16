@@ -18,6 +18,7 @@ import {
   Users,
   UserPlus,
   UsersRound,
+  Network,
 } from "lucide-react"
 
 export interface NavItem {
@@ -71,6 +72,7 @@ export function useNavSections(): NavSection[] {
           { title: "Campaigns", url: "/campaigns", icon: Send, description: "Manage your outbound campaigns" },
           { title: "Accounts", url: "/outbound-accounts", icon: Building2, description: "Manage outbound Instagram accounts, credentials, and proxies" },
           { title: "Analytics", url: "/analytics/outbound", icon: TrendingUp, description: "Performance metrics across your outbound pipeline" },
+          { title: "Seed Network", url: "/seed-network", icon: Network, description: "Visualize how leads connect across seed accounts" },
         ],
       })
     }
