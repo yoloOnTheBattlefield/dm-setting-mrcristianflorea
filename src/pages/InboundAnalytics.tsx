@@ -436,7 +436,6 @@ export default function InboundAnalytics() {
                                   <a
                                     href={p.post_url}
                                     target="_blank" rel="noopener noreferrer"
-                                    rel="noopener noreferrer"
                                     className="text-sm text-blue-500 hover:underline inline-flex items-center gap-1"
                                   >
                                     {display}

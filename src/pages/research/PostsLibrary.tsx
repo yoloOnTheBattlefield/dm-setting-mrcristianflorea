@@ -575,7 +575,6 @@ export default function PostsLibrary() {
                             <a
                               href={post.reelUrl}
                               target="_blank" rel="noopener noreferrer"
-                              rel="noopener noreferrer"
                               className="text-muted-foreground hover:text-foreground transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
