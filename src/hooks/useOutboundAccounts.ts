@@ -141,6 +141,23 @@ export function useGenerateToken() {
   });
 }
 
+export interface BulkImportResult {
+  created: number;
+  duplicates: number;
+  errors: { row: number; username: string; reason: string }[];
+}
+
+export function useBulkImportOutboundAccounts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (accounts: Record<string, unknown>[]): Promise<BulkImportResult> =>
+      apiPost(`${API_URL}/api/outbound-accounts/bulk`, { accounts }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outbound-accounts"] });
+    },
+  });
+}
+
 export function useRevokeToken() {
   const queryClient = useQueryClient();
   return useMutation({

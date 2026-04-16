@@ -54,9 +54,11 @@ import {
   Unlink,
   Globe,
   Download,
+  Upload,
 } from "lucide-react";
 import { TableSkeleton } from "@/components/skeletons";
 import AddEditAccountDialog from "@/components/outbound-accounts/AddEditAccountDialog";
+import BulkImportAccountsDialog from "@/components/outbound-accounts/BulkImportAccountsDialog";
 import DeleteConfirmDialog from "@/components/outbound-accounts/DeleteConfirmDialog";
 import WarmupDialog from "@/components/outbound-accounts/WarmupDialog";
 
@@ -122,6 +124,9 @@ export default function OutboundAccounts() {
   const [editingAccount, setEditingAccount] = useState<OutboundAccount | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<OutboundAccount | null>(null);
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
+
+  // Bulk import dialog
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   // Warmup dialog
   const [warmupAccount, setWarmupAccount] = useState<OutboundAccount | null>(null);
@@ -332,6 +337,10 @@ export default function OutboundAccounts() {
                 Download Extension
               </Button>
             </a>
+            <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Bulk Import
+            </Button>
             <Button onClick={openAdd}>
               <Plus className="h-4 w-4 mr-2" />
               Add Account
@@ -701,6 +710,12 @@ export default function OutboundAccounts() {
         isPending={isPending}
         hmaAvailable={hmaAvailable}
         hmaProfiles={hmaProfiles}
+      />
+
+      {/* Bulk Import */}
+      <BulkImportAccountsDialog
+        open={bulkImportOpen}
+        onOpenChange={setBulkImportOpen}
       />
 
       {/* Delete Confirm */}
