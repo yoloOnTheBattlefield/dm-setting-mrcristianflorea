@@ -704,9 +704,8 @@ export default function DeepScraper() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: apifyTokensData, isLoading: isLoadingApifyTokens } = useApifyTokens();
-  const hasActiveApifyToken = (apifyTokensData?.tokens || []).some(
-    (t) => t.status === "active"
-  );
+  const apifyTokens = apifyTokensData?.tokens || [];
+  const hasAnyApifyToken = apifyTokens.length > 0;
   const [showNoApifyTokenDialog, setShowNoApifyTokenDialog] = useState(false);
   const [showNoOpenAIDialog, setShowNoOpenAIDialog] = useState(false);
   const [showNoPromptDialog, setShowNoPromptDialog] = useState(false);
@@ -715,10 +714,10 @@ export default function DeepScraper() {
   const hasOpenAIKey = !!accountMe?.openai_token;
 
   useEffect(() => {
-    if (!isLoadingApifyTokens && !hasActiveApifyToken) {
+    if (!isLoadingApifyTokens && !hasAnyApifyToken) {
       setShowNoApifyTokenDialog(true);
     }
-  }, [isLoadingApifyTokens, hasActiveApifyToken]);
+  }, [isLoadingApifyTokens, hasAnyApifyToken]);
 
   const [statusFilter, setStatusFilter] = usePersistedState("deep-scraper-status", "all");
   const [currentPage, setCurrentPage] = useState(1);

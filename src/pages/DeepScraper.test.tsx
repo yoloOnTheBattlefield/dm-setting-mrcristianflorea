@@ -329,7 +329,20 @@ describe("DeepScraper — Apify token guard", () => {
     });
   });
 
-  it("shows modal when all Apify tokens are non-active", async () => {
+  it("does not show modal when tokens exist but have limit_reached status", () => {
+    mockUseApifyTokens.mockReturnValue({
+      data: {
+        tokens: [
+          { _id: "t1", label: "Exhausted", token: "***", status: "limit_reached", last_error: "insufficient credits", usage_count: 5, last_used_at: null, createdAt: "", updatedAt: "" },
+        ],
+      },
+      isLoading: false,
+    } as any);
+    renderDeepScraper();
+    expect(screen.queryByText("Apify Token Required")).not.toBeInTheDocument();
+  });
+
+  it("does not show modal when tokens exist but are disabled", () => {
     mockUseApifyTokens.mockReturnValue({
       data: {
         tokens: [
@@ -339,9 +352,7 @@ describe("DeepScraper — Apify token guard", () => {
       isLoading: false,
     } as any);
     renderDeepScraper();
-    await waitFor(() => {
-      expect(screen.getByText("Apify Token Required")).toBeInTheDocument();
-    });
+    expect(screen.queryByText("Apify Token Required")).not.toBeInTheDocument();
   });
 
   it("navigates to integrations when clicking Go to Integrations", async () => {
