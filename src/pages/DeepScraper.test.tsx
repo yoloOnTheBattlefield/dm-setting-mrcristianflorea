@@ -43,6 +43,7 @@ vi.mock("@/hooks/useDeepScrapeJobs", () => ({
   useDeepScrapeTargetStats: () => ({ data: { targets: [] } }),
   useSkipComments: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useResumeComments: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useReprocessAI: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useAddDeepScrapeLeadsToCampaign: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 

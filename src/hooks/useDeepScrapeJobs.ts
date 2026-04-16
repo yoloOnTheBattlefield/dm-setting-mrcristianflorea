@@ -163,6 +163,17 @@ export function useAddDeepScrapeLeadsToCampaign() {
   });
 }
 
+export function useReprocessAI() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiPost(`${API_URL}/api/deep-scrape/${id}/reprocess-ai`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["deep-scrape-jobs"] });
+      qc.invalidateQueries({ queryKey: ["deep-scrape-job"] });
+    },
+  });
+}
+
 export function useDeleteDeepScrape() {
   const qc = useQueryClient();
   return useMutation({

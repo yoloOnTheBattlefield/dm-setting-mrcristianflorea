@@ -63,6 +63,7 @@ import {
   useDeepScrapeTargetStats,
   useSkipComments,
   useResumeComments,
+  useReprocessAI,
   useAddDeepScrapeLeadsToCampaign,
 } from "@/hooks/useDeepScrapeJobs";
 import type { DeepScrapeJob, DeepScrapeJobStatus, DeepScrapeLeadEntry } from "@/lib/types";
@@ -785,6 +786,7 @@ export default function DeepScraper() {
   const deleteMutation = useDeleteDeepScrape();
   const skipCommentsMutation = useSkipComments();
   const resumeCommentsMutation = useResumeComments();
+  const reprocessAIMutation = useReprocessAI();
   const updateMutation = useUpdateDeepScrape();
   const addToCampaignMutation = useAddDeepScrapeLeadsToCampaign();
   const createCampaignMutation = useCreateCampaign();
@@ -1107,6 +1109,19 @@ export default function DeepScraper() {
       toast({
         title: "Error",
         description: err instanceof Error ? err.message : "Failed to resume comments",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReprocessAI = async (id: string) => {
+    try {
+      await reprocessAIMutation.mutateAsync(id);
+      toast({ title: "Reprocessing", description: "AI re-qualification started. Watch the live console for progress." });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to start AI reprocessing",
         variant: "destructive",
       });
     }
@@ -1438,6 +1453,17 @@ export default function DeepScraper() {
                                     disabled={resumeMutation.isPending}
                                   >
                                     <Play className="h-3.5 w-3.5 text-green-500" />
+                                  </ActionBtn>
+                                )}
+                                {!active && job.promptId && job.stats.sent_to_ai > (job.stats.qualified + job.stats.rejected) && (
+                                  <ActionBtn
+                                    tooltip="Reprocess with AI"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleReprocessAI(job._id)}
+                                    disabled={reprocessAIMutation.isPending}
+                                  >
+                                    <Brain className="h-3.5 w-3.5 text-cyan-400" />
                                   </ActionBtn>
                                 )}
                                 {!active && job.comments_skipped && (
