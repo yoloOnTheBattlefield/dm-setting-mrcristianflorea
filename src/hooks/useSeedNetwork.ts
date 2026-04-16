@@ -42,7 +42,7 @@ export function useSeedNetwork(filters: { qualified?: string; limit?: number }) 
       const sp = new URLSearchParams();
       if (filters.qualified) sp.append("qualified", filters.qualified);
       if (filters.limit) sp.append("limit", String(filters.limit));
-      const res = await fetchWithAuth(`${API_URL}/api/analytics/seed-network?${sp.toString()}`);
+      const res = await fetchWithAuth(`${API_URL}/analytics/seed-network?${sp.toString()}`);
       if (!res.ok) throw new Error(`Failed to fetch seed network: ${res.status}`);
       return res.json();
     },
