@@ -43,11 +43,7 @@ function UsageDisplay({ usage, loading }: { usage?: AIProviderUsage | null; load
     );
   }
 
-  if (!usage) {
-    return (
-      <p className="text-[11px] text-muted-foreground">No usage data available</p>
-    );
-  }
+  if (!usage) return null;
 
   if (usage.error) {
     return (
@@ -168,7 +164,7 @@ export default function AITokenCard({
         </div>
 
         {/* Usage display */}
-        {savedToken && (
+        {savedToken && (usage || usageLoading) && (
           <div className="rounded-md border px-3 py-2">
             <UsageDisplay usage={usage} loading={usageLoading} />
           </div>
