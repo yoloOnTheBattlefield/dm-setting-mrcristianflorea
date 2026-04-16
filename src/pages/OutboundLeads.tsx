@@ -5,6 +5,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { readPersisted, writePersisted } from "@/hooks/usePersistedState";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Shimmer } from "@/components/skeletons";
+import { cn } from "@/lib/utils";
 import {
   AlertCircle,
   RefreshCw,
@@ -20,6 +21,8 @@ import {
   CalendarCheck,
   XCircle,
   CheckCircle2,
+  List,
+  Columns3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +51,7 @@ import FunnelStatsBar from "@/components/outbound-leads/FunnelStatsBar";
 import SelectionActionBar from "@/components/outbound-leads/SelectionActionBar";
 import DmEditDialog from "@/components/outbound-leads/DmEditDialog";
 import OutboundLeadsPagination from "@/components/outbound-leads/OutboundLeadsPagination";
+import { OutboundKanban } from "@/components/outbound-leads/OutboundKanban";
 import { QuickNoteDialog } from "@/components/QuickNoteDialog";
 
 interface OutboundLead {
@@ -436,10 +440,19 @@ function RowActions({
   );
 }
 
+type ViewMode = "list" | "kanban";
+
 export default function OutboundLeads() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    readPersisted<ViewMode>("ob-viewMode", "list")
+  );
+  useEffect(() => {
+    writePersisted("ob-viewMode", viewMode);
+  }, [viewMode]);
 
   const { data: promptOptions = [] } = usePrompts();
 
@@ -466,7 +479,7 @@ export default function OutboundLeads() {
   const [currentPage, setCurrentPage] = useState(
     parseInt(searchParams.get("page") || "1", 10),
   );
-  const limit = 20;
+  const limit = viewMode === "kanban" ? 500 : 20;
   const navigate = useNavigate();
 
   // Selection state
@@ -568,7 +581,8 @@ export default function OutboundLeads() {
       bookedFilter === "all" ? undefined : bookedFilter,
       promptFilter === "all" ? undefined : promptFilter,
       debouncedSearch || undefined,
-      currentPage,
+      viewMode === "kanban" ? 1 : currentPage,
+      limit,
     ],
     queryFn: () =>
       fetchOutboundLeads({
@@ -579,7 +593,7 @@ export default function OutboundLeads() {
         booked: bookedFilter === "all" ? undefined : bookedFilter,
         promptLabel: promptFilter === "all" ? undefined : promptFilter,
         search: debouncedSearch || undefined,
-        page: currentPage,
+        page: viewMode === "kanban" ? 1 : currentPage,
         limit,
       }),
     placeholderData: keepPreviousData,
@@ -816,6 +830,45 @@ export default function OutboundLeads() {
     }
   };
 
+  // --- Kanban stage move ---
+  const handleKanbanMove = useCallback(
+    async (leadId: string, toStage: string) => {
+      const lead = leads.find((l) => l._id === leadId);
+      const patch = buildStatusPatch(toStage, lead?.dmDate);
+      try {
+        await patchOutboundLead(leadId, patch);
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: err instanceof Error ? err.message : "Failed to update",
+          variant: "destructive",
+        });
+      }
+    },
+    [leads, queryClient, toast],
+  );
+
+  // --- Kanban delete ---
+  const handleKanbanDelete = useCallback(
+    async (leadId: string) => {
+      try {
+        await bulkDeleteLeads({ ids: [leadId] });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+        queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
+        toast({ title: "Deleted", description: "Lead deleted" });
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: err instanceof Error ? err.message : "Failed to delete",
+          variant: "destructive",
+        });
+      }
+    },
+    [queryClient, toast],
+  );
+
   const handleSelectOneFromCard = useCallback((lead: OutboundLead) => {
     if (selectAll) {
       setSelectAll(false);
@@ -851,12 +904,36 @@ export default function OutboundLeads() {
         onNavigateImport={() => navigate("/outbound-leads/import")}
       />
 
-      {/* Funnel – hidden on mobile */}
-      {funnelStats && (
-        <FunnelStatsBar funnelStats={funnelStats} />
-      )}
+      {/* Funnel + View toggle */}
+      <div className="hidden md:flex items-center justify-between px-6 pt-4">
+        {funnelStats ? <FunnelStatsBar funnelStats={funnelStats} /> : <div />}
+        <div className="flex items-center rounded-lg border bg-muted/50 p-0.5 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-7 px-2.5", viewMode === "list" && "bg-background shadow-sm")}
+            onClick={() => setViewMode("list")}
+          >
+            <List className="h-3.5 w-3.5 mr-1" />
+            List
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-7 px-2.5", viewMode === "kanban" && "bg-background shadow-sm")}
+            onClick={() => setViewMode("kanban")}
+          >
+            <Columns3 className="h-3.5 w-3.5 mr-1" />
+            Board
+          </Button>
+        </div>
+      </div>
+      {/* Mobile funnel only */}
+      <div className="md:hidden">
+        {funnelStats && <FunnelStatsBar funnelStats={funnelStats} />}
+      </div>
 
-      {/* Table */}
+      {/* Content */}
       <div className="flex-1 p-6">
         {isError ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -874,6 +951,16 @@ export default function OutboundLeads() {
           </div>
         ) : (
           <>
+            {viewMode === "kanban" ? (
+              <OutboundKanban
+                leads={leads}
+                isLoading={showTableSkeleton}
+                onMove={handleKanbanMove}
+                onDelete={handleKanbanDelete}
+                onOpenNote={(l) => setNoteLead(l)}
+              />
+            ) : (
+            <>
             <SelectionActionBar
               selectedIds={selectedIds}
               selectAll={selectAll}
@@ -1285,6 +1372,8 @@ export default function OutboundLeads() {
                 pagination={pagination}
                 setCurrentPage={setCurrentPage}
               />
+            )}
+            </>
             )}
           </>
         )}
