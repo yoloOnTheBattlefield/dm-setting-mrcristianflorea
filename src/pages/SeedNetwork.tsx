@@ -28,7 +28,7 @@ function getNodeSize(node: GraphNode): number {
     return Math.max(6, Math.min(20, 6 + Math.sqrt(seed.leadCount) * 1.5));
   }
   const lead = node as Extract<GraphNode, { type: "lead" }>;
-  if (lead.seedCount > 1) return 4; // cross-connected leads slightly bigger
+  if (lead.seedCount > 1) return 4;
   return 2.5;
 }
 
@@ -36,20 +36,19 @@ export default function SeedNetwork() {
   const [qualifiedFilter, setQualifiedFilter] = useState("all");
   const [graphLimit, setGraphLimit] = useState(2000);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
 
   const { data, isLoading, isError } = useSeedNetwork({
     qualified: qualifiedFilter === "all" ? undefined : qualifiedFilter,
     limit: graphLimit,
   });
 
-  // Resize observer for responsive graph
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
-      const { width, height } = entries[0].contentRect;
-      setDimensions({ width, height: Math.max(500, height) });
+      const { width } = entries[0].contentRect;
+      setDimensions({ width, height: 500 });
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -100,13 +99,6 @@ export default function SeedNetwork() {
           <div className="flex items-center gap-3">
             <Network className="h-5 w-5 text-violet-400" />
             <h1 className="text-lg font-semibold">Seed Network</h1>
-            {stats && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">{stats.totalSeeds} seeds</Badge>
-                <Badge variant="secondary" className="text-xs">{stats.totalLeads} leads</Badge>
-                <Badge variant="secondary" className="text-xs">{stats.crossConnected} cross-connected</Badge>
-              </div>
-            )}
           </div>
           <div className="flex items-center gap-3">
             <div className="flex flex-col gap-1">
@@ -140,66 +132,81 @@ export default function SeedNetwork() {
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="px-6 py-2 flex items-center gap-4 text-xs text-muted-foreground border-b">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-full bg-violet-400" />
-          Seed Account
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400" />
-          Qualified
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-400" />
-          AI Rejected
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-yellow-400" />
-          Low Followers
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-zinc-500" />
-          Unprocessed
-        </span>
-      </div>
-
-      <div ref={containerRef} className="flex-1 bg-zinc-950 relative">
-        {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Skeleton className="h-8 w-48" />
-          </div>
-        ) : isError ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <AlertCircle className="h-8 w-8 text-destructive" />
-            <p className="text-sm text-muted-foreground">Failed to load network data</p>
-          </div>
-        ) : data && data.nodes.length > 0 ? (
-          <ForceGraph2D
-            width={dimensions.width}
-            height={dimensions.height}
-            graphData={data}
-            nodeCanvasObject={nodeCanvasObject}
-            nodePointerAreaPaint={nodePointerAreaPaint}
-            linkColor={() => "rgba(255,255,255,0.06)"}
-            linkWidth={0.5}
-            d3AlphaDecay={0.02}
-            d3VelocityDecay={0.3}
-            warmupTicks={100}
-            cooldownTime={3000}
-            nodeLabel={(node: any) => {
-              if (node.type === "seed") return `@${node.label} (${node.leadCount} leads)`;
-              const fCount = node.followersCount?.toLocaleString() || "0";
-              const status = node.qualified === true ? "Qualified" : node.unqualified_reason || "Pending";
-              return `@${node.label} | ${fCount} followers | ${status}`;
-            }}
-          />
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <Network className="h-8 w-8 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">No leads with source seeds found</p>
+      <div className="flex-1 p-6 space-y-4">
+        {/* Stats */}
+        {stats && (
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="text-xs">{stats.totalSeeds} seeds</Badge>
+            <Badge variant="secondary" className="text-xs">{stats.totalLeads} leads</Badge>
+            <Badge variant="secondary" className="text-xs">{stats.crossConnected} cross-connected</Badge>
           </div>
         )}
+
+        {/* Graph card */}
+        <div className="rounded-lg border bg-card overflow-hidden">
+          {/* Legend */}
+          <div className="px-4 py-2.5 flex items-center gap-4 text-xs text-muted-foreground border-b bg-muted/30">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded-full bg-violet-400" />
+              Seed Account
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400" />
+              Qualified
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-400" />
+              AI Rejected
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-yellow-400" />
+              Low Followers
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-zinc-500" />
+              Unprocessed
+            </span>
+          </div>
+
+          {/* Graph container */}
+          <div ref={containerRef} className="relative h-[500px] bg-zinc-950">
+            {isLoading ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Skeleton className="h-8 w-48" />
+              </div>
+            ) : isError ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+                <p className="text-sm text-muted-foreground">Failed to load network data</p>
+              </div>
+            ) : data && data.nodes.length > 0 ? (
+              <ForceGraph2D
+                width={dimensions.width}
+                height={dimensions.height}
+                graphData={data}
+                nodeCanvasObject={nodeCanvasObject}
+                nodePointerAreaPaint={nodePointerAreaPaint}
+                linkColor={() => "rgba(255,255,255,0.06)"}
+                linkWidth={0.5}
+                d3AlphaDecay={0.02}
+                d3VelocityDecay={0.3}
+                warmupTicks={100}
+                cooldownTime={3000}
+                nodeLabel={(node: any) => {
+                  if (node.type === "seed") return `@${node.label} (${node.leadCount} leads)`;
+                  const fCount = node.followersCount?.toLocaleString() || "0";
+                  const status = node.qualified === true ? "Qualified" : node.unqualified_reason || "Pending";
+                  return `@${node.label} | ${fCount} followers | ${status}`;
+                }}
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                <Network className="h-8 w-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">No leads with source seeds found</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
