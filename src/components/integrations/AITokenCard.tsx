@@ -43,7 +43,11 @@ function UsageDisplay({ usage, loading }: { usage?: AIProviderUsage | null; load
     );
   }
 
-  if (!usage) return null;
+  if (!usage) {
+    return (
+      <p className="text-[11px] text-muted-foreground">No usage data available</p>
+    );
+  }
 
   if (usage.error) {
     return (

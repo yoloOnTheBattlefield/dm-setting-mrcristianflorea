@@ -52,7 +52,7 @@ export default function Integrations() {
 
   // AI usage tracking
   const hasAnyAIToken = !!(savedOpenaiToken || savedClaudeToken || savedGeminiToken);
-  const { data: aiUsageData, isLoading: aiUsageLoading } = useAIUsage(hasAnyAIToken);
+  const { data: aiUsageData, isFetching: aiUsageLoading } = useAIUsage(hasAnyAIToken);
 
   // Apify tokens (multi-token)
   const { data: apifyTokensData, isLoading: apifyTokensLoading } = useApifyTokens();

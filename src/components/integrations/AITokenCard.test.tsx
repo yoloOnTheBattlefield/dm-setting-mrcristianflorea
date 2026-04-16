@@ -60,6 +60,11 @@ describe("AITokenCard", () => {
     expect(screen.queryByText(/used this month/)).not.toBeInTheDocument();
   });
 
+  it("shows fallback message when saved token exists but no usage data", () => {
+    render(<AITokenCard {...baseProps} savedToken="sk-123" />);
+    expect(screen.getByText("No usage data available")).toBeInTheDocument();
+  });
+
   it("shows loading spinner when usage is loading", () => {
     render(<AITokenCard {...baseProps} savedToken="sk-123" usageLoading />);
     expect(screen.getByText("Fetching usage...")).toBeInTheDocument();
