@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -112,6 +113,96 @@ describe("OutboundLeads page", () => {
       const badgeButtons = allMessaged.filter((el) => el.closest("button"));
       expect(badgeButtons.length).toBeGreaterThanOrEqual(1);
     });
+  });
+});
+
+describe("Kanban mode skips stage filters", () => {
+  beforeEach(() => {
+    mockFetchWithAuth.mockClear();
+    mockFetchWithAuth.mockImplementation(defaultMockImpl);
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  /** Extract the URL string from the first leads-list fetch (skipping /stats and /sources calls). */
+  function getLeadsFetchUrl(): string | undefined {
+    const call = mockFetchWithAuth.mock.calls.find(
+      ([url]: [string]) =>
+        url.includes("/outbound-leads") &&
+        !url.includes("/stats") &&
+        !url.includes("/sources"),
+    );
+    return call?.[0] as string | undefined;
+  }
+
+  it("does not send stage filters (qualified, isMessaged, replied, booked) in kanban mode", async () => {
+    // Seed localStorage so page opens in kanban mode with active stage filters
+    localStorage.setItem("ob-viewMode", JSON.stringify("kanban"));
+    localStorage.setItem("ob-qualified", JSON.stringify("false"));
+    localStorage.setItem("ob-messaged", JSON.stringify("true"));
+    localStorage.setItem("ob-replied", JSON.stringify("true"));
+    localStorage.setItem("ob-booked", JSON.stringify("true"));
+
+    renderPage();
+
+    await waitFor(() => {
+      const url = getLeadsFetchUrl();
+      expect(url).toBeDefined();
+    });
+
+    const url = getLeadsFetchUrl()!;
+    const params = new URL(url).searchParams;
+
+    // Stage filters must NOT be present
+    expect(params.has("qualified")).toBe(false);
+    expect(params.has("isMessaged")).toBe(false);
+    expect(params.has("replied")).toBe(false);
+    expect(params.has("booked")).toBe(false);
+
+    // Limit should be 500 for kanban
+    expect(params.get("limit")).toBe("500");
+  });
+
+  it("sends stage filters in list mode", async () => {
+    // Seed localStorage so page opens in list mode with active stage filters
+    localStorage.setItem("ob-viewMode", JSON.stringify("list"));
+    localStorage.setItem("ob-messaged", JSON.stringify("true"));
+
+    renderPage();
+
+    await waitFor(() => {
+      const url = getLeadsFetchUrl();
+      expect(url).toBeDefined();
+    });
+
+    const url = getLeadsFetchUrl()!;
+    const params = new URL(url).searchParams;
+
+    // Stage filter should be present in list mode
+    expect(params.get("isMessaged")).toBe("true");
+    expect(params.get("limit")).toBe("20");
+  });
+
+  it("still sends non-stage filters (source, promptLabel, search) in kanban mode", async () => {
+    localStorage.setItem("ob-viewMode", JSON.stringify("kanban"));
+    localStorage.setItem("ob-source", JSON.stringify("scrape:seed"));
+    localStorage.setItem("ob-prompt", JSON.stringify("Default Prompt"));
+
+    renderPage();
+
+    await waitFor(() => {
+      const url = getLeadsFetchUrl();
+      expect(url).toBeDefined();
+    });
+
+    const url = getLeadsFetchUrl()!;
+    const params = new URL(url).searchParams;
+
+    // Non-stage filters must still be sent
+    expect(params.get("source")).toBe("scrape:seed");
+    expect(params.get("promptLabel")).toBe("Default Prompt");
   });
 });
 

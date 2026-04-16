@@ -571,29 +571,33 @@ export default function OutboundLeads() {
     setSearchParams,
   ]);
 
+  // In kanban mode, skip stage-related filters so all leads appear in their
+  // respective columns (qualified, messaged, replied, booked map to stages).
+  const isKanban = viewMode === "kanban";
+
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: [
       "outbound-leads",
       source === "all" ? undefined : source,
-      qualifiedFilter === "true" ? undefined : qualifiedFilter,
-      messagedFilter === "all" ? undefined : messagedFilter,
-      repliedFilter === "all" ? undefined : repliedFilter,
-      bookedFilter === "all" ? undefined : bookedFilter,
+      isKanban ? undefined : (qualifiedFilter === "true" ? undefined : qualifiedFilter),
+      isKanban ? undefined : (messagedFilter === "all" ? undefined : messagedFilter),
+      isKanban ? undefined : (repliedFilter === "all" ? undefined : repliedFilter),
+      isKanban ? undefined : (bookedFilter === "all" ? undefined : bookedFilter),
       promptFilter === "all" ? undefined : promptFilter,
       debouncedSearch || undefined,
-      viewMode === "kanban" ? 1 : currentPage,
+      isKanban ? 1 : currentPage,
       limit,
     ],
     queryFn: () =>
       fetchOutboundLeads({
         source: source === "all" ? undefined : source,
-        qualified: qualifiedFilter === "true" ? undefined : qualifiedFilter,
-        isMessaged: messagedFilter === "all" ? undefined : messagedFilter,
-        replied: repliedFilter === "all" ? undefined : repliedFilter,
-        booked: bookedFilter === "all" ? undefined : bookedFilter,
+        qualified: isKanban ? undefined : (qualifiedFilter === "true" ? undefined : qualifiedFilter),
+        isMessaged: isKanban ? undefined : (messagedFilter === "all" ? undefined : messagedFilter),
+        replied: isKanban ? undefined : (repliedFilter === "all" ? undefined : repliedFilter),
+        booked: isKanban ? undefined : (bookedFilter === "all" ? undefined : bookedFilter),
         promptLabel: promptFilter === "all" ? undefined : promptFilter,
         search: debouncedSearch || undefined,
-        page: viewMode === "kanban" ? 1 : currentPage,
+        page: isKanban ? 1 : currentPage,
         limit,
       }),
     placeholderData: keepPreviousData,
