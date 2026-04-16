@@ -1675,6 +1675,18 @@ Upload a CSV or XLSX file to create outbound accounts in bulk. The dialog parses
 
 - **`POST /api/outbound-accounts/bulk`** — Accepts `{ accounts: Array<{ username, password?, email?, emailPassword?, proxy?, status?, assignedTo?, notes?, twoFA?, hidemyacc_profile_id? }> }`. Max 5000 rows. Returns `{ created, duplicates, errors }`. Deduplicates within batch and against existing DB records. Uses `insertMany({ ordered: false })` for partial-failure tolerance.
 
+## Export Outbound Accounts CSV
+
+One-click "Export CSV" button in the outbound accounts header bar. Downloads all accounts for the current tenant as a CSV file with properly escaped values.
+
+### Location
+
+- **Page integration:** `src/pages/OutboundAccounts.tsx` — "Export CSV" button calls `/export` endpoint and triggers browser download
+
+### API
+
+- **`GET /api/outbound-accounts/export`** — Returns all accounts as `text/csv` with `Content-Disposition: attachment`. Columns: username, password, email, emailPassword, proxy, status, assignedTo, isBlacklisted, isConnectedToAISetter, notes, twoFA, hidemyacc_profile_id, createdAt.
+
 ## AI API Key Usage Tracking
 
 Shows how much of each AI API key's credits/budget has been used, directly in the Integrations page. Fetches usage data from OpenAI, Anthropic (Claude), and Google (Gemini) APIs when a custom key is connected. Displays monthly spend, credit balance, and token counts depending on the provider.

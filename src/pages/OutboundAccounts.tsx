@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { API_URL, fetchWithAuth } from "@/lib/api";
 import {
   useOutboundAccounts,
   useCreateOutboundAccount,
@@ -274,6 +275,30 @@ export default function OutboundAccounts() {
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/outbound-accounts/export`);
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "outbound-accounts.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to export",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const getWarmupDay = (account: OutboundAccount) => {
     if (!account.warmup?.enabled || !account.warmup?.startDate) return null;
@@ -337,6 +362,10 @@ export default function OutboundAccounts() {
                 Download Extension
               </Button>
             </a>
+            <Button variant="outline" onClick={handleExport} disabled={exporting}>
+              {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              Export CSV
+            </Button>
             <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
               <Upload className="h-4 w-4 mr-2" />
               Bulk Import
