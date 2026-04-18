@@ -199,6 +199,34 @@ describe("OutboundLeadDetail", () => {
     expect(screen.getByText("Not a fit")).toBeInTheDocument();
   });
 
+  it("shows link_sent_at timestamp in sidebar when link_sent is true", async () => {
+    mockAllFetches({
+      ...baseLead,
+      link_sent: true,
+      link_sent_at: "2026-03-17T14:00:00.000Z",
+    });
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText("Jane Doe")).toBeInTheDocument();
+    });
+    // "Link Sent" appears in both the pipeline stepper AND the sidebar timestamp row
+    const linkSentElements = screen.getAllByText("Link Sent");
+    expect(linkSentElements.length).toBe(2);
+  });
+
+  it("does not show link_sent_at row when link_sent is false", async () => {
+    mockAllFetches({ ...baseLead, link_sent: false, link_sent_at: null });
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText("Jane Doe")).toBeInTheDocument();
+    });
+    // "Link Sent" only appears once — in the pipeline stepper, not as a sidebar row
+    const linkSentElements = screen.getAllByText("Link Sent");
+    expect(linkSentElements.length).toBe(1);
+  });
+
   it("shows error state for missing lead", async () => {
     mockFetchWithAuth.mockImplementation((url: string) => {
       if (url.includes("/outbound-leads/ob1")) {

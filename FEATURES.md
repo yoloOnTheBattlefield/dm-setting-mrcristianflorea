@@ -1710,3 +1710,14 @@ Shows how much of each AI API key's credits/budget has been used, directly in th
 ### API
 
 - **`GET /api/ai-usage`** — Returns `{ openai?: AIProviderUsage, claude?: AIProviderUsage, gemini?: AIProviderUsage }`. Each provider object contains usage metrics or an error message if the API key lacks billing permissions.
+
+---
+
+## Link Sent Timestamp Display
+
+Shows the `link_sent_at` timestamp in the outbound lead detail sidebar when a lead is marked as "Link Sent". Previously only `replied_at` and `booked_at` were displayed.
+
+### Files (frontend — `dm-setting`)
+
+- `src/pages/OutboundLeadDetail.tsx` — Added `link_sent_at` row to the Contact sidebar card
+- `src/pages/OutboundLeadDetail.test.tsx` — Tests verifying `link_sent_at` appears when set and is hidden when null

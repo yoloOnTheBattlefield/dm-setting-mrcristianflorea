@@ -382,6 +382,13 @@ export default function OutboundLeadDetail() {
                   </div>
                 )}
 
+                {lead.link_sent_at && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Link Sent</span>
+                    <span>{formatShortDate(lead.link_sent_at)}</span>
+                  </div>
+                )}
+
                 {lead.replied_at && (
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Replied</span>
