@@ -25,7 +25,7 @@ import { AppearanceCard } from "@/components/settings/appearance-card";
 import { Switch } from "@/components/ui/switch";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
-const LEADS_API_URL = `${API_URL}/accounts/leads/generate`;
+const LEADS_API_URL = `${API_URL}/leads/generate`;
 const NOTIF_SETTINGS_URL = `${API_URL}/api/notifications/settings`;
 
 export default function UserSettings() {
