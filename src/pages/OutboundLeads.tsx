@@ -52,6 +52,8 @@ import SelectionActionBar from "@/components/outbound-leads/SelectionActionBar";
 import DmEditDialog from "@/components/outbound-leads/DmEditDialog";
 import OutboundLeadsPagination from "@/components/outbound-leads/OutboundLeadsPagination";
 import { OutboundKanban } from "@/components/outbound-leads/OutboundKanban";
+import AddLeadDialog from "@/components/outbound-leads/AddLeadDialog";
+import { getProfileUrl, getHandleDisplay, getPlatformLabel } from "@/lib/platform";
 import { QuickNoteDialog } from "@/components/QuickNoteDialog";
 
 interface OutboundLead {
@@ -395,10 +397,10 @@ function RowActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem onClick={() => {
-            window.open(lead.profileLink || `https://instagram.com/${lead.username}`, "_blank");
+            window.open(getProfileUrl(lead), "_blank");
           }}>
             <ExternalLink className="h-3.5 w-3.5 mr-2" />
-            Open IG Profile
+            Open {getPlatformLabel(lead.platform)} Profile
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => onToggleMessaged(lead)}>
@@ -486,6 +488,7 @@ export default function OutboundLeads() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [addLeadOpen, setAddLeadOpen] = useState(false);
 
   // Clear selection on page/filter change
   useEffect(() => {
@@ -906,7 +909,9 @@ export default function OutboundLeads() {
         bookedFilter={bookedFilter}
         setBookedFilter={setBookedFilter}
         onNavigateImport={() => navigate("/outbound-leads/import")}
+        onAddLead={() => setAddLeadOpen(true)}
       />
+      <AddLeadDialog open={addLeadOpen} onOpenChange={setAddLeadOpen} />
 
       {/* Funnel + View toggle */}
       <div className="hidden md:flex items-center justify-between px-6 pt-4">
@@ -1036,11 +1041,11 @@ export default function OutboundLeads() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1">
                             <a
-                              href={lead.profileLink || `https://instagram.com/${lead.username}`}
+                              href={getProfileUrl(lead)}
                               target="_blank" rel="noopener noreferrer"
                               className="font-medium text-foreground hover:underline text-sm truncate"
                             >
-                              @{lead.username}
+                              {getHandleDisplay(lead)}
                             </a>
                             <button
                               type="button"
@@ -1270,14 +1275,11 @@ export default function OutboundLeads() {
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1">
                                   <a
-                                    href={
-                                      lead.profileLink ||
-                                      `https://instagram.com/${lead.username}`
-                                    }
+                                    href={getProfileUrl(lead)}
                                     target="_blank" rel="noopener noreferrer"
                                     className="text-foreground hover:underline truncate"
                                   >
-                                    @{lead.username}
+                                    {getHandleDisplay(lead)}
                                   </a>
                                   <button
                                     type="button"

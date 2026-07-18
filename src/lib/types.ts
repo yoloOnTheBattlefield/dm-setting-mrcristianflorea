@@ -46,6 +46,7 @@ export interface ApiLead {
   last_name: string;
   email?: string | null;
   ig_username?: string | null;
+  platform?: "instagram" | "linkedin";
   source?: string | null;
   outbound_lead_id?: string | null;
   ig_thread_id?: string | null;

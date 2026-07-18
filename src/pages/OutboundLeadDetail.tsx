@@ -3,7 +3,6 @@ import { formatShortDate, formatAbsoluteDateTime, timeAgo } from "@/lib/formatte
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
-  Instagram,
   Mail,
   Globe,
   Users,
@@ -45,6 +44,7 @@ import {
   useUpdateOutboundLead,
   type OutboundLeadDetail as OutboundLeadDetailType,
 } from "@/hooks/useOutboundLeadDetail";
+import { getProfileUrl, getHandleDisplay, getPlatformIcon, getPlatformLabel } from "@/lib/platform";
 import { useLeadConversation } from "@/hooks/useLeadConversation";
 import {
   useOutboundLeadNotes,
@@ -193,6 +193,7 @@ export default function OutboundLeadDetail() {
   const stageIndex = getCurrentStageIndex(lead);
   const scoreInfo = getScoreInfo(lead.score);
   const isDQ = lead.qualified === false;
+  const PlatformIcon = getPlatformIcon(lead.platform);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -233,13 +234,13 @@ export default function OutboundLeadDetail() {
 
             <div className="flex items-center gap-3 text-sm text-muted-foreground mt-0.5 flex-wrap">
               <a
-                href={lead.profileLink || `https://instagram.com/${lead.username}`}
+                href={getProfileUrl(lead)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-foreground"
               >
-                <Instagram className="h-3.5 w-3.5" />
-                @{lead.username}
+                <PlatformIcon className="h-3.5 w-3.5" />
+                {getHandleDisplay(lead)}
               </a>
               {lead.email && (
                 <span className="flex items-center gap-1">
@@ -311,14 +312,14 @@ export default function OutboundLeadDetail() {
               </CardHeader>
               <CardContent className="px-4 pb-4 space-y-3 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Instagram</span>
+                  <span className="text-muted-foreground">{getPlatformLabel(lead.platform)}</span>
                   <a
-                    href={lead.profileLink || `https://instagram.com/${lead.username}`}
+                    href={getProfileUrl(lead)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-foreground hover:underline"
                   >
-                    @{lead.username}
+                    {getHandleDisplay(lead)}
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
@@ -526,7 +527,7 @@ export default function OutboundLeadDetail() {
               <Card>
                 <CardHeader className="pb-2 pt-4 px-4">
                   <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <Instagram className="h-3.5 w-3.5" />
+                    <PlatformIcon className="h-3.5 w-3.5" />
                     DM Conversation
                     <span className="ml-auto font-normal normal-case text-muted-foreground/60">
                       {conversationData.total} message{conversationData.total !== 1 ? "s" : ""}

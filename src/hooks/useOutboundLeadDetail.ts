@@ -6,6 +6,7 @@ export interface OutboundLeadDetail {
   account_id: string;
   followingKey: string;
   username: string;
+  platform?: "instagram" | "linkedin";
   fullName: string | null;
   profileLink: string | null;
   isVerified: boolean | null;

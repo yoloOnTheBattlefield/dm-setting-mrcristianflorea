@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, Upload } from "lucide-react";
+import { Plus, Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,7 @@ interface OutboundLeadsFiltersProps {
   bookedFilter: string;
   setBookedFilter: React.Dispatch<React.SetStateAction<string>>;
   onNavigateImport: () => void;
+  onAddLead: () => void;
 }
 
 export default function OutboundLeadsFilters({
@@ -49,6 +50,7 @@ export default function OutboundLeadsFilters({
   bookedFilter,
   setBookedFilter,
   onNavigateImport,
+  onAddLead,
 }: OutboundLeadsFiltersProps) {
   return (
     <>
@@ -103,17 +105,26 @@ export default function OutboundLeadsFilters({
                 Outbound Leads
               </h2>
               <p className="text-muted-foreground">
-                IG profiles from scraper uploads
+                Instagram &amp; LinkedIn prospects
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onNavigateImport}
-            >
-              <Upload className="h-4 w-4 mr-1.5" />
-              Import XLSX
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onNavigateImport}
+              >
+                <Upload className="h-4 w-4 mr-1.5" />
+                Import XLSX
+              </Button>
+              <Button
+                size="sm"
+                onClick={onAddLead}
+              >
+                <Plus className="h-4 w-4 mr-1.5" />
+                Add Lead
+              </Button>
+            </div>
           </div>
 
           {/* Row 2: Filters */}

@@ -1721,3 +1721,28 @@ Shows the `link_sent_at` timestamp in the outbound lead detail sidebar when a le
 
 - `src/pages/OutboundLeadDetail.tsx` — Added `link_sent_at` row to the Contact sidebar card
 - `src/pages/OutboundLeadDetail.test.tsx` — Tests verifying `link_sent_at` appears when set and is hidden when null
+
+## LinkedIn Support for Outbound Pipeline (Manual Lead Add)
+
+Adds LinkedIn alongside Instagram in the Outbound Leads pipeline. Introduces a `platform` discriminator on outbound leads, a manual **Add Lead** modal (pick Instagram or LinkedIn), and parameterizes the previously IG-hardcoded profile links, handles, labels, and icons by platform. A LinkedIn lead is keyed by its vanity slug stored in the existing `username` field; its profile URL resolves to `linkedin.com/in/{slug}`. Existing leads default to `instagram` (backward compatible). Scope is manual add + display only — no LinkedIn OAuth, webhook, DM sending, or scraping.
+
+### Files (backend — `quddify-crm`)
+
+- `models/OutboundLead.js` — Added `platform` enum field (`instagram` | `linkedin`, default `instagram`)
+- `routes/outbound-leads.js` — Added `POST /` single-lead create endpoint (409 on duplicate username)
+- `schemas/outbound-leads.js` — Added `createLeadSchema`
+- `routes/outbound-leads.test.js` — Tests for the create endpoint (LinkedIn create, @-strip, duplicate 409, validation)
+
+### Files (frontend — `dm-setting`)
+
+- `src/lib/platform.ts` — Platform helpers: `getProfileUrl`, `getPlatformLabel`, `getPlatformIcon`, `getHandleDisplay`, `normalizePlatform`
+- `src/components/outbound-leads/AddLeadDialog.tsx` — Manual Add Lead modal (IG/LinkedIn)
+- `src/hooks/useOutboundLeads.ts` — `useCreateOutboundLead()` mutation + `platform`/`profileLink` on the interface
+- `src/hooks/useOutboundLeadDetail.ts`, `src/lib/types.ts` — Added `platform` field
+- `src/components/outbound-leads/OutboundLeadsFilters.tsx` — Added **Add Lead** button
+- `src/pages/OutboundLeads.tsx`, `OutboundKanban.tsx`, `OutboundLeadDetail.tsx`, `DmEditDialog.tsx` — Parameterized IG-hardcoded profile links/handles/labels/icons via the platform helpers
+- `src/lib/platform.test.ts`, `src/components/outbound-leads/AddLeadDialog.test.tsx` — Unit tests
+
+### API Routes
+
+- `POST /outbound-leads` — Manually create a single lead. Body: `username` (required), `platform` (`instagram`|`linkedin`), `fullName?`, `profileLink?`, `followersCount?`, `bio?`, `email?`. Returns `201` with the lead, or `409` if the username already exists for the account.

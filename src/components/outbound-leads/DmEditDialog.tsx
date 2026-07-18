@@ -8,9 +8,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getHandleDisplay } from "@/lib/platform";
 
 interface DmEditDialogProps {
-  editingLead: { username: string } | null;
+  editingLead: { username: string; platform?: "instagram" | "linkedin" } | null;
   setEditingLead: (lead: null) => void;
   dmMessage: string;
   setDmMessage: (value: string) => void;
@@ -37,7 +38,7 @@ export default function DmEditDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>DM Details — @{editingLead?.username}</DialogTitle>
+          <DialogTitle>DM Details — {editingLead ? getHandleDisplay(editingLead) : ""}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="space-y-1.5">

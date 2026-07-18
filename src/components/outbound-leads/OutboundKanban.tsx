@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { timeAgo } from "@/lib/formatters";
 import { useNavigate } from "react-router-dom";
+import { getProfileUrl, getHandleDisplay, getPlatformLabel } from "@/lib/platform";
 import {
   DndContext,
   DragOverlay,
@@ -49,6 +50,7 @@ interface OutboundLead {
   _id: string;
   username: string;
   fullName: string;
+  platform?: "instagram" | "linkedin";
   profileLink?: string;
   isVerified?: boolean;
   followersCount?: number;
@@ -179,7 +181,7 @@ function KanbanCard({
             onClick={(e) => { e.stopPropagation(); navigate(`/outbound-leads/${lead._id}`); }}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            @{lead.username}
+            {getHandleDisplay(lead)}
           </span>
           {lead.fullName && (
             <p className="text-xs text-muted-foreground truncate">{lead.fullName}</p>
@@ -242,8 +244,8 @@ function KanbanCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onClick={() => window.open(lead.profileLink || `https://instagram.com/${lead.username}`, "_blank")}>
-                <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open IG Profile
+              <DropdownMenuItem onClick={() => window.open(getProfileUrl(lead), "_blank")}>
+                <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open {getPlatformLabel(lead.platform)} Profile
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(lead.username); }}>
                 <Copy className="h-3.5 w-3.5 mr-2" /> Copy Username
@@ -328,7 +330,7 @@ function DragOverlayCard({ lead }: { lead: OutboundLead }) {
         >
           {initials}
         </div>
-        <span className="text-sm font-medium truncate">@{lead.username}</span>
+        <span className="text-sm font-medium truncate">{getHandleDisplay(lead)}</span>
       </div>
     </div>
   );

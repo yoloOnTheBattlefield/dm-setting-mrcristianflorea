@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { API_URL, fetchWithAuth } from "@/lib/api";
+import { API_URL, apiPost, fetchWithAuth } from "@/lib/api";
 
 const LEADS_URL = `${API_URL}/outbound-leads`;
 
@@ -10,6 +10,18 @@ export interface OutboundLead {
   followersCount?: number;
   source: string;
   promptLabel?: string;
+  platform?: "instagram" | "linkedin";
+  profileLink?: string | null;
+}
+
+export interface CreateOutboundLeadInput {
+  username: string;
+  platform: "instagram" | "linkedin";
+  fullName?: string;
+  profileLink?: string;
+  followersCount?: number;
+  bio?: string;
+  email?: string;
 }
 
 interface OutboundLeadsResponse {
@@ -47,6 +59,18 @@ export function useOutboundLeads(params: {
       return res.json();
     },
     staleTime: 1000 * 15,
+  });
+}
+
+export function useCreateOutboundLead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateOutboundLeadInput): Promise<OutboundLead> =>
+      apiPost<OutboundLead>(LEADS_URL, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outbound-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["outbound-leads-stats"] });
+    },
   });
 }
 
