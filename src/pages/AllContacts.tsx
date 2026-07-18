@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DateFilter } from "@/components/dashboard/DateFilter";
 import { DateRangeFilter, ApiLead } from "@/lib/types";
+import { extractHandle } from "@/lib/platform";
 import {
   Select,
   SelectContent,
@@ -1000,14 +1001,33 @@ export default function AllContacts() {
                 placeholder="email@example.com"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="lead-contact-id">Instagram / Social Handle</Label>
-              <Input
-                id="lead-contact-id"
-                value={leadForm.contact_id}
-                onChange={(e) => setLeadForm((f) => ({ ...f, contact_id: e.target.value }))}
-                placeholder="@handle"
-              />
+            <div className="grid grid-cols-[130px_1fr] gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="lead-platform">Platform</Label>
+                <Select
+                  value={leadForm.platform}
+                  onValueChange={(v) => setLeadForm((f) => ({ ...f, platform: v as "instagram" | "linkedin" }))}
+                >
+                  <SelectTrigger id="lead-platform">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="linkedin">LinkedIn</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="lead-handle">
+                  {leadForm.platform === "linkedin" ? "LinkedIn URL or slug" : "Instagram handle"}
+                </Label>
+                <Input
+                  id="lead-handle"
+                  value={leadForm.ig_username}
+                  onChange={(e) => setLeadForm((f) => ({ ...f, ig_username: e.target.value }))}
+                  placeholder={leadForm.platform === "linkedin" ? "linkedin.com/in/john-doe" : "@handle"}
+                />
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="lead-source">Source</Label>

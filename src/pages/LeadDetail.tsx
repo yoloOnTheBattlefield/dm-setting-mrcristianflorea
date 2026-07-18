@@ -1,5 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { formatShortDate, formatAbsoluteDateTime, timeAgo, daysBetween } from "@/lib/formatters";
+import { normalizePlatform, getProfileUrl, getHandleDisplay, getPlatformIcon, getPlatformLabel } from "@/lib/platform";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
 import { LeadDetailSkeleton } from "@/components/skeletons";
@@ -703,6 +704,12 @@ export default function LeadDetail() {
   const openTasks = tasks.filter((t) => !t.completed_at);
   const completedTasks = tasks.filter((t) => t.completed_at);
   const igHandle = lead.ig_username?.replace(/^@/, "") || null;
+  const platform = normalizePlatform(lead.platform);
+  const isIg = platform === "instagram";
+  const profileUrl = igHandle ? getProfileUrl({ username: igHandle, platform }) : undefined;
+  const PlatformIcon = getPlatformIcon(platform);
+  const platformLabel = getPlatformLabel(platform);
+  const handleDisplay = igHandle ? getHandleDisplay({ username: igHandle, platform }) : null;
   const scoreInfo = getScoreInfo(lead.score);
 
   // Days in current stage
@@ -872,13 +879,13 @@ export default function LeadDetail() {
                 <h1 className="text-xl font-bold tracking-tight truncate">{leadName}</h1>
                 {igHandle && (
                   <a
-                    href={`https://instagram.com/${igHandle}`}
+                    href={profileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <Instagram className="h-3.5 w-3.5" />
-                    <span>@{igHandle}</span>
+                    <PlatformIcon className="h-3.5 w-3.5" />
+                    <span>{handleDisplay}</span>
                   </a>
                 )}
                 {/* Lead Score Badge */}
@@ -1059,7 +1066,7 @@ export default function LeadDetail() {
 
           {/* Row 3: Action Bar */}
           <div className="flex flex-wrap items-center gap-2">
-            {igHandle && (
+            {igHandle && isIg && (
               <Button
                 size="sm"
                 className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -1196,13 +1203,13 @@ export default function LeadDetail() {
                   </div>
                 </div>
                 <EditableDetailRow
-                  label="Instagram"
-                  value={igHandle ? `@${igHandle}` : null}
+                  label={platformLabel}
+                  value={handleDisplay}
                   placeholder="Add handle..."
-                  href={igHandle ? `https://instagram.com/${igHandle}` : undefined}
+                  href={profileUrl}
                   onSave={(val) => {
                     const clean = val?.replace(/^@/, "") || null;
-                    patchLead({ ig_username: clean }, clean ? `Instagram set to @${clean}` : "Instagram cleared");
+                    patchLead({ ig_username: clean }, clean ? `${platformLabel} set to ${clean}` : `${platformLabel} cleared`);
                   }}
                   disabled={isSaving}
                 />
@@ -1241,13 +1248,14 @@ export default function LeadDetail() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
-                            <a href={`https://instagram.com/${igHandle}`} target="_blank" rel="noopener noreferrer">
-                              <Instagram className="h-3.5 w-3.5" />
+                            <a href={profileUrl} target="_blank" rel="noopener noreferrer">
+                              <PlatformIcon className="h-3.5 w-3.5" />
                             </a>
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p className="text-xs">Open Instagram</p></TooltipContent>
+                        <TooltipContent><p className="text-xs">Open {platformLabel}</p></TooltipContent>
                       </Tooltip>
+                      {isIg && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
@@ -1258,6 +1266,7 @@ export default function LeadDetail() {
                         </TooltipTrigger>
                         <TooltipContent><p className="text-xs">Send DM</p></TooltipContent>
                       </Tooltip>
+                      )}
                     </>
                   )}
                 </div>

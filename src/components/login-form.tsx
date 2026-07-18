@@ -34,6 +34,7 @@ interface LoginResponse {
   token?: string;
   has_research?: boolean;
   lead_visibility?: { dms: boolean; outbound: boolean };
+  default_platform?: "instagram" | "linkedin";
   accounts?: AccountMembership[];
   needs_account_selection?: boolean;
   selection_token?: string;
@@ -82,6 +83,7 @@ export function LoginForm({
       data.has_research,
       data.accounts,
       data.lead_visibility,
+      data.default_platform,
     );
     toast({
       title: "Login successful",

@@ -1746,3 +1746,31 @@ Adds LinkedIn alongside Instagram in the Outbound Leads pipeline. Introduces a `
 ### API Routes
 
 - `POST /outbound-leads` — Manually create a single lead. Body: `username` (required), `platform` (`instagram`|`linkedin`), `fullName?`, `profileLink?`, `followersCount?`, `bio?`, `email?`. Returns `201` with the lead, or `409` if the username already exists for the account.
+
+## LinkedIn Support for Inbound Contacts (Manual Lead Add)
+
+Extends the manual **Add Lead** flow on the inbound contacts page (`/contacts/all`) to support LinkedIn as well as Instagram. This is for the setter workflow: people who comment a keyword on a client's post (IG or LinkedIn) are warm, so they go into the **inbound** section even though the setter reaches out first. The setter adds each person, picks the platform (or leaves the account default), and pastes a handle/URL.
+
+Adds an account-level **default outreach platform** setting (Settings → Default Outreach Platform). New leads default to it, so a LinkedIn-only account just drops a URL; it can still be overridden per lead. LinkedIn identity is stored as a vanity slug in the existing `ig_username` field (the one social-handle field); a pasted `linkedin.com/in/{slug}` URL is auto-reduced to the slug. Lead detail parameterizes the profile link, label, and icon by platform, and hides IG-DM-only deep links for LinkedIn leads.
+
+### Files (backend — `quddify-crm`)
+
+- `models/Lead.js` — `platform` enum (`instagram`|`linkedin`, default `instagram`)
+- `models/Account.js` — `default_platform` enum
+- `routes/accounts.js` — PATCH accepts `default_platform`; login payload returns it
+- `schemas/leads.js` — `platform` on create + update schemas
+- `routes/leads.test.js` — platform create/default/validation tests
+
+### Files (frontend — `dm-setting`)
+
+- `src/lib/platform.ts` — added `extractHandle()` (URL/@/slug → stored handle)
+- `src/pages/AllContacts.tsx` — Add Lead modal: platform selector (defaults to account default) + handle/URL field bound to `ig_username`
+- `src/pages/UserSettings.tsx` — Default Outreach Platform card (account admins/owners)
+- `src/pages/LeadDetail.tsx` — profile link/label/icon parameterized by platform; IG-DM deep links gated to IG
+- `src/contexts/AuthContext.tsx`, `src/components/login-form.tsx` — thread `default_platform` through auth
+- `src/lib/platform.test.ts` — `extractHandle` unit tests
+
+### API Routes
+
+- `POST /leads` — now accepts `platform` (`instagram`|`linkedin`) and stores the handle/slug in `ig_username`.
+- `PATCH /accounts/:id` — now accepts `default_platform`.

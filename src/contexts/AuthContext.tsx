@@ -30,6 +30,7 @@ interface User {
   has_outbound?: boolean
   has_research?: boolean
   lead_visibility?: LeadVisibility
+  default_platform?: "instagram" | "linkedin"
 }
 
 interface AuthContextType {
@@ -37,7 +38,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   accounts: AccountMembership[]
-  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accounts?: AccountMembership[], lead_visibility?: LeadVisibility) => void
+  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accounts?: AccountMembership[], lead_visibility?: LeadVisibility, default_platform?: "instagram" | "linkedin") => void
   updateUser: (updates: Partial<User>) => void
   switchAccount: (accountId: string) => Promise<void>
   logout: () => void
@@ -70,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [])
 
-  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accts?: AccountMembership[], lead_visibility?: LeadVisibility) => {
+  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accts?: AccountMembership[], lead_visibility?: LeadVisibility, default_platform?: "instagram" | "linkedin") => {
     const fullName = firstName && lastName
       ? `${firstName} ${lastName}`
       : firstName || email.split('@')[0]
@@ -88,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       has_outbound,
       has_research: has_research ?? true,
       lead_visibility: lead_visibility ?? { dms: true, outbound: true },
+      default_platform: default_platform ?? "instagram",
     }
 
     localStorage.setItem("isAuthenticated", "true")

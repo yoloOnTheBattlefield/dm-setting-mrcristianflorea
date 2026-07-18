@@ -66,6 +66,11 @@ export default function UserSettings() {
   });
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
 
+  const [defaultPlatform, setDefaultPlatform] = useState<"instagram" | "linkedin">(
+    user?.default_platform ?? "instagram",
+  );
+  const [isSavingPlatform, setIsSavingPlatform] = useState(false);
+
   useEffect(() => {
     if (user?.lead_visibility) {
       setLeadVisibility({
@@ -74,6 +79,10 @@ export default function UserSettings() {
       });
     }
   }, [user?.lead_visibility]);
+
+  useEffect(() => {
+    if (user?.default_platform) setDefaultPlatform(user.default_platform);
+  }, [user?.default_platform]);
 
   useEffect(() => {
     fetchWithAuth(NOTIF_SETTINGS_URL)
@@ -152,6 +161,33 @@ export default function UserSettings() {
       toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handlePlatformChange = async (value: "instagram" | "linkedin") => {
+    if (!user?.id) return;
+    const prev = defaultPlatform;
+    setDefaultPlatform(value);
+    setIsSavingPlatform(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/accounts/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ default_platform: value }),
+      });
+      if (response.ok) {
+        updateUser({ default_platform: value });
+        toast({ title: "Saved", description: "Default outreach platform updated." });
+      } else {
+        setDefaultPlatform(prev);
+        const data = await response.json().catch(() => ({}));
+        toast({ title: "Error", description: data.error || "Failed to update", variant: "destructive" });
+      }
+    } catch {
+      setDefaultPlatform(prev);
+      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
+    } finally {
+      setIsSavingPlatform(false);
     }
   };
 
@@ -307,6 +343,38 @@ export default function UserSettings() {
             )}
           </CardContent>
         </Card>
+
+        {(user?.role === 0 || user?.role === 1) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Default Outreach Platform</CardTitle>
+              <CardDescription>
+                The platform new leads default to when added manually. Set this to LinkedIn if this account works LinkedIn only — the Add Lead form will pre-select it.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium">Platform</p>
+                  <p className="text-xs text-muted-foreground">Instagram or LinkedIn</p>
+                </div>
+                <Select
+                  value={defaultPlatform}
+                  onValueChange={(v) => handlePlatformChange(v as "instagram" | "linkedin")}
+                  disabled={isSavingPlatform}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="linkedin">LinkedIn</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {(user?.role === 0 || user?.role === 1) && (
           <Card>

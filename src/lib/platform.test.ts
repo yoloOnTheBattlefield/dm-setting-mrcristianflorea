@@ -4,6 +4,7 @@ import {
   getPlatformLabel,
   getProfileUrl,
   getHandleDisplay,
+  extractHandle,
 } from "./platform";
 
 describe("platform helpers", () => {
@@ -40,5 +41,27 @@ describe("platform helpers", () => {
     expect(getHandleDisplay({ username: "jane" })).toBe("@jane");
     expect(getHandleDisplay({ username: "@jane" })).toBe("@jane");
     expect(getHandleDisplay({ username: "john-doe", platform: "linkedin" })).toBe("john-doe");
+  });
+
+  describe("extractHandle", () => {
+    it("pulls the slug from a LinkedIn profile URL", () => {
+      expect(extractHandle("https://www.linkedin.com/in/john-doe-123/", "linkedin")).toBe("john-doe-123");
+      expect(extractHandle("linkedin.com/in/jane-smith", "linkedin")).toBe("jane-smith");
+    });
+
+    it("accepts a bare LinkedIn slug", () => {
+      expect(extractHandle("john-doe-123", "linkedin")).toBe("john-doe-123");
+    });
+
+    it("strips @ and instagram host for IG handles", () => {
+      expect(extractHandle("@jane", "instagram")).toBe("jane");
+      expect(extractHandle("https://instagram.com/jane/", "instagram")).toBe("jane");
+      expect(extractHandle("jane", "instagram")).toBe("jane");
+    });
+
+    it("returns empty for blank input", () => {
+      expect(extractHandle("", "linkedin")).toBe("");
+      expect(extractHandle("   ", "instagram")).toBe("");
+    });
   });
 });

@@ -31,6 +31,25 @@ export function getProfileUrl(lead: PlatformLead): string {
     : `https://instagram.com/${username}`;
 }
 
+/**
+ * Normalize whatever the user pasted (full profile URL, @handle, or bare slug)
+ * into the stored handle: an IG username or a LinkedIn vanity slug.
+ */
+export function extractHandle(input: string, platform?: string | null): string {
+  let s = (input || "").trim();
+  if (!s) return "";
+  if (normalizePlatform(platform) === "linkedin") {
+    // https://www.linkedin.com/in/john-doe-123/ -> john-doe-123
+    const m = s.match(/linkedin\.com\/(?:in|pub)\/([^/?#]+)/i);
+    if (m) return m[1];
+    return s.replace(/^https?:\/\/[^/]+\//i, "").replace(/\/+$/, "");
+  }
+  // instagram: strip protocol/host and leading @
+  const m = s.match(/instagram\.com\/([^/?#]+)/i);
+  if (m) s = m[1];
+  return s.replace(/^@+/, "").replace(/\/+$/, "");
+}
+
 /** IG shows `@handle`; LinkedIn slugs render bare. */
 export function getHandleDisplay(lead: PlatformLead): string {
   const username = (lead.username || "").replace(/^@+/, "");
