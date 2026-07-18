@@ -575,8 +575,8 @@ export default function AllContacts() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="sticky top-16 z-50 bg-background border-b border-border">
-        <div className="px-6 py-4 flex items-end justify-between">
+      <div className="sticky top-16 z-30 bg-background border-b border-border">
+        <div className="px-6 py-4 flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-center gap-3">
             <Button
               onClick={() => setAddLeadOpen(true)}
@@ -609,7 +609,7 @@ export default function AllContacts() {
             </div>
           </div>
 
-          <div className="flex gap-4 items-end">
+          <div className="flex flex-wrap gap-4 items-end">
           {user?.role === 0 && viewAll && (
             <div className="flex flex-col gap-2 w-64">
               <Label htmlFor="account-filter">Filter by Account</Label>
