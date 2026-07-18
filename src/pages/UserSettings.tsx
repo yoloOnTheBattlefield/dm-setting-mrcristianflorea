@@ -71,6 +71,9 @@ export default function UserSettings() {
   );
   const [isSavingPlatform, setIsSavingPlatform] = useState(false);
 
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+
   useEffect(() => {
     if (user?.lead_visibility) {
       setLeadVisibility({
@@ -161,6 +164,45 @@ export default function UserSettings() {
       toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateApiKey = async () => {
+    if (!user?.id) return;
+    setIsGeneratingKey(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/accounts/${user.id}/api-key`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        updateUser({ api_key: data.api_key });
+        setShowApiKey(true);
+        try {
+          await navigator.clipboard.writeText(data.api_key);
+          toast({ title: "API key generated", description: "Copied to clipboard." });
+        } catch {
+          toast({ title: "API key generated", description: "Copy it below." });
+        }
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast({ title: "Error", description: data.error || "Failed to generate key", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
+    } finally {
+      setIsGeneratingKey(false);
+    }
+  };
+
+  const handleCopyApiKey = async () => {
+    if (!user?.api_key) return;
+    try {
+      await navigator.clipboard.writeText(user.api_key);
+      toast({ title: "Copied", description: "API key copied to clipboard." });
+    } catch {
+      toast({ title: "Error", description: "Could not copy", variant: "destructive" });
     }
   };
 
@@ -372,6 +414,39 @@ export default function UserSettings() {
                   </SelectContent>
                 </Select>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {(user?.role === 0 || user?.role === 1) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Extension API Key</CardTitle>
+              <CardDescription>
+                Paste this key into the Quddify Lead Capture browser extension to add LinkedIn profiles straight into your inbound pipeline. Regenerating invalidates the old key.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={user?.api_key ? (showApiKey ? user.api_key : "•".repeat(24)) : "No key generated yet"}
+                  className="font-mono text-xs"
+                />
+                {user?.api_key && (
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => setShowApiKey((v) => !v)}>
+                      {showApiKey ? "Hide" : "Show"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleCopyApiKey}>
+                      Copy
+                    </Button>
+                  </>
+                )}
+              </div>
+              <Button size="sm" onClick={handleGenerateApiKey} disabled={isGeneratingKey}>
+                {isGeneratingKey ? "Generating..." : user?.api_key ? "Regenerate Key" : "Generate Key"}
+              </Button>
             </CardContent>
           </Card>
         )}
