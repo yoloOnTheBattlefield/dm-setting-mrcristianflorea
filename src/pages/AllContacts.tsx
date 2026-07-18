@@ -165,7 +165,10 @@ export default function AllContacts() {
         body: JSON.stringify(body),
       });
 
-      if (!res.ok) throw new Error(`Failed to create lead: ${res.status}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Failed to create lead: ${res.status}`);
+      }
 
       await queryClient.invalidateQueries({ queryKey: ["rawLeads"] });
       toast({ title: "Success", description: "Lead created successfully" });
