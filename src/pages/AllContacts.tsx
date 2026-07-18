@@ -96,11 +96,13 @@ export default function AllContacts() {
   // Add Lead modal state
   const [addLeadOpen, setAddLeadOpen] = useState(false);
   const [addLeadSubmitting, setAddLeadSubmitting] = useState(false);
+  const accountPlatform: "instagram" | "linkedin" = user?.default_platform ?? "instagram";
   const [leadForm, setLeadForm] = useState({
     first_name: "",
     last_name: "",
     email: "",
-    contact_id: "",
+    platform: accountPlatform,
+    ig_username: "",
     score: "",
     contract_value: "",
     status: "new" as LeadStatus,
@@ -113,7 +115,8 @@ export default function AllContacts() {
       first_name: "",
       last_name: "",
       email: "",
-      contact_id: "",
+      platform: accountPlatform,
+      ig_username: "",
       score: "",
       contract_value: "",
       status: "new",
@@ -137,7 +140,9 @@ export default function AllContacts() {
       };
       if (leadForm.last_name.trim()) body.last_name = leadForm.last_name.trim();
       if (leadForm.email.trim()) body.email = leadForm.email.trim();
-      if (leadForm.contact_id.trim()) body.contact_id = leadForm.contact_id.trim();
+      body.platform = leadForm.platform;
+      const handle = extractHandle(leadForm.ig_username, leadForm.platform);
+      if (handle) body.ig_username = handle;
       if (leadForm.score && leadForm.score !== "none") body.score = Number(leadForm.score);
       if (leadForm.contract_value) body.contract_value = Number(leadForm.contract_value);
       if (leadForm.summary.trim()) body.summary = leadForm.summary.trim();
@@ -696,6 +701,7 @@ export default function AllContacts() {
             <DateFilter value={dateRange} onChange={setDateRange} />
           </div>
 
+          {user?.has_outbound && (
           <div className="flex flex-col gap-2 justify-end">
             <div className="flex items-center gap-2 h-9">
               <Checkbox
@@ -708,6 +714,7 @@ export default function AllContacts() {
               </Label>
             </div>
           </div>
+          )}
         </div>
         </div>
       </div>
