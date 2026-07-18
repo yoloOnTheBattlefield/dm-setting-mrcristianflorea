@@ -195,6 +195,8 @@ function getScoreInfo(score: number | null | undefined): {
 // Pipeline stages in order
 const PIPELINE_STAGES = [
   { key: "new", label: "New", field: null, icon: CircleDot, bg: "bg-slate-500", ring: "ring-slate-500", text: "text-slate-500" },
+  { key: "messaged", label: "Messaged", field: "messaged_at", icon: Send, bg: "bg-violet-500", ring: "ring-violet-500", text: "text-violet-500" },
+  { key: "replied", label: "Replied", field: "replied_at", icon: MessageSquare, bg: "bg-fuchsia-500", ring: "ring-fuchsia-500", text: "text-fuchsia-500" },
   { key: "link_sent", label: "Link Sent", field: "link_sent_at", icon: LinkIcon, bg: "bg-blue-500", ring: "ring-blue-500", text: "text-blue-500" },
   { key: "follow_up", label: "Follow Up", field: "follow_up_at", icon: CalendarClock, bg: "bg-amber-500", ring: "ring-amber-500", text: "text-amber-500" },
   { key: "booked", label: "Booked", field: "booked_at", icon: CalendarCheck, bg: "bg-emerald-500", ring: "ring-emerald-500", text: "text-emerald-500" },
@@ -202,10 +204,12 @@ const PIPELINE_STAGES = [
 ] as const;
 
 function getCurrentStageIndex(lead: ApiLead): number {
-  if (lead.closed_at) return 4;
-  if (lead.booked_at) return 3;
-  if (lead.follow_up_at) return 2;
-  if (lead.link_sent_at) return 1;
+  if (lead.closed_at) return 6;
+  if (lead.booked_at) return 5;
+  if (lead.follow_up_at) return 4;
+  if (lead.link_sent_at) return 3;
+  if (lead.replied_at) return 2;
+  if (lead.messaged_at) return 1;
   return 0;
 }
 

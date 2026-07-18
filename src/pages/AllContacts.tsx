@@ -65,23 +65,56 @@ import { useToast } from "@/hooks/use-toast";
 
 const STATUS_OPTIONS = [
   { value: "new", label: "New", dot: "bg-slate-400" },
+  { value: "messaged", label: "Messaged", dot: "bg-violet-400" },
+  { value: "replied", label: "Replied", dot: "bg-fuchsia-400" },
   { value: "link_sent", label: "Link Sent", dot: "bg-blue-400" },
   { value: "follow_up", label: "Follow Up", dot: "bg-amber-400" },
   { value: "booked", label: "Booked", dot: "bg-emerald-400" },
   { value: "closed", label: "Closed", dot: "bg-emerald-600" },
   { value: "ghosted", label: "Ghosted", dot: "bg-red-400" },
+  { value: "disqualified", label: "Disqualified", dot: "bg-rose-500" },
 ];
 
-type LeadStatus = "new" | "link_sent" | "booked" | "closed";
+type LeadStatus = "new" | "messaged" | "replied" | "link_sent" | "booked" | "closed";
 
 const LEAD_STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
   { value: "new", label: "New" },
+  { value: "messaged", label: "Messaged" },
   { value: "link_sent", label: "Link Sent" },
   { value: "booked", label: "Booked" },
   { value: "closed", label: "Closed" },
 ];
 
 type ViewMode = "list" | "kanban";
+
+// Inbound funnel order + off-ramps. Moving to a stage sets its date and clears
+// every later funnel date + both off-ramps, so transitions (forward, backward,
+// disqualify) re-bucket cleanly.
+const FUNNEL_ORDER = ["new", "messaged", "replied", "link_sent", "follow_up", "booked", "closed"] as const;
+const STAGE_FIELD: Record<string, string> = {
+  messaged: "messaged_at", replied: "replied_at", link_sent: "link_sent_at",
+  follow_up: "follow_up_at", booked: "booked_at", closed: "closed_at",
+};
+const OFFRAMP_FIELD: Record<string, string> = { ghosted: "ghosted_at", disqualified: "disqualified_at" };
+
+function stageTransition(toStage: string): Record<string, unknown> {
+  const now = new Date().toISOString();
+  const body: Record<string, unknown> = {};
+  if (OFFRAMP_FIELD[toStage]) {
+    body[OFFRAMP_FIELD[toStage]] = now;
+    for (const k of Object.keys(OFFRAMP_FIELD)) if (k !== toStage) body[OFFRAMP_FIELD[k]] = null;
+    return body;
+  }
+  for (const k of Object.keys(OFFRAMP_FIELD)) body[OFFRAMP_FIELD[k]] = null;
+  const idx = FUNNEL_ORDER.indexOf(toStage as typeof FUNNEL_ORDER[number]);
+  if (idx <= 0) {
+    for (const s of FUNNEL_ORDER) if (STAGE_FIELD[s]) body[STAGE_FIELD[s]] = null;
+    return body;
+  }
+  body[STAGE_FIELD[toStage]] = now;
+  for (let i = idx + 1; i < FUNNEL_ORDER.length; i++) body[STAGE_FIELD[FUNNEL_ORDER[i]]] = null;
+  return body;
+}
 
 export default function AllContacts() {
   const { user } = useAuth();
@@ -149,14 +182,10 @@ export default function AllContacts() {
       if (leadForm.summary.trim()) body.summary = leadForm.summary.trim();
       if (leadForm.source.trim()) body.source = leadForm.source.trim();
 
-      if (leadForm.status === "link_sent" || leadForm.status === "booked" || leadForm.status === "closed") {
-        body.link_sent_at = now;
-      }
-      if (leadForm.status === "booked" || leadForm.status === "closed") {
-        body.booked_at = now;
-      }
-      if (leadForm.status === "closed") {
-        body.closed_at = now;
+      if (leadForm.status !== "new") {
+        // stageTransition sets the picked stage's date (and nulls later ones,
+        // which are already absent on a brand-new lead).
+        Object.assign(body, stageTransition(leadForm.status));
       }
 
       const res = await fetchWithAuth(`${API_URL}/leads`, {
@@ -422,25 +451,12 @@ export default function AllContacts() {
   }, [queryClient, toast]);
 
   const handleQuickAction = useCallback((leadId: string, action: QuickAction) => {
-    const now = new Date().toISOString();
     if (action.type === "delete") {
       deleteLead(leadId);
     } else if (action.type === "clear_ghosted") {
       patchLead(leadId, { ghosted_at: null }, "Ghosted cleared");
     } else if (action.type === "set_stage") {
-      const stageFields: Record<string, Record<string, unknown>> = {
-        link_sent: { link_sent_at: now },
-        booked: { link_sent_at: now, booked_at: now },
-        closed: { link_sent_at: now, booked_at: now, closed_at: now },
-        ghosted: { ghosted_at: now },
-      };
-      const labels: Record<string, string> = {
-        link_sent: "Marked as Link Sent",
-        booked: "Marked as Booked",
-        closed: "Marked as Closed",
-        ghosted: "Marked as Ghosted",
-      };
-      patchLead(leadId, stageFields[action.stage], labels[action.stage]);
+      patchLead(leadId, stageTransition(action.stage), `Moved to ${action.stage.replace("_", " ")}`);
     }
   }, [patchLead, deleteLead]);
 
@@ -458,15 +474,7 @@ export default function AllContacts() {
     const ids = getSelectedIds();
     if (ids.length === 0) return;
     setBulkActing(true);
-    const now = new Date().toISOString();
-    const stageFields: Record<string, Record<string, unknown>> = {
-      link_sent: { link_sent_at: now },
-      booked: { link_sent_at: now, booked_at: now },
-      closed: { link_sent_at: now, booked_at: now, closed_at: now },
-      ghosted: { ghosted_at: now },
-    };
-    const body = stageFields[stage];
-    if (!body) return;
+    const body = stageTransition(stage);
 
     let success = 0;
     let failed = 0;
@@ -557,17 +565,7 @@ export default function AllContacts() {
 
   // --- Kanban stage move ---
   const handleKanbanMove = useCallback((leadId: string, toStage: string) => {
-    const now = new Date().toISOString();
-    const stageFields: Record<string, Record<string, unknown>> = {
-      new: { link_sent_at: null, booked_at: null, closed_at: null, ghosted_at: null, follow_up_at: null },
-      link_sent: { link_sent_at: now, booked_at: null, closed_at: null, ghosted_at: null },
-      follow_up: { follow_up_at: now, ghosted_at: null },
-      booked: { link_sent_at: now, booked_at: now, closed_at: null, ghosted_at: null },
-      closed: { link_sent_at: now, booked_at: now, closed_at: now, ghosted_at: null },
-      ghosted: { ghosted_at: now },
-    };
-    const body = stageFields[toStage];
-    if (!body) return;
+    const body = stageTransition(toStage);
     patchLead(leadId, body, `Moved to ${toStage.replace("_", " ")}`);
   }, [patchLead]);
 

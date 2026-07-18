@@ -39,6 +39,8 @@ import {
   CheckCircle2,
   Clock,
   Send,
+  Reply,
+  Ban,
   ExternalLink,
   MoreHorizontal,
   ChevronDown,
@@ -54,22 +56,28 @@ interface ContactsKanbanProps {
 
 const KANBAN_COLUMNS = [
   { key: "new", label: "New", bg: "bg-slate-500", pillBg: "bg-slate-500/15", pillText: "text-slate-300", dot: "bg-slate-400", icon: Clock },
+  { key: "messaged", label: "Messaged", bg: "bg-violet-500", pillBg: "bg-violet-500/15", pillText: "text-violet-300", dot: "bg-violet-400", icon: Send },
+  { key: "replied", label: "Replied", bg: "bg-fuchsia-500", pillBg: "bg-fuchsia-500/15", pillText: "text-fuchsia-300", dot: "bg-fuchsia-400", icon: Reply },
   { key: "link_sent", label: "Link Sent", bg: "bg-blue-500", pillBg: "bg-blue-500/15", pillText: "text-blue-300", dot: "bg-blue-400", icon: Link2 },
   { key: "follow_up", label: "Follow Up", bg: "bg-amber-500", pillBg: "bg-amber-500/15", pillText: "text-amber-300", dot: "bg-amber-400", icon: MessageCircle },
   { key: "booked", label: "Booked", bg: "bg-emerald-500", pillBg: "bg-emerald-500/15", pillText: "text-emerald-300", dot: "bg-emerald-400", icon: CalendarCheck },
   { key: "closed", label: "Closed", bg: "bg-emerald-700", pillBg: "bg-emerald-700/15", pillText: "text-emerald-200", dot: "bg-emerald-600", icon: CheckCircle2 },
   { key: "ghosted", label: "Ghosted", bg: "bg-red-500", pillBg: "bg-red-500/15", pillText: "text-red-300", dot: "bg-red-400", icon: Ghost },
+  { key: "disqualified", label: "Disqualified", bg: "bg-rose-700", pillBg: "bg-rose-700/15", pillText: "text-rose-300", dot: "bg-rose-500", icon: Ban },
 ] as const;
 
 const CARD_LIMIT = 50;
 const STALE_DAYS = 7;
 
 function getLeadStageKey(lead: ApiLead): string {
+  if (lead.disqualified_at) return "disqualified";
   if (lead.ghosted_at) return "ghosted";
   if (lead.closed_at) return "closed";
   if (lead.booked_at) return "booked";
   if (lead.follow_up_at) return "follow_up";
   if (lead.link_sent_at) return "link_sent";
+  if (lead.replied_at) return "replied";
+  if (lead.messaged_at) return "messaged";
   return "new";
 }
 
@@ -101,11 +109,14 @@ interface ActivityInfo {
 function getLastActivity(lead: ApiLead): ActivityInfo | null {
   const entries: { date: string; label: string; icon: React.ReactNode; color: string }[] = [];
 
+  if (lead.disqualified_at) entries.push({ date: lead.disqualified_at, label: "Disqualified", icon: <Ban className="h-3 w-3" />, color: "text-rose-400" });
   if (lead.closed_at) entries.push({ date: lead.closed_at, label: "Closed", icon: <CheckCircle2 className="h-3 w-3" />, color: "text-emerald-400" });
   if (lead.booked_at) entries.push({ date: lead.booked_at, label: "Booked", icon: <CalendarCheck className="h-3 w-3" />, color: "text-emerald-400" });
   if (lead.ghosted_at) entries.push({ date: lead.ghosted_at, label: "Ghosted", icon: <Ghost className="h-3 w-3" />, color: "text-red-400" });
   if (lead.follow_up_at) entries.push({ date: lead.follow_up_at, label: "Follow up", icon: <MessageCircle className="h-3 w-3" />, color: "text-amber-400" });
   if (lead.link_sent_at) entries.push({ date: lead.link_sent_at, label: "Link sent", icon: <Link2 className="h-3 w-3" />, color: "text-blue-400" });
+  if (lead.replied_at) entries.push({ date: lead.replied_at, label: "Replied", icon: <Reply className="h-3 w-3" />, color: "text-fuchsia-400" });
+  if (lead.messaged_at) entries.push({ date: lead.messaged_at, label: "Messaged", icon: <Send className="h-3 w-3" />, color: "text-violet-400" });
   if (lead.date_created) entries.push({ date: lead.date_created, label: "Created", icon: <Send className="h-3 w-3" />, color: "text-slate-400" });
 
   if (entries.length === 0) return null;
@@ -137,6 +148,7 @@ function KanbanCard({ lead, onMove, onDelete }: { lead: ApiLead; onMove?: (leadI
   const fullName = safeName(lead.first_name, lead.last_name);
   const initials = getInitials(lead.first_name, lead.last_name);
   const avatarColor = getAvatarColor(fullName);
+  const currentStage = getLeadStageKey(lead);
   const activity = getLastActivity(lead);
   const stale = daysSince(lead.date_created) > STALE_DAYS && !lead.link_sent_at && !lead.booked_at && !lead.closed_at;
 
@@ -217,31 +229,31 @@ function KanbanCard({ lead, onMove, onDelete }: { lead: ApiLead; onMove?: (leadI
                 <MoreHorizontal className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              {!lead.link_sent_at && (
-                <DropdownMenuItem onClick={() => onMove?.(lead._id, "link_sent")}>
-                  <Link2 className="h-3.5 w-3.5 mr-2 text-blue-400" /> Link Sent
-                </DropdownMenuItem>
-              )}
-              {!lead.booked_at && (
-                <DropdownMenuItem onClick={() => onMove?.(lead._id, "booked")}>
-                  <CalendarCheck className="h-3.5 w-3.5 mr-2 text-emerald-400" /> Booked
-                </DropdownMenuItem>
-              )}
-              {!lead.closed_at && lead.booked_at && (
-                <DropdownMenuItem onClick={() => onMove?.(lead._id, "closed")}>
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-300" /> Closed
-                </DropdownMenuItem>
-              )}
+            <DropdownMenuContent align="end" className="w-44">
+              {KANBAN_COLUMNS
+                .filter((c) => c.key !== currentStage && c.key !== "ghosted" && c.key !== "disqualified")
+                .map((c) => {
+                  const Icon = c.icon;
+                  return (
+                    <DropdownMenuItem key={c.key} onClick={() => onMove?.(lead._id, c.key)}>
+                      <Icon className={`h-3.5 w-3.5 mr-2 ${c.pillText}`} /> {c.label}
+                    </DropdownMenuItem>
+                  );
+                })}
               <DropdownMenuSeparator />
-              {lead.ghosted_at ? (
+              {lead.ghosted_at || lead.disqualified_at ? (
                 <DropdownMenuItem onClick={() => onMove?.(lead._id, "new")}>
-                  <Ghost className="h-3.5 w-3.5 mr-2" /> Clear Ghosted
+                  <Clock className="h-3.5 w-3.5 mr-2" /> Reset to active
                 </DropdownMenuItem>
               ) : (
-                <DropdownMenuItem onClick={() => onMove?.(lead._id, "ghosted")} className="text-red-400 focus:text-red-400">
-                  <Ghost className="h-3.5 w-3.5 mr-2" /> Ghosted
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem onClick={() => onMove?.(lead._id, "ghosted")} className="text-red-400 focus:text-red-400">
+                    <Ghost className="h-3.5 w-3.5 mr-2" /> Ghosted
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onMove?.(lead._id, "disqualified")} className="text-rose-400 focus:text-rose-400">
+                    <Ban className="h-3.5 w-3.5 mr-2" /> Disqualify
+                  </DropdownMenuItem>
+                </>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem

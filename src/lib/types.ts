@@ -52,9 +52,13 @@ export interface ApiLead {
   ig_thread_id?: string | null;
   date_created: string;
   qualified_at: string | null;
+  messaged_at?: string | null;
+  replied_at?: string | null;
   link_sent_at: string | null;
   booked_at: string | null;
   ghosted_at: string | null;
+  disqualified_at?: string | null;
+  disqualified_reason?: string | null;
   follow_up_at: string | null;
   summary?: string | null;
   questions_and_answers?: { answer: string; position: number; question: string }[];
