@@ -31,6 +31,8 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
     : isInbound
     ? [
         { key: "totalContacts", label: "Total Contacts", value: metrics.totalContacts, color: "hsl(var(--stage-created))" },
+        { key: "messaged", label: "Messaged", value: safe(metrics.messagedCount), color: "hsl(262 83% 58%)" },
+        { key: "replied", label: "Replied", value: safe(metrics.repliedCount), color: "hsl(292 84% 61%)" },
         { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
         { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
         { key: "booked", label: "Converted", value: metrics.bookedCount, color: "hsl(var(--stage-booked))" },
@@ -106,13 +108,29 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
             />
           </div>
         ) : isInbound ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-6">
             <StatCard
               label="Total Contacts"
               value={metrics.totalContacts}
               variant="created"
               onClick={() => toggleStage("totalContacts")}
               disabled={!enabledStages.totalContacts}
+            />
+            <StatCard
+              label="Messaged"
+              value={safe(metrics.messagedCount)}
+              subValue={`${safe(metrics.messagedRate).toFixed(1)}% of total`}
+              variant="default"
+              onClick={() => toggleStage("messaged")}
+              disabled={!enabledStages.messaged}
+            />
+            <StatCard
+              label="Replied"
+              value={safe(metrics.repliedCount)}
+              subValue={`${safe(metrics.repliedRate).toFixed(1)}% of messaged`}
+              variant="default"
+              onClick={() => toggleStage("replied")}
+              disabled={!enabledStages.replied}
             />
             <StatCard
               label="Link Sent"
