@@ -56,6 +56,13 @@ export default function Index() {
         : user?.ghl || undefined)
     : undefined;
 
+  // Which platform's funnel to show: an admin drilling into a specific client
+  // uses that client's default_platform; everyone else uses their own account's.
+  const dashPlatform: "instagram" | "linkedin" =
+    user?.role === 0 && viewAll && selectedAccount !== "all"
+      ? (accounts.find((a) => a.ghl === selectedAccount)?.default_platform ?? "instagram")
+      : (user?.default_platform ?? "instagram");
+
   const {
     data: metrics,
     isLoading,
@@ -144,7 +151,7 @@ export default function Index() {
           </div>
         ) : metrics ? (
           <div className="space-y-6">
-            <FunnelOverview metrics={metrics.funnel} source={effectiveSource} />
+            <FunnelOverview metrics={metrics.funnel} source={effectiveSource} platform={dashPlatform} />
 
             {metrics.sales && metrics.sales.total_bookings > 0 && (
               <SalesOverview metrics={metrics.sales} />

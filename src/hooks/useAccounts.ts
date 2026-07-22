@@ -9,6 +9,7 @@ interface Account {
   calendly?: string | null;
   calendly_token?: string | null;
   ghl_lead_booked_webhook?: string | null;
+  default_platform?: "instagram" | "linkedin";
 }
 
 async function fetchAccounts(): Promise<Account[]> {

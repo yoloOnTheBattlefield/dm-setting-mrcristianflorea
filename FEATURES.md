@@ -1774,3 +1774,20 @@ Adds an account-level **default outreach platform** setting (Settings → Defaul
 
 - `POST /leads` — now accepts `platform` (`instagram`|`linkedin`) and stores the handle/slug in `ig_username`.
 - `PATCH /accounts/:id` — now accepts `default_platform`.
+
+## Platform-Aware Inbound Dashboard Funnel
+
+The main dashboard funnel chart (Metrics Overview) shows different stages per account's `default_platform`:
+
+- **Instagram** (default): Total Contacts → Link Sent → Link Clicked → Converted. IG inbound contacts arrive already-messaged, so Messaged/Replied are not shown.
+- **LinkedIn**: Messaged → Replied → Link Sent → Link Clicked → Converted. LinkedIn is setter-led outreach, so the funnel leads with the setter's Messaged/Replied stages (from `Lead.messaged_at` / `replied_at`, already computed by `/analytics`).
+
+Platform is resolved client-side from `user.default_platform` (already in the login payload); an admin drilling into a specific client via the account dropdown uses that client's `default_platform` from the accounts list.
+
+### Location
+- `src/components/dashboard/FunnelOverview.tsx` — `platform` prop gates the inbound stage set + StatCards (`isLinkedIn`)
+- `src/pages/Index.tsx` — derives `dashPlatform` and passes it to `FunnelOverview`
+- `src/hooks/useAccounts.ts` — `default_platform` added to the account type (for admin per-client selection)
+- `src/lib/types.ts` — `FunnelMetrics` re-adds `messagedCount`/`messagedRate`/`repliedCount`/`repliedRate`
+- `src/components/dashboard/FunnelOverview.test.tsx` — platform-gating tests
+- Backend already computes the metrics: `routes/analytics.js` funnel object (`messagedCount`, `repliedCount`, rates)

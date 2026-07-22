@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FunnelMetrics, SourceFilter } from "@/lib/types";
 import { StatCard } from "./StatCard";
 import { FunnelAreaChart } from "./FunnelAreaChart";
@@ -6,6 +6,7 @@ import { FunnelAreaChart } from "./FunnelAreaChart";
 interface FunnelOverviewProps {
   metrics: FunnelMetrics;
   source: SourceFilter;
+  platform?: "instagram" | "linkedin";
 }
 
 type StageKey = string;
@@ -18,9 +19,12 @@ function pct(v: number | undefined | null): string {
   return `${safe(v).toFixed(1)}%`;
 }
 
-export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
+export function FunnelOverview({ metrics, source, platform = "instagram" }: FunnelOverviewProps) {
   const isInbound = source === "inbound";
   const isOutbound = source === "outbound";
+  // LinkedIn inbound flow leads with the setter's outreach (Messaged → Replied);
+  // Instagram inbound starts from Total Contacts. Gated by account.default_platform.
+  const isLinkedIn = platform === "linkedin";
 
   const allStages = isOutbound
     ? [
@@ -29,12 +33,20 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
         { key: "obBooked", label: "Converted", value: safe(metrics.obBooked), color: "hsl(var(--stage-booked))" },
       ]
     : isInbound
-    ? [
-        { key: "totalContacts", label: "Total Contacts", value: metrics.totalContacts, color: "hsl(var(--stage-created))" },
-        { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
-        { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
-        { key: "booked", label: "Converted", value: metrics.bookedCount, color: "hsl(var(--stage-booked))" },
-      ]
+    ? (isLinkedIn
+      ? [
+          { key: "messaged", label: "Messaged", value: safe(metrics.messagedCount), color: "hsl(262 83% 58%)" },
+          { key: "replied", label: "Replied", value: safe(metrics.repliedCount), color: "hsl(292 84% 61%)" },
+          { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
+          { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
+          { key: "booked", label: "Converted", value: metrics.bookedCount, color: "hsl(var(--stage-booked))" },
+        ]
+      : [
+          { key: "totalContacts", label: "Total Contacts", value: metrics.totalContacts, color: "hsl(var(--stage-created))" },
+          { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
+          { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
+          { key: "booked", label: "Converted", value: metrics.bookedCount, color: "hsl(var(--stage-booked))" },
+        ])
     : [
         { key: "combinedContacts", label: "Combined Contacts", value: safe(metrics.combinedContacts), color: "hsl(var(--stage-created))" },
         { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
@@ -47,6 +59,22 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
     allStages.forEach((s) => { initial[s.key] = true; });
     return initial;
   });
+
+  // When the stage set changes (e.g. platform or source switch), enable any
+  // newly-introduced stages by default so they aren't stuck hidden/disabled.
+  useEffect(() => {
+    setEnabledStages((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const s of allStages) {
+        if (!(s.key in next)) {
+          next[s.key] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [allStages]);
 
   const toggleStage = (stage: StageKey) => {
     setEnabledStages((prev) => {
@@ -106,14 +134,35 @@ export function FunnelOverview({ metrics, source }: FunnelOverviewProps) {
             />
           </div>
         ) : isInbound ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
-            <StatCard
-              label="Total Contacts"
-              value={metrics.totalContacts}
-              variant="created"
-              onClick={() => toggleStage("totalContacts")}
-              disabled={!enabledStages.totalContacts}
-            />
+          <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${isLinkedIn ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-4"}`}>
+            {isLinkedIn ? (
+              <>
+                <StatCard
+                  label="Messaged"
+                  value={safe(metrics.messagedCount)}
+                  subValue={`${safe(metrics.messagedRate).toFixed(1)}% of total`}
+                  variant="created"
+                  onClick={() => toggleStage("messaged")}
+                  disabled={!enabledStages.messaged}
+                />
+                <StatCard
+                  label="Replied"
+                  value={safe(metrics.repliedCount)}
+                  subValue={`${safe(metrics.repliedRate).toFixed(1)}% of messaged`}
+                  variant="default"
+                  onClick={() => toggleStage("replied")}
+                  disabled={!enabledStages.replied}
+                />
+              </>
+            ) : (
+              <StatCard
+                label="Total Contacts"
+                value={metrics.totalContacts}
+                variant="created"
+                onClick={() => toggleStage("totalContacts")}
+                disabled={!enabledStages.totalContacts}
+              />
+            )}
             <StatCard
               label="Link Sent"
               value={metrics.linkSentCount}
