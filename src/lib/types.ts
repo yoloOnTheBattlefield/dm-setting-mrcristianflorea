@@ -92,10 +92,6 @@ export function transformApiLead(lead: ApiLead): Contact {
 
 export interface FunnelMetrics {
   totalContacts: number;
-  messagedCount?: number;
-  messagedRate?: number;
-  repliedCount?: number;
-  repliedRate?: number;
   linkSentCount: number;
   linkSentRate: number;
   linkClickedCount: number;
