@@ -61,6 +61,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminView } from "@/contexts/AdminViewContext";
 import { API_URL, fetchWithAuth } from "@/lib/api";
+import { buildBulkDeletePayload, isSelectAllPayload } from "@/lib/bulkDelete";
 import { useToast } from "@/hooks/use-toast";
 
 const STATUS_OPTIONS = [
@@ -321,6 +322,12 @@ export default function AllContacts() {
   // For kanban, we need all leads (no pagination limit)
   const kanbanLimit = viewMode === "kanban" ? 500 : itemsPerPage;
 
+  const requestAccountId = user?.role === 0
+    ? (viewAll
+        ? (selectedAccount !== "all" ? selectedAccount : "all")
+        : undefined)
+    : undefined;
+
   const {
     data,
     isLoading,
@@ -334,11 +341,7 @@ export default function AllContacts() {
     search: debouncedSearchQuery || undefined,
     page: viewMode === "kanban" ? 1 : currentPage,
     limit: kanbanLimit,
-    accountId: user?.role === 0
-      ? (viewAll
-          ? (selectedAccount !== "all" ? selectedAccount : "all")
-          : undefined)
-      : undefined,
+    accountId: requestAccountId,
     sortBy,
     sortOrder,
     excludeLinked: hideLinked || undefined,
@@ -470,6 +473,18 @@ export default function AllContacts() {
     return contacts.filter((c) => !selection.excludedIds.has(c._id)).map((c) => c._id);
   }, [selection, contacts]);
 
+  // Filters currently applied to the list, in the server's param names. Used by
+  // bulk actions so "select all N" acts on every matching lead, not just the
+  // page that happens to be loaded.
+  const currentFilters = useMemo(() => ({
+    status: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+    start_date: startDate,
+    end_date: endDate,
+    search: debouncedSearchQuery || undefined,
+    account_id: requestAccountId,
+    exclude_linked: hideLinked || undefined,
+  }), [selectedStatuses, startDate, endDate, debouncedSearchQuery, requestAccountId, hideLinked]);
+
   const handleBulkStatusChange = useCallback(async (stage: string) => {
     const ids = getSelectedIds();
     if (ids.length === 0) return;
@@ -530,30 +545,44 @@ export default function AllContacts() {
   }, [getSelectedIds, contacts, toast]);
 
   const handleBulkDelete = useCallback(async () => {
-    const ids = getSelectedIds();
-    if (ids.length === 0) return;
+    // In select-all mode the server deletes everything matching the current
+    // filters (minus unchecked rows), so we never send a page-sized id list.
+    const body = buildBulkDeletePayload(
+      selection.mode,
+      selection.selectedIds,
+      selection.excludedIds,
+      currentFilters
+    );
+
+    if (!isSelectAllPayload(body) && body.ids.length === 0) return;
+
     setBulkActing(true);
-    let success = 0;
-    let failed = 0;
-    for (const id of ids) {
-      try {
-        const res = await fetchWithAuth(`${API_URL}/leads/${id}`, {
-          method: "DELETE",
+    try {
+      const res = await fetchWithAuth(`${API_URL}/leads/bulk-delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast({
+          title: "Bulk Delete",
+          description: `${d.deleted ?? 0} deleted`,
         });
-        if (res.ok) success++;
-        else failed++;
-      } catch {
-        failed++;
+      } else {
+        toast({
+          title: "Error",
+          description: d.error || "Failed to delete",
+          variant: "destructive",
+        });
       }
+    } catch {
+      toast({ title: "Error", description: "Failed to connect", variant: "destructive" });
     }
     await queryClient.invalidateQueries({ queryKey: ["rawLeads"] });
     selection.clearSelection();
     setBulkActing(false);
-    toast({
-      title: "Bulk Delete",
-      description: `${success} deleted${failed > 0 ? `, ${failed} failed` : ""}`,
-    });
-  }, [getSelectedIds, queryClient, selection, toast]);
+  }, [selection, currentFilters, queryClient, toast]);
 
   // --- Clickable stat filter ---
   const handleStatClick = useCallback((filter: string) => {

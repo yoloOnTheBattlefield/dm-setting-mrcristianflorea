@@ -34,20 +34,27 @@ Sends a Telegram notification when a campaign completes because there are no mor
 
 ## GHL Inbound DM Conversation Storage
 
-Receives and stores the full AI chatbot conversation (`chat_memory`) from GoHighLevel workflows via webhook. The conversation is parsed into User/Bot messages and displayed as a chat thread on the inbound lead detail page.
+Receives and stores the full AI chatbot conversation (`chat_memory`) from GoHighLevel workflows via webhook. The conversation is parsed into User/Bot messages and displayed as a chat thread on the inbound lead detail page. This lets IG inbound conversations be tracked through GHL without connecting Instagram directly.
+
+**Two ingestion paths, both no-IG-connection:**
+1. `POST /api/ghl/conversation` — dedicated conversation webhook (`customData.conversation` / `chat_memory`).
+2. `POST /api/ghl/webhook` — the **status webhook already carries the full transcript** and fires on every message exchange, so it now also stores `chat_memory` (via `extractConversation()`) on both new and existing leads, bumping `conversation_count` and the conversation timestamps. No GHL API call or PIT token needed.
+
+**Tolerant transcript parser** (`parseChatMemory` in `routes/leads.js`): the canonical format is `User:`/`Bot:`, but GHL/AI bots emit other labels (`Contact:`, `Assistant:`, `Agent:`, …) and multi-line messages. Recognized speaker labels set the direction; unlabeled lines fold into the previous message; unstructured text is kept as a single inbound message so no content is ever dropped.
 
 ### Files
 
-- `models/Lead.js` — Added `chat_memory` field to store raw GHL conversation text
-- `routes/ghl-webhook.js` — `POST /api/ghl/conversation` webhook endpoint
-- `routes/leads.js` — `GET /leads/:id/ghl-conversation` endpoint (parses chat_memory into messages)
+- `models/Lead.js` — `chat_memory` field to store raw GHL conversation text
+- `routes/ghl-webhook.js` — `POST /api/ghl/conversation` + `extractConversation()` on `POST /api/ghl/webhook`
+- `routes/leads.js` — `GET /leads/:id/ghl-conversation` + tolerant `parseChatMemory()`
 - `src/hooks/useGhlConversation.ts` — Frontend hook to fetch parsed GHL conversation
 - `src/pages/LeadDetail.tsx` — Displays GHL conversation as chat bubbles when no IG conversation is linked
 
 ### API Routes
 
 - `POST /api/ghl/conversation` — Webhook for GHL to POST chat_memory (open, no auth)
-- `GET /leads/:id/ghl-conversation` — Returns parsed User/Bot messages from chat_memory
+- `POST /api/ghl/webhook` — Status webhook; also stores the transcript when the payload carries one
+- `GET /leads/:id/ghl-conversation` — Returns parsed messages from chat_memory (tolerant of label variants)
 
 ## Outbound Lead Detail Page
 
@@ -1791,3 +1798,18 @@ Platform is resolved client-side from `user.default_platform` (already in the lo
 - `src/lib/types.ts` — `FunnelMetrics` re-adds `messagedCount`/`messagedRate`/`repliedCount`/`repliedRate`
 - `src/components/dashboard/FunnelOverview.test.tsx` — platform-gating tests
 - Backend already computes the metrics: `routes/analytics.js` funnel object (`messagedCount`, `repliedCount`, rates)
+
+## Contacts Bulk Delete (Select All)
+
+Deleting a selection on `/contacts/all` now removes every selected lead, not just the ones on the loaded page. In "select all N matching" mode the client sends the current list filters (plus any rows the user unchecked) and the server deletes everything they match in a single request; in manual mode it sends the explicit id list. Related `LeadNote` / `LeadTask` documents are cleaned up for every deleted lead. Account scoping is always enforced server-side, so a non-admin can never delete another account's leads.
+
+### Files
+
+- `src/lib/bulkDelete.ts` — Builds the bulk-delete request body (manual ids vs. select-all filters + exclusions)
+- `src/lib/bulkDelete.test.ts` — Unit tests, including the regression that select-all must not send page ids
+- `src/pages/AllContacts.tsx` — `handleBulkDelete` posts one bulk request instead of looping one DELETE per loaded row
+- `routes/leads.js` (CRM backend) — `buildLeadFilter` helper shared by the list route and bulk delete
+
+### API Routes
+
+- `POST /leads/bulk-delete` — Body `{ ids: [...] }` or `{ all: true, filters: {...}, exclude_ids: [...] }`; returns `{ deleted: <count> }`
