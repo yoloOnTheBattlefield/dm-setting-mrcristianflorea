@@ -1,5 +1,31 @@
 # Features
 
+## LinkedIn Connection Invites (Chrome extension)
+
+Collect people from a LinkedIn people-search URL into a local queue, then send
+note-less connection invites on a randomized drip with daily/weekly caps.
+Entirely client-side — the queue, counters and settings live in
+`chrome.storage.local`, so no CRM models, routes or schedulers are involved.
+
+Collection pages a background LinkedIn tab through `&page=1..N`, scrolls each
+page so every result card renders, and dedupes by profile slug. Sending tries
+LinkedIn's Voyager endpoint (`verifyQuotaAndCreateV2`) first and falls back to
+clicking **Connect → Send without a note** on the profile page. Quota or session
+rejections stop the run; a daily/weekly cap only holds it.
+
+### Files (extension — `apps/quddify-lead-capture`)
+
+- `queue-lib.js` — pure helpers: search-URL normalize/paging, ISO day+week
+  counters, queue merge/dedupe, limit gate, randomized delay
+- `queue-lib.test.js` — Vitest unit tests for the above
+- `background.js` — invite queue engine, owned background worker tab, alarm drip
+- `content.js` — people-search scraper, Voyager invite, DOM click fallback
+- `sidepanel.html` / `sidepanel.js` — collect + drip controls, live counters
+
+### API Routes
+
+- None (no backend involvement)
+
 ## Telegram Notification on AI Follow-Up
 
 Sends a Telegram notification whenever the DM Assistant marks an outbound lead with a follow-up. Two triggers:
@@ -1813,3 +1839,18 @@ Deleting a selection on `/contacts/all` now removes every selected lead, not jus
 ### API Routes
 
 - `POST /leads/bulk-delete` — Body `{ ids: [...] }` or `{ all: true, filters: {...}, exclude_ids: [...] }`; returns `{ deleted: <count> }`
+
+## "Already in CRM" Tags (LinkedIn Extension)
+
+The LinkedIn capture extension marks anyone the CRM already holds with a green `✓ In CRM · <stage>` tag, so the same person isn't added twice. Shown in three places: the floating add button on a profile page, the `+` chip next to each commenter on a post, and under the profile name in the side panel (which also disables **Add**). Lookups are batched, cached in the page for 5 minutes, and refreshed after an add or a bulk import.
+
+### Files
+
+- `apps/quddify-lead-capture/content.js` — lookup cache, `✓ In CRM` tag on commenters, `in-crm` state for the profile button
+- `apps/quddify-lead-capture/background.js` — `CHECK_LEADS` message → chunked `POST /leads/lookup`; 409 duplicates now pass the existing lead back
+- `apps/quddify-lead-capture/sidepanel.js` / `sidepanel.html` — tag under the profile name
+- `routes/leads.js` (CRM backend) — `POST /leads/lookup` + `leadStage()` helper
+
+### API Routes
+
+- `POST /leads/lookup` — Body `{ handles: [...], platform: "linkedin" | "instagram" }` (max 200 handles per call); returns `{ found: { "<handle>": { id, stage, first_name, last_name } } }`, account-scoped, handle match is case-insensitive and ignores a leading `@`
