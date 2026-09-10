@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatShortDate, timeAgo } from "@/lib/formatters";
+import { formatShortDate, timeAgo, leadDisplayName, leadInitials } from "@/lib/formatters";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Table,
@@ -87,17 +87,7 @@ function getLeadStage(lead: ApiLead) {
   return PIPELINE_STAGES[0];
 }
 
-function safeName(first: string | null | undefined, last: string | null | undefined): string {
-  const f = (first && first !== "null") ? first.trim() : "";
-  const l = (last && last !== "null") ? last.trim() : "";
-  return `${f} ${l}`.trim() || "Unknown";
-}
-
-function getInitials(first: string | null | undefined, last: string | null | undefined): string {
-  const f = (first && first !== "null") ? first[0] : "";
-  const l = (last && last !== "null") ? last[0] : "";
-  return `${f}${l}`.toUpperCase() || "?";
-}
+// Name/initials fall back to the social handle — see leadDisplayName.
 
 // Activity type icons + labels based on which field was most recently updated
 interface ActivityInfo {
@@ -361,8 +351,8 @@ export function ContactsTable({
           ) : (
             contacts.map((contact) => {
               const stage = getLeadStage(contact);
-              const fullName = safeName(contact.first_name, contact.last_name);
-              const initials = getInitials(contact.first_name, contact.last_name);
+              const fullName = leadDisplayName(contact.first_name, contact.last_name, contact.ig_username);
+              const initials = leadInitials(contact.first_name, contact.last_name, contact.ig_username);
               const avatarColor = getAvatarColor(fullName);
               const activity = getLastActivity(contact);
 
@@ -378,7 +368,7 @@ export function ContactsTable({
                     >
                       <Checkbox
                         checked={isSelected?.(contact._id)}
-                        aria-label={`Select ${safeName(contact.first_name, contact.last_name)}`}
+                        aria-label={`Select ${leadDisplayName(contact.first_name, contact.last_name, contact.ig_username)}`}
                         onCheckedChange={() => onToggle?.(contact._id)}
                       />
                     </TableCell>

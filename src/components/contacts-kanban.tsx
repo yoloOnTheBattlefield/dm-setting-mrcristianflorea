@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { timeAgoCompact } from "@/lib/formatters";
+import { timeAgoCompact, leadDisplayName, leadInitials } from "@/lib/formatters";
 import { Link, useNavigate } from "react-router-dom";
 import {
   DndContext,
@@ -81,17 +81,7 @@ function getLeadStageKey(lead: ApiLead): string {
   return "new";
 }
 
-function safeName(first: string | null | undefined, last: string | null | undefined): string {
-  const f = (first && first !== "null") ? first.trim() : "";
-  const l = (last && last !== "null") ? last.trim() : "";
-  return `${f} ${l}`.trim() || "Unknown";
-}
-
-function getInitials(first: string | null | undefined, last: string | null | undefined): string {
-  const f = (first && first !== "null") ? first[0] : "";
-  const l = (last && last !== "null") ? last[0] : "";
-  return `${f}${l}`.toUpperCase() || "?";
-}
+// Name/initials fall back to the social handle — see leadDisplayName.
 
 function daysSince(dateString: string | null): number {
   if (!dateString) return 999;
@@ -145,8 +135,8 @@ function KanbanCard({ lead, onMove, onDelete }: { lead: ApiLead; onMove?: (leadI
     id: lead._id,
   });
 
-  const fullName = safeName(lead.first_name, lead.last_name);
-  const initials = getInitials(lead.first_name, lead.last_name);
+  const fullName = leadDisplayName(lead.first_name, lead.last_name, lead.ig_username);
+  const initials = leadInitials(lead.first_name, lead.last_name, lead.ig_username);
   const avatarColor = getAvatarColor(fullName);
   const currentStage = getLeadStageKey(lead);
   const activity = getLastActivity(lead);
@@ -297,8 +287,8 @@ function KanbanCard({ lead, onMove, onDelete }: { lead: ApiLead; onMove?: (leadI
 
 // --- Drag Overlay Card ---
 function DragOverlayCard({ lead }: { lead: ApiLead }) {
-  const fullName = safeName(lead.first_name, lead.last_name);
-  const initials = getInitials(lead.first_name, lead.last_name);
+  const fullName = leadDisplayName(lead.first_name, lead.last_name, lead.ig_username);
+  const initials = leadInitials(lead.first_name, lead.last_name, lead.ig_username);
   const avatarColor = getAvatarColor(fullName);
 
   return (

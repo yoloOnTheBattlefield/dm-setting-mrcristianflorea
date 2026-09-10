@@ -89,6 +89,45 @@ export function daysSince(dateStr: string | null | undefined): number | null {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
+/**
+ * Display name for a lead.
+ *
+ * Leads captured from a comment or a scrape often have no real name — only the
+ * social handle — so fall back to the handle rather than showing "Unknown"
+ * next to a perfectly good @username. The string "null" shows up as a literal
+ * value in older imported rows, so it's treated as empty.
+ */
+export function leadDisplayName(
+  first: string | null | undefined,
+  last: string | null | undefined,
+  handle?: string | null,
+): string {
+  const clean = (v: string | null | undefined) =>
+    v && v !== "null" ? v.trim() : "";
+
+  const name = `${clean(first)} ${clean(last)}`.trim();
+  if (name) return name;
+
+  const h = clean(handle).replace(/^@/, "");
+  return h ? `@${h}` : "Unknown";
+}
+
+/** Up to two initials for a lead avatar, falling back to the handle. */
+export function leadInitials(
+  first: string | null | undefined,
+  last: string | null | undefined,
+  handle?: string | null,
+): string {
+  const clean = (v: string | null | undefined) =>
+    v && v !== "null" ? v.trim() : "";
+
+  const initials = `${clean(first)[0] ?? ""}${clean(last)[0] ?? ""}`.toUpperCase();
+  if (initials) return initials;
+
+  const h = clean(handle).replace(/^@/, "");
+  return h ? h[0].toUpperCase() : "?";
+}
+
 /** "$1,234" or "—" for null */
 export function formatCurrency(val: number | null): string {
   if (val == null) return "—";

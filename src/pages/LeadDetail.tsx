@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { formatShortDate, formatAbsoluteDateTime, timeAgo, daysBetween } from "@/lib/formatters";
+import { formatShortDate, formatAbsoluteDateTime, timeAgo, daysBetween, leadDisplayName } from "@/lib/formatters";
 import { normalizePlatform, getProfileUrl, getHandleDisplay, getPlatformIcon, getPlatformLabel } from "@/lib/platform";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { ApiLead } from "@/lib/types";
@@ -702,7 +702,7 @@ export default function LeadDetail() {
     );
   }
 
-  const leadName = `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim() || "Unknown";
+  const leadName = leadDisplayName(lead.first_name, lead.last_name, lead.ig_username);
   const currentStageIndex = getCurrentStageIndex(lead);
   const isGhosted = !!lead.ghosted_at;
   const openTasks = tasks.filter((t) => !t.completed_at);
