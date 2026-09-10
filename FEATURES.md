@@ -1978,3 +1978,53 @@ logged or surfaced — never the body. Webhook signatures are compared with
 - `POST /api/zernio/connect` — Body `{ api_key?, profile_id, zernio_account_id, ig_user_id, ig_username? }`. Persists the connection encrypted and registers the webhook
 - `DELETE /api/zernio` — clears stored credentials and disables the connection. The upstream Zernio webhook is intentionally left registered
 - `POST /zernio-webhook/:accountId` — signed event intake (`x-zernio-signature`, HMAC-SHA256 over the raw body)
+
+## Instagram Content Analytics
+
+Per-post performance — views, reach, likes, comments, shares, saves — joined with
+how many leads each post actually produced through comment automation. Answers
+"which content brings in DMs", not just "which content got views".
+
+Leads are attributed through `CommentEvent.media_id`: every comment the
+automation matched carries the post it was left on, so counting distinct
+`lead_id` per post gives leads-per-post. `leads_per_1k_views` normalises that so
+a small post that converts can be compared against a big one that doesn't.
+
+**Source is the Meta Graph API**, not Zernio. Post metrics need
+`instagram_manage_insights` and a page access token; Zernio exposes no
+equivalent (its analytics is a separate paid add-on), so an account connected
+only through Zernio gets a clear message rather than an empty table.
+
+Metrics come from two places: `like_count` and `comments_count` are on the media
+object itself and are always present; views, reach, shares, saves and
+total_interactions come from the insights edge. Not every metric is valid for
+every media type, and Meta rejects the whole request if one name is wrong, so
+metrics are requested per media type and a failure is recorded on the post
+(`insights_error`) instead of aborting the sync. Unavailable metrics stay `null`
+and render as an em dash, never as a misleading zero. Stories are skipped —
+they expire, so caching their numbers is pointless.
+
+`MediaInsight` is a cache with a `fetched_at`, not a time series: engagement
+numbers change, and re-syncing updates each post in place.
+
+### Files (backend — `quddify-crm`)
+
+- `models/MediaInsight.js` — cached per-post metrics, unique on `(account_id, media_id)`
+- `services/instagramInsights.js` — paginated media fetch, per-type insight metrics, and the sync that upserts them
+- `services/instagramInsights.test.js` — pagination, story exclusion, metric flattening, graceful per-post failure, re-sync in place, missing-connection error
+- `routes/content-analytics.js` — the joined view and the refresh trigger
+- `routes/content-analytics.test.js` — attribution (including de-duping a lead who commented twice), account scoping, windowing, totals
+- `scripts/probe-ig-insights.js` — read-only probe of which metric names the current Graph API version accepts
+- `index.js` — mounts the route
+
+### Files (frontend — `apps/dm-setting`)
+
+- `src/hooks/useContentAnalytics.ts` — fetch and refresh
+- `src/pages/ContentAnalytics.tsx` — summary tiles plus a per-post table
+- `src/pages/ContentAnalytics.test.tsx` — Vitest + RTL coverage
+- `src/routes/coreRoutes.tsx` / `src/hooks/useNavSections.ts` — route + Inbound nav entry
+
+### API Routes
+
+- `GET /api/content-analytics` — posts with metrics and lead attribution. Query `days?` (default 90, max 365). Returns `{ posts, totals, days }`
+- `POST /api/content-analytics/sync` — refreshes from the Graph API. Body `{ days? }`. `400` with an explanation when the account has no Meta connection, `502` on a Graph API failure

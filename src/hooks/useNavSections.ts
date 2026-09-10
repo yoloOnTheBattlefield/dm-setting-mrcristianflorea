@@ -51,6 +51,7 @@ export function useNavSections(): NavSection[] {
       items: [
         { title: "Contacts", url: "/contacts/all", icon: Users, description: "View and manage all your contacts" },
         { title: "Analytics", url: "/analytics/inbound", icon: TrendingUp, description: "Track which posts and sources drive the most leads and revenue" },
+        { title: "Content", url: "/analytics/content", icon: BarChart3, description: "Post views, likes and shares, and the leads each post produced" },
       ],
     })
 
