@@ -1854,3 +1854,67 @@ The LinkedIn capture extension marks anyone the CRM already holds with a green `
 ### API Routes
 
 - `POST /leads/lookup` — Body `{ handles: [...], platform: "linkedin" | "instagram" }` (max 200 handles per call); returns `{ found: { "<handle>": { id, stage, first_name, last_name } } }`, account-scoped, handle match is case-insensitive and ignores a leading `@`
+
+## Instagram Comment Automation (ManyChat replacement)
+
+Auto-DMs anyone who comments a keyword on a connected Instagram post, and drops
+them into the inbound pipeline as a `Lead`. Self-hosted replacement for the
+ManyChat webhook — logic ported from [OpenReply](https://github.com/diwenne/openreply)
+(MIT) onto our existing stack rather than running their Next.js/Postgres app.
+
+A rule matches on keywords (`partial` substring or `whole` word) and is either
+scoped to specific post IDs or applied to every post on the account. On a match
+the engine sends a private reply to the comment, optionally posts a public
+comment reply picked at random from a list, upserts the commenter as a `Lead`
+(cross-linking an existing `OutboundLead` when we've already scraped or messaged
+them), and fires the usual Telegram new-lead notification.
+
+`{{firstName}}`, `{{username}}`, `{{name}}` and `{{link}}` are substituted into
+the DM. `{{link}}` carries `utm_medium=<lead_id>`, so the existing `/t` tracking
+script sets `link_clicked_at` on the lead exactly as it does for other channels.
+
+**Delivery:** `CommentEvent` is both the queue and the activity log. A unique
+index on `comment_id` makes webhook redelivery a no-op — Instagram allows only
+one private reply per comment, so a duplicate send is unrecoverable. A scheduler
+drains due events every 15s, retries a failed send 3 times with exponential
+backoff, and caps sends at 750/hour per IG account (Meta's ceiling), measured as
+a trailing-hour count of sent events.
+
+**Not implemented:** the follow-gate. OpenReply advertises it, but the Graph API
+exposes no way to check whether an arbitrary commenter follows the account.
+
+**Requires:** `instagram_manage_comments` approved on the live Meta app, and each
+already-connected Instagram account reconnected once so the page re-subscribes
+with the `comments` webhook field.
+
+### Files (backend — `quddify-crm`)
+
+- `models/CommentRule.js` — keyword rule: media scope, keywords, match mode, DM text, link, public replies, counters
+- `models/CommentEvent.js` — per-comment record; queue + idempotency guard + activity log
+- `services/commentAutomation.js` — keyword matcher, webhook handler, Graph API sends, lead upsert, rate-limited drain
+- `services/commentAutomation.test.js` — unit tests for matching, idempotency, retry/backoff, rate limiting, lead `account_id` correctness
+- `services/commentAutomationScheduler.js` — 15s tick that drains due events
+- `routes/comment-rules.js` — rule CRUD, activity feed, connected IG account list
+- `routes/comment-rules.test.js` — route tests incl. account scoping and validation
+- `schemas/comment-rules.js` — zod request schemas
+- `utils/igOwner.js` — shared IG-account ownership + token lookup (now used by the webhook too)
+- `routes/instagram-webhook.js` — handles `entry[].changes[]` with field `comments`
+- `routes/instagram-oauth.js` — page subscription changed from `messages` to `messages,comments`
+- `index.js` — mounts the route, starts the scheduler
+
+### Files (frontend — `apps/dm-setting`)
+
+- `src/hooks/useCommentRules.ts` — react-query hooks for rules, events, and connected IG accounts
+- `src/pages/CommentAutomation.tsx` — rules table, create/edit dialog, recent-activity feed
+- `src/pages/CommentAutomation.test.tsx` — Vitest + RTL coverage
+- `src/routes/settingsRoutes.tsx` / `src/hooks/useNavSections.ts` — route + Workspace nav entry
+
+### API Routes
+
+- `GET /api/comment-rules` — list the account's rules
+- `POST /api/comment-rules` — create a rule. Body `{ ig_user_id, keywords[], dm_text, name?, media_ids?, match_mode?, link_url?, reply_publicly?, public_replies?, active? }`. `403` if the IG account isn't connected to the caller's account
+- `PATCH /api/comment-rules/:id` — update a rule (account-scoped, `404` otherwise)
+- `DELETE /api/comment-rules/:id` — delete a rule
+- `GET /api/comment-rules/events` — recent activity. Query `rule_id?`, `status?` (`queued`|`sent`|`failed`|`skipped`), `limit?` (max 200)
+- `GET /api/comment-rules/ig-accounts` — connected IG accounts available to rules
+- `POST /instagram-webhook` — existing endpoint; now also processes `comments` change events

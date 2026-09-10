@@ -105,6 +105,7 @@ export function useNavSections(): NavSection[] {
       { title: "Settings", url: "/settings", icon: Settings2, description: "Manage your account settings" },
       { title: "Team", url: "/settings/team", icon: UsersRound, description: "Manage your team members" },
       { title: "Integrations", url: "/settings/integrations", icon: Plug, description: "Connect and manage your third-party integrations" },
+      { title: "Comment Automation", url: "/settings/comment-automation", icon: MessageSquareText, description: "Auto-DM people who comment a keyword on your posts" },
       { title: "Import", url: "/import", icon: Upload, description: "Import data from Calendly, Stripe, and more" },
     ]
     if (user?.role === 0) {
