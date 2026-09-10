@@ -22,6 +22,7 @@ import ApifyTokensCard from "@/components/integrations/ApifyTokensCard";
 import TrackingCard from "@/components/integrations/TrackingCard";
 import ConnectionsSection from "@/components/integrations/ConnectionsSection";
 import CalendlyTokenModal from "@/components/integrations/CalendlyTokenModal";
+import ZernioCard from "@/components/integrations/ZernioCard";
 
 const ACCOUNTS_API_URL = `${API_URL}/accounts`;
 
@@ -609,6 +610,11 @@ export default function Integrations() {
         onTelegramDisconnect={handleTelegramDisconnect}
         isSavingTelegram={isSavingTelegram}
       />
+
+      {/* ── Zernio (alternative Instagram provider) ── */}
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <ZernioCard />
+      </section>
 
       {/* Calendly Token Modal */}
       <CalendlyTokenModal

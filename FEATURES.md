@@ -1918,3 +1918,63 @@ with the `comments` webhook field.
 - `GET /api/comment-rules/events` — recent activity. Query `rule_id?`, `status?` (`queued`|`sent`|`failed`|`skipped`), `limit?` (max 200)
 - `GET /api/comment-rules/ig-accounts` — connected IG accounts available to rules
 - `POST /instagram-webhook` — existing endpoint; now also processes `comments` change events
+
+## Zernio — alternative Instagram connection provider
+
+Optional, paid, opt-in per account. Zernio brokers the Instagram connection, so
+an account using it needs no Meta app credentials, no `instagram_manage_comments`
+App Review, and no re-auth. Meta stays the default; nothing changes for accounts
+that don't turn Zernio on.
+
+Zernio events are normalized into the same Meta webhook envelope the Instagram
+webhook already speaks (`{ object: "instagram", entry: [{ changes: [{ field:
+"comments", ... }] }] }`), so comment automation, lead upsert, tracking links and
+the DM inbox all work unchanged. Only two things are provider-specific: resolving
+which account owns an inbound event, and the outbound send calls.
+
+**Trade-offs vs. Meta:** a paid third party holds the Instagram connection; post
+pickers are capped at the latest 25 posts; follower snapshots can be up to 24h
+stale; and `post_url` stays null on Zernio-sourced comments, because the
+permalink lookup is a Graph API call with no Zernio equivalent.
+
+⚠️ Never point Meta and Zernio at the same Instagram account — commenters would
+get two DMs.
+
+**Security:** the API key and webhook secret are stored encrypted on the
+`Account` via the existing `utils/crypto` helpers, are listed in
+`ENCRYPTED_FIELDS`, and are never returned to the client. Zernio API responses
+can carry platform credentials, so only the HTTP status classification is ever
+logged or surfaced — never the body. Webhook signatures are compared with
+`timingSafeEqual`.
+
+### Files (backend — `quddify-crm`)
+
+- `models/Account.js` — `zernio` subdocument (api_key, profile_id, zernio_account_id, ig_user_id, ig_username, webhook_id, webhook_secret, enabled, connected_at); key + secret added to `ENCRYPTED_FIELDS`
+- `services/zernioClient.js` — bearer-auth request wrapper with idempotency keys and leak-free error classification; profile/account discovery, webhook registration, and the three send calls
+- `services/zernioClient.test.js` — path/body construction, header handling, error classification
+- `services/zernioEvent.js` — `verifyZernioSignature` (timing-safe) and `normalizeZernioEvent` (Zernio envelope → Meta envelope)
+- `services/zernioEvent.test.js` — signature and normalization coverage
+- `routes/zernio-webhook.js` — `POST /zernio-webhook/:accountId`, raw-body HMAC verified, then handed to the existing `processWebhookEvent`
+- `routes/zernio-webhook.test.js` — signature rejection, replay, unknown/disabled account, event routing
+- `routes/zernio.js` + `schemas/zernio.js` — connect/disconnect/status and discovery endpoints
+- `routes/zernio.test.js` — connect flow, encrypted storage, secret reuse, key never returned
+- `utils/igOwner.js` — resolves Zernio-connected accounts too and reports `provider`
+- `services/commentAutomation.js` — `deliverPrivateReply` / `deliverPublicReply` switch on `owner.provider`
+- `routes/instagram-webhook.js` — exports `processWebhookEvent` for reuse
+- `index.js` — mounts both routes; the webhook mounts before `express.json()`
+
+### Files (frontend — `apps/dm-setting`)
+
+- `src/hooks/useZernio.ts` — status, discovery, connect, disconnect
+- `src/components/integrations/ZernioCard.tsx` — paste key → pick profile → pick Instagram account → connect
+- `src/components/integrations/ZernioCard.test.tsx` — Vitest + RTL coverage
+- `src/pages/Integrations.tsx` — renders the card
+
+### API Routes
+
+- `GET /api/zernio/status` — connection state. Returns `has_api_key`, never the key
+- `POST /api/zernio/profiles` — Body `{ api_key? }`. Lists Zernio profiles; falls back to the stored key
+- `POST /api/zernio/accounts` — Body `{ api_key?, profile_id }`. Lists active Instagram accounts on that profile
+- `POST /api/zernio/connect` — Body `{ api_key?, profile_id, zernio_account_id, ig_user_id, ig_username? }`. Persists the connection encrypted and registers the webhook
+- `DELETE /api/zernio` — clears stored credentials and disables the connection. The upstream Zernio webhook is intentionally left registered
+- `POST /zernio-webhook/:accountId` — signed event intake (`x-zernio-signature`, HMAC-SHA256 over the raw body)

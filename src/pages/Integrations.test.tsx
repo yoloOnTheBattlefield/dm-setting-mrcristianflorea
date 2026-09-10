@@ -19,6 +19,17 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock("@/hooks/useZernio", () => ({
+  useZernioStatus: () => ({
+    data: { connected: false, has_api_key: false, webhook_url: "https://crm.test/zernio-webhook/a1" },
+    isLoading: false,
+  }),
+  useZernioProfiles: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useZernioIgAccounts: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useConnectZernio: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useDisconnectZernio: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
+
 vi.mock("@/hooks/useTracking", () => ({
   useTrackingSettings: () => ({ data: { tracking_enabled: false } }),
   useUpdateTrackingSettings: () => ({ mutate: vi.fn(), isPending: false }),
@@ -82,11 +93,11 @@ describe("Integrations — Status badges", () => {
     expect(screen.getByText("Disabled")).toBeInTheDocument();
   });
 
-  it("shows 'Not Connected' badges for Calendly, Instagram, Stripe, and Telegram", () => {
+  it("shows 'Not Connected' badges for Calendly, Instagram, Stripe, Telegram, and Zernio", () => {
     renderIntegrations();
 
     const notConnected = screen.getAllByText("Not Connected");
-    expect(notConnected.length).toBe(4);
+    expect(notConnected.length).toBe(5);
   });
 
   it("shows 'Ready' badge for ManyChat when API key exists", () => {
