@@ -66,6 +66,55 @@ export interface ApiLead {
   contract_value?: number | null;
   closed_at?: string | null;
   emails?: string[];
+  // Agent (Grokbot) fields
+  ig_user_id?: string | null;
+  zernio_conversation_id?: string | null;
+  stage?: AgentStage | null;
+  skip?: boolean;
+  skip_reason?: string | null;
+  language?: "en" | "ro" | null;
+  industry?: string | null;
+  offer?: string | null;
+  buyer?: string | null;
+  ticket_size?: string | null;
+  monthly_revenue?: string | null;
+  monthly_revenue_usd?: number | null;
+  pain?: string | null;
+  pitch?: PitchInfo | null;
+  lead_magnet?: LeadMagnetInfo | null;
+  live_until?: string | null;
+  last_inbound_at?: string | null;
+  last_outbound_at?: string | null;
+  last_bot_send_at?: string | null;
+}
+
+export type AgentStage =
+  | "new"
+  | "qualifying"
+  | "pain"
+  | "teaser"
+  | "pitched"
+  | "negotiating"
+  | "booked"
+  | "won"
+  | "lost";
+
+export type LeadMagnetStatus = "none" | "posted" | "building" | "built" | "sent";
+
+export interface PitchInfo {
+  offer?: "sprint_5k" | "consult_500" | null;
+  amount?: number | null;
+  counter?: string | null;
+  at?: string | null;
+}
+
+export interface LeadMagnetInfo {
+  status?: LeadMagnetStatus | null;
+  brief?: string | null;
+  ideas?: string | null;
+  doc_url?: string | null;
+  slack_posted_at?: string | null;
+  sent_at?: string | null;
 }
 
 // Internal contact type used by analytics
