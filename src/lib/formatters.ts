@@ -140,3 +140,13 @@ export function formatDuration(minutes: number): string {
   if (minutes < 1440) return `${(minutes / 60).toFixed(1)}h`;
   return `${(minutes / 1440).toFixed(1)}d`;
 }
+
+export function formatCallTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

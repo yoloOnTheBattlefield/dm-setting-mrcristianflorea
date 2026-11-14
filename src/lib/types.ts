@@ -86,6 +86,7 @@ export interface ApiLead {
   last_inbound_at?: string | null;
   last_outbound_at?: string | null;
   last_bot_send_at?: string | null;
+  next_booking?: NextBooking | null;
   source_type?: LeadSourceType | null;
   source_label?: string | null;
   source_media_id?: string | null;
@@ -429,4 +430,29 @@ export interface ApifyToken {
   last_used_at: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type BookingStatus = "scheduled" | "completed" | "no_show" | "cancelled";
+
+export interface NextBooking {
+  start: string;
+  end?: string | null;
+  status: BookingStatus;
+  meeting_url?: string | null;
+}
+
+export interface ApiBooking {
+  _id: string;
+  lead_id?: string | null;
+  contact_name?: string | null;
+  email?: string | null;
+  ig_username?: string | null;
+  booking_date: string;
+  end_date?: string | null;
+  status: BookingStatus;
+  provider?: "calendly" | "calcom";
+  calcom_uid?: string | null;
+  meeting_url?: string | null;
+  rescheduled_from_uid?: string | null;
+  lead?: { _id: string; first_name?: string; last_name?: string; ig_username?: string | null } | null;
 }

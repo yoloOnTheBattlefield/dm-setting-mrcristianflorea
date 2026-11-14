@@ -20,6 +20,7 @@ import { ContentTotalsTiles } from "@/components/dashboard/ContentTotalsTiles";
 import { TopLeadMagnets } from "@/components/dashboard/TopLeadMagnets";
 import { PipelineCard } from "@/components/dashboard/PipelineCard";
 import { LeadMagnetQueue } from "@/components/dashboard/LeadMagnetQueue";
+import { UpcomingCalls } from "@/components/dashboard/UpcomingCalls";
 import { LeadsBySource } from "@/components/dashboard/LeadsBySource";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -155,6 +156,7 @@ export default function Index() {
             <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 items-start">
               <PipelineCard />
               <LeadMagnetQueue />
+              <UpcomingCalls />
             </div>
 
             {metrics.sales && metrics.sales.total_bookings > 0 && (

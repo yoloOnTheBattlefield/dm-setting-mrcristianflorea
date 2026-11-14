@@ -10,6 +10,7 @@ export interface AccountMe {
   stripe_webhook_secret?: string | null;
   telegram_connected?: boolean;
   ig_oauth?: { ig_username?: string } | null;
+  calcom?: { enabled?: boolean; booking_url?: string | null; event_type_ids?: number[] } | null;
 }
 
 async function fetchAccountMe(): Promise<AccountMe | null> {

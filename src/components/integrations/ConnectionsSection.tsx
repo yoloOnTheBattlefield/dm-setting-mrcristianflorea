@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CalcomCard } from "@/components/integrations/CalcomCard";
 import { Copy, CheckCircle2, Loader2, AlertTriangle, Send } from "lucide-react";
 
 interface ConnectionsSectionProps {
@@ -81,6 +82,8 @@ export default function ConnectionsSection({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        <CalcomCard />
+
         {/* Calendly Integration Card */}
         <Card>
           <CardHeader>
