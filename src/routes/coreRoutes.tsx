@@ -6,9 +6,6 @@ const AllContacts = lazyRetry(() => import("@/pages/AllContacts"));
 const LeadDetail = lazyRetry(() => import("@/pages/LeadDetail"));
 const InboundAnalytics = lazyRetry(() => import("@/pages/InboundAnalytics"));
 const ContentAnalytics = lazyRetry(() => import("@/pages/ContentAnalytics"));
-const EodReport = lazyRetry(() => import("@/pages/EodReport"));
-const Import = lazyRetry(() => import("@/pages/Import"));
-const DataMigration = lazyRetry(() => import("@/pages/DataMigration"));
 const ClientsOverview = lazyRetry(() => import("@/pages/ClientsOverview"));
 const ClientDetail = lazyRetry(() => import("@/pages/ClientDetail"));
 const NewClient = lazyRetry(() => import("@/pages/NewClient"));
@@ -22,7 +19,4 @@ export const coreRoutes: RouteObject[] = [
   { path: "/lead/:contactId", element: protectedPage(LeadDetail) },
   { path: "/analytics/inbound", element: protectedPage(InboundAnalytics) },
   { path: "/analytics/content", element: protectedPage(ContentAnalytics) },
-  { path: "/eod-report", element: protectedPage(EodReport) },
-  { path: "/import", element: protectedPage(Import) },
-  { path: "/data-migration", element: protectedPage(DataMigration) },
 ];

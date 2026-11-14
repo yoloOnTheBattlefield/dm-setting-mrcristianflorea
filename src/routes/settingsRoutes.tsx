@@ -4,11 +4,9 @@ import { lazyRetry, protectedPage } from "./routeHelpers";
 const UserSettings = lazyRetry(() => import("@/pages/UserSettings"));
 const Integrations = lazyRetry(() => import("@/pages/Integrations"));
 const TeamMembers = lazyRetry(() => import("@/pages/TeamMembers"));
-const CommentAutomation = lazyRetry(() => import("@/pages/CommentAutomation"));
 
 export const settingsRoutes: RouteObject[] = [
   { path: "/settings", element: protectedPage(UserSettings) },
   { path: "/settings/integrations", element: protectedPage(Integrations) },
   { path: "/settings/team", element: protectedPage(TeamMembers) },
-  { path: "/settings/comment-automation", element: protectedPage(CommentAutomation) },
 ];

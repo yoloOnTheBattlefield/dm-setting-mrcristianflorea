@@ -3,14 +3,10 @@ import { useAuth } from "@/contexts/AuthContext"
 import {
   type LucideIcon,
   BarChart3,
-  ClipboardCheck,
-  Database,
-  MessageSquareText,
   Plug,
   Settings2,
   Telescope,
   TrendingUp,
-  Upload,
   Users,
   UserPlus,
   UsersRound,
@@ -73,16 +69,10 @@ export function useNavSections(): NavSection[] {
     }
 
     const workspaceItems: NavItem[] = [
-      { title: "EOD Report", url: "/eod-report", icon: ClipboardCheck, description: "Daily summary, checklist, and self-assessment" },
       { title: "Settings", url: "/settings", icon: Settings2, description: "Manage your account settings" },
       { title: "Team", url: "/settings/team", icon: UsersRound, description: "Manage your team members" },
       { title: "Integrations", url: "/settings/integrations", icon: Plug, description: "Connect and manage your third-party integrations" },
-      { title: "Comment Automation", url: "/settings/comment-automation", icon: MessageSquareText, description: "Auto-DM people who comment a keyword on your posts" },
-      { title: "Import", url: "/import", icon: Upload, description: "Import data from Calendly, Stripe, and more" },
     ]
-    if (user?.role === 0) {
-      workspaceItems.push({ title: "Data Migration", url: "/data-migration", icon: Database, description: "Migrate scrape data between accounts or databases" })
-    }
     sections.push({ label: "Workspace", items: workspaceItems })
 
     if (user?.role === 0) {

@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -22,14 +21,8 @@ export function TopLeadMagnets({ days }: TopLeadMagnetsProps) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="space-y-0">
         <CardTitle className="text-base sm:text-lg">Top Lead Magnets</CardTitle>
-        <Link
-          to="/settings/comment-automation"
-          className="text-xs text-muted-foreground hover:text-foreground"
-        >
-          Comment Automation
-        </Link>
       </CardHeader>
       <CardContent>
         {isLoading ? (
