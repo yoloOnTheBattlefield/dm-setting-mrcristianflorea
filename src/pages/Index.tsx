@@ -18,6 +18,8 @@ import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { SalesOverview } from "@/components/dashboard/SalesOverview";
 import { ContentTotalsTiles } from "@/components/dashboard/ContentTotalsTiles";
 import { TopLeadMagnets } from "@/components/dashboard/TopLeadMagnets";
+import { PipelineCard } from "@/components/dashboard/PipelineCard";
+import { LeadMagnetQueue } from "@/components/dashboard/LeadMagnetQueue";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -145,6 +147,11 @@ export default function Index() {
             )}
 
             <TopLeadMagnets days={days} />
+
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 items-start">
+              <PipelineCard />
+              <LeadMagnetQueue />
+            </div>
 
             {metrics.sales && metrics.sales.total_bookings > 0 && (
               <SalesOverview metrics={metrics.sales} />
