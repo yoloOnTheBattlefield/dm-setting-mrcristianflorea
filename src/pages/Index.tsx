@@ -1,7 +1,9 @@
 import { useMemo } from "react";
-import { DateRangeFilter, SourceFilter } from "@/lib/types";
+import { Link } from "react-router-dom";
+import { DateRangeFilter } from "@/lib/types";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useContentAnalytics } from "@/hooks/useContentAnalytics";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminView } from "@/contexts/AdminViewContext";
 import { usePersistedState } from "@/hooks/usePersistedState";
@@ -14,6 +16,8 @@ import { CumulativeBookingsChart } from "@/components/dashboard/CumulativeBookin
 import { LeadsRadarChart } from "@/components/dashboard/LeadsRadarChart";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { SalesOverview } from "@/components/dashboard/SalesOverview";
+import { ContentTotalsTiles } from "@/components/dashboard/ContentTotalsTiles";
+import { TopLeadMagnets } from "@/components/dashboard/TopLeadMagnets";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,16 +28,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 
 export default function Index() {
   const { user } = useAuth();
   const { viewAll } = useAdminView();
   const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>("dash-dateRange", 1);
   const [selectedAccount, setSelectedAccount] = usePersistedState<string>("dash-account", "all");
-  const hasOutbound = !!user?.has_outbound;
-  const [source, setSource] = usePersistedState<SourceFilter>("dash-source", hasOutbound ? "all" : "inbound");
-  const effectiveSource = hasOutbound ? source : "inbound";
+  // Dashboard range in days for the content and lead-magnet endpoints.
+  const days = dateRange === "all" ? 365 : Math.min(365, Math.max(1, Math.ceil(dateRange)));
 
   const endDate = useMemo(() => {
     if (dateRange === "all") return undefined;
@@ -53,14 +55,14 @@ export default function Index() {
   const effectiveAccountId = user?.role === 0
     ? (viewAll
         ? (selectedAccount !== "all" ? selectedAccount : undefined)
-        : user?.ghl || undefined)
+        : user?.account_id || undefined)
     : undefined;
 
   // Which platform's funnel to show: an admin drilling into a specific client
   // uses that client's default_platform; everyone else uses their own account's.
   const dashPlatform: "instagram" | "linkedin" =
     user?.role === 0 && viewAll && selectedAccount !== "all"
-      ? (accounts.find((a) => a.ghl === selectedAccount)?.default_platform ?? "instagram")
+      ? (accounts.find((a) => a._id === selectedAccount)?.default_platform ?? "instagram")
       : (user?.default_platform ?? "instagram");
 
   const {
@@ -72,38 +74,15 @@ export default function Index() {
   } = useAnalytics({
     startDate,
     endDate,
-    source: effectiveSource,
     accountId: effectiveAccountId,
   });
 
-  const isOutbound = effectiveSource === "outbound";
+  const { data: content } = useContentAnalytics(days);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-3 sm:p-4 overflow-x-hidden">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="flex flex-wrap gap-3 items-end">
-          {/* Source filter — only shown when user has outbound access */}
-          {hasOutbound && (
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Source</Label>
-              <div className="flex items-center gap-1 rounded-lg border bg-card p-1">
-                {(["all", "inbound", "outbound"] as SourceFilter[]).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setSource(s)}
-                    className={cn(
-                      "rounded-md px-2.5 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm font-medium transition-colors capitalize",
-                      source === s
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                    )}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
           {user?.role === 0 && viewAll && (
             <div className="flex flex-col gap-1.5 min-w-0 w-full sm:w-48 lg:w-64">
               <Label htmlFor="account-filter" className="text-xs">Filter by Account</Label>
@@ -117,7 +96,7 @@ export default function Index() {
                 <SelectContent>
                   <SelectItem value="all">All Accounts</SelectItem>
                   {accounts.map((account) => (
-                    <SelectItem key={account.ghl} value={account.ghl}>
+                    <SelectItem key={account._id} value={account._id}>
                       {account.name}
                     </SelectItem>
                   ))}
@@ -151,28 +130,35 @@ export default function Index() {
           </div>
         ) : metrics ? (
           <div className="space-y-6">
-            <FunnelOverview metrics={metrics.funnel} source={effectiveSource} platform={dashPlatform} />
+            <FunnelOverview metrics={metrics.funnel} platform={dashPlatform} />
+
+            {content?.totals && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base sm:text-lg font-semibold">Content</h2>
+                  <Link to="/analytics/content" className="text-xs text-muted-foreground hover:text-foreground">
+                    All posts
+                  </Link>
+                </div>
+                <ContentTotalsTiles totals={content.totals} />
+              </div>
+            )}
+
+            <TopLeadMagnets days={days} />
 
             {metrics.sales && metrics.sales.total_bookings > 0 && (
               <SalesOverview metrics={metrics.sales} />
             )}
 
             <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-stretch">
-              {isOutbound ? (
-                <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm h-full flex flex-col items-center justify-center text-muted-foreground">
-                  <p className="text-sm font-medium">Inbound-only metric</p>
-                  <p className="text-xs mt-1">Stage Velocity is not available for outbound</p>
-                </div>
-              ) : (
-                <VelocityChart metrics={metrics.velocity} />
-              )}
-              <CumulativeBookingsChart data={metrics.cumulative} source={effectiveSource} />
-              <LeadsRadarChart data={metrics.radar || []} source={effectiveSource} />
+              <VelocityChart metrics={metrics.velocity} />
+              <CumulativeBookingsChart data={metrics.cumulative} />
+              <LeadsRadarChart data={metrics.radar || []} />
             </div>
 
-            <DailyVolumeChart data={metrics.dailyVolume} source={effectiveSource} />
+            <DailyVolumeChart data={metrics.dailyVolume} />
 
-            {!isOutbound && <StageAgingTable data={metrics.aging} />}
+            <StageAgingTable data={metrics.aging} />
           </div>
         ) : null}
 

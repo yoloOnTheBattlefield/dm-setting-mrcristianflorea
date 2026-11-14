@@ -27,10 +27,12 @@ export interface ContentPost {
 export interface ContentTotals {
   posts: number;
   views: number;
+  /** Older backends omit reach and saved. */
+  reach?: number;
   likes: number;
   comments: number;
   shares: number;
-  saved: number;
+  saved?: number;
   leads_generated: number;
 }
 

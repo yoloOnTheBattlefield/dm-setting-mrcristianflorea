@@ -31,6 +31,7 @@ import {
   useSyncContentAnalytics,
   type ContentPost,
 } from "@/hooks/useContentAnalytics";
+import { ContentTotalsTiles } from "@/components/dashboard/ContentTotalsTiles";
 
 /** Metric cells show an em dash rather than 0 when the API withheld the number. */
 function metric(value: number | null | undefined) {
@@ -107,27 +108,7 @@ export default function ContentAnalytics() {
         </div>
       </div>
 
-      {totals && totals.posts > 0 && (
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {[
-            { label: "Posts", value: totals.posts },
-            { label: "Views", value: totals.views },
-            { label: "Likes", value: totals.likes },
-            { label: "Comments", value: totals.comments },
-            { label: "Shares", value: totals.shares },
-            { label: "Leads", value: totals.leads_generated },
-          ].map((tile) => (
-            <Card key={tile.label}>
-              <CardContent className="p-4">
-                <p className="text-muted-foreground text-xs">{tile.label}</p>
-                <p className="text-2xl font-semibold tabular-nums">
-                  {tile.value.toLocaleString()}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {totals && totals.posts > 0 && <ContentTotalsTiles totals={totals} showLeads />}
 
       <Card>
         <CardHeader>

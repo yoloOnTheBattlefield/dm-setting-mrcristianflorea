@@ -44,7 +44,7 @@ export interface CommentEvent {
 export interface ConnectedIgAccount {
   ig_user_id: string;
   ig_username: string | null;
-  kind: "account" | "outbound";
+  kind: "account" | "zernio" | "outbound";
 }
 
 export interface CommentRuleInput {
@@ -110,5 +110,27 @@ export function useDeleteCommentRule() {
   return useMutation({
     mutationFn: (id: string) => apiDelete(`${BASE}/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["comment-rules"] }),
+  });
+}
+
+/** One row per comment rule (= lead magnet), most requested first. */
+export interface LeadMagnetStat {
+  rule_id: string;
+  name: string | null;
+  keywords: string[];
+  link_url: string | null;
+  requests: number;
+  sent: number;
+  leads: number;
+  booked: number;
+}
+
+export function useLeadMagnetStats(days: number) {
+  return useQuery({
+    queryKey: ["comment-rules", "stats", days],
+    queryFn: () =>
+      apiGet<{ days: number; rules: LeadMagnetStat[] }>(
+        `${BASE}/stats?days=${days}`,
+      ),
   });
 }

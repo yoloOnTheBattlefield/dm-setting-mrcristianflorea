@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { DailyVolume, SourceFilter } from "@/lib/types";
+import { DailyVolume } from "@/lib/types";
 import {
   BarChart,
   Bar,
@@ -13,7 +13,6 @@ import { format, parseISO, startOfWeek, startOfMonth } from "date-fns";
 
 interface DailyVolumeChartProps {
   data: DailyVolume[];
-  source: SourceFilter;
 }
 
 function aggregateVolume(data: DailyVolume[], mode: "week" | "month"): DailyVolume[] {
@@ -29,9 +28,6 @@ function aggregateVolume(data: DailyVolume[], mode: "week" | "month"): DailyVolu
       existing.link_sent += d.link_sent;
       existing.booked += d.booked;
       existing.ghosted += d.ghosted;
-      existing.ob_messaged += d.ob_messaged;
-      existing.ob_replied += d.ob_replied;
-      existing.ob_booked += d.ob_booked;
     } else {
       buckets.set(key, { ...d, date: key });
     }
@@ -39,7 +35,7 @@ function aggregateVolume(data: DailyVolume[], mode: "week" | "month"): DailyVolu
   return Array.from(buckets.values());
 }
 
-export function DailyVolumeChart({ data, source }: DailyVolumeChartProps) {
+export function DailyVolumeChart({ data }: DailyVolumeChartProps) {
   const { formattedData, groupLabel } = useMemo(() => {
     let aggregated: DailyVolume[];
     let label: string;
@@ -62,9 +58,6 @@ export function DailyVolumeChart({ data, source }: DailyVolumeChartProps) {
       groupLabel: label,
     };
   }, [data]);
-
-  const isInbound = source === "inbound";
-  const isOutbound = source === "outbound";
 
   return (
     <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm">
@@ -102,58 +95,30 @@ export function DailyVolumeChart({ data, source }: DailyVolumeChartProps) {
               iconSize={6}
               wrapperStyle={{ fontSize: 10 }}
             />
-            {/* Inbound bars */}
-            {!isOutbound && (
-              <>
-                <Bar
-                  dataKey="created"
-                  name="Created"
-                  fill="hsl(var(--stage-created))"
-                  radius={[2, 2, 0, 0]}
-                />
-                <Bar
-                  dataKey="link_sent"
-                  name="Link Sent"
-                  fill="hsl(var(--stage-link-sent))"
-                  radius={[2, 2, 0, 0]}
-                />
-                <Bar
-                  dataKey="booked"
-                  name="Converted"
-                  fill="hsl(var(--stage-booked))"
-                  radius={[2, 2, 0, 0]}
-                />
-                <Bar
-                  dataKey="ghosted"
-                  name="Ghosted"
-                  fill="hsl(var(--stage-ghosted))"
-                  radius={[2, 2, 0, 0]}
-                />
-              </>
-            )}
-            {/* Outbound bars */}
-            {!isInbound && (
-              <>
-                <Bar
-                  dataKey="ob_messaged"
-                  name="OB Messaged"
-                  fill="hsl(260 60% 55%)"
-                  radius={[2, 2, 0, 0]}
-                />
-                <Bar
-                  dataKey="ob_replied"
-                  name="OB Replied"
-                  fill="hsl(45 90% 55%)"
-                  radius={[2, 2, 0, 0]}
-                />
-                <Bar
-                  dataKey="ob_booked"
-                  name="OB Converted"
-                  fill="hsl(150 60% 45%)"
-                  radius={[2, 2, 0, 0]}
-                />
-              </>
-            )}
+            <Bar
+              dataKey="created"
+              name="Created"
+              fill="hsl(var(--stage-created))"
+              radius={[2, 2, 0, 0]}
+            />
+            <Bar
+              dataKey="link_sent"
+              name="Link Sent"
+              fill="hsl(var(--stage-link-sent))"
+              radius={[2, 2, 0, 0]}
+            />
+            <Bar
+              dataKey="booked"
+              name="Converted"
+              fill="hsl(var(--stage-booked))"
+              radius={[2, 2, 0, 0]}
+            />
+            <Bar
+              dataKey="ghosted"
+              name="Ghosted"
+              fill="hsl(var(--stage-ghosted))"
+              radius={[2, 2, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

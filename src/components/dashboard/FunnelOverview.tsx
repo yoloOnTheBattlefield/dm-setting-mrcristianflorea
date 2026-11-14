@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { FunnelMetrics, SourceFilter } from "@/lib/types";
+import { FunnelMetrics } from "@/lib/types";
 import { StatCard } from "./StatCard";
 import { FunnelAreaChart } from "./FunnelAreaChart";
 
 interface FunnelOverviewProps {
   metrics: FunnelMetrics;
-  source: SourceFilter;
   platform?: "instagram" | "linkedin";
 }
 
@@ -15,43 +14,24 @@ function safe(v: number | undefined | null): number {
   return v ?? 0;
 }
 
-function pct(v: number | undefined | null): string {
-  return `${safe(v).toFixed(1)}%`;
-}
-
-export function FunnelOverview({ metrics, source, platform = "instagram" }: FunnelOverviewProps) {
-  const isInbound = source === "inbound";
-  const isOutbound = source === "outbound";
+export function FunnelOverview({ metrics, platform = "instagram" }: FunnelOverviewProps) {
   // LinkedIn inbound flow leads with the setter's outreach (Messaged → Replied);
   // Instagram inbound starts from Total Contacts. Gated by account.default_platform.
   const isLinkedIn = platform === "linkedin";
 
-  const allStages = isOutbound
+  const allStages = isLinkedIn
     ? [
-        { key: "obMessaged", label: "Messaged", value: safe(metrics.obMessaged), color: "hsl(var(--stage-created))" },
-        { key: "obReplied", label: "Replied", value: safe(metrics.obReplied), color: "hsl(var(--stage-link-sent))" },
-        { key: "obBooked", label: "Converted", value: safe(metrics.obBooked), color: "hsl(var(--stage-booked))" },
-      ]
-    : isInbound
-    ? (isLinkedIn
-      ? [
-          { key: "messaged", label: "Messaged", value: safe(metrics.messagedCount), color: "hsl(262 83% 58%)" },
-          { key: "replied", label: "Replied", value: safe(metrics.repliedCount), color: "hsl(292 84% 61%)" },
-          { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
-          { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
-          { key: "booked", label: "Converted", value: metrics.bookedCount, color: "hsl(var(--stage-booked))" },
-        ]
-      : [
-          { key: "totalContacts", label: "Total Contacts", value: metrics.totalContacts, color: "hsl(var(--stage-created))" },
-          { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
-          { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
-          { key: "booked", label: "Converted", value: metrics.bookedCount, color: "hsl(var(--stage-booked))" },
-        ])
-    : [
-        { key: "combinedContacts", label: "Combined Contacts", value: safe(metrics.combinedContacts), color: "hsl(var(--stage-created))" },
+        { key: "messaged", label: "Messaged", value: safe(metrics.messagedCount), color: "hsl(262 83% 58%)" },
+        { key: "replied", label: "Replied", value: safe(metrics.repliedCount), color: "hsl(292 84% 61%)" },
         { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
         { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
-        { key: "combinedBooked", label: "Combined Converted", value: safe(metrics.combinedBooked), color: "hsl(var(--stage-booked))" },
+        { key: "booked", label: "Converted", value: metrics.bookedCount, color: "hsl(var(--stage-booked))" },
+      ]
+    : [
+        { key: "totalContacts", label: "Total Contacts", value: metrics.totalContacts, color: "hsl(var(--stage-created))" },
+        { key: "linkSent", label: "Link Sent", value: metrics.linkSentCount, color: "hsl(var(--stage-link-sent))" },
+        { key: "linkClicked", label: "Link Clicked", value: safe(metrics.linkClickedCount), color: "hsl(var(--stage-link-clicked))" },
+        { key: "booked", label: "Converted", value: metrics.bookedCount, color: "hsl(var(--stage-booked))" },
       ];
 
   const [enabledStages, setEnabledStages] = useState<Record<StageKey, boolean>>(() => {
@@ -91,50 +71,7 @@ export function FunnelOverview({ metrics, source, platform = "instagram" }: Funn
       <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm">
         <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold">Metrics Overview</h2>
 
-        {isOutbound ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <StatCard
-              label="Messaged"
-              value={safe(metrics.obMessaged)}
-              variant="created"
-              onClick={() => toggleStage("obMessaged")}
-              disabled={!enabledStages.obMessaged}
-            />
-            <StatCard
-              label="Replied"
-              value={safe(metrics.obReplied)}
-              subValue={`${pct(metrics.obReplyRate)} reply rate`}
-              variant="link-sent"
-              onClick={() => toggleStage("obReplied")}
-              disabled={!enabledStages.obReplied}
-            />
-            <StatCard
-              label="Converted"
-              value={safe(metrics.obBooked)}
-              subValue={`${pct(metrics.obBookRate)} book rate`}
-              variant="booked"
-              onClick={() => toggleStage("obBooked")}
-              disabled={!enabledStages.obBooked}
-            />
-            <StatCard
-              label="Reply Rate"
-              value={pct(metrics.obReplyRate)}
-              variant="default"
-            />
-            <StatCard
-              label="Close Rate"
-              value={pct(metrics.obCloseRate)}
-              variant="default"
-            />
-            <StatCard
-              label="Revenue"
-              value={`$${safe(metrics.obContractValue).toLocaleString()}`}
-              subValue={`${safe(metrics.obContracts)} deals`}
-              variant="default"
-            />
-          </div>
-        ) : isInbound ? (
-          <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${isLinkedIn ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-4"}`}>
+        <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${isLinkedIn ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-4"}`}>
             {isLinkedIn ? (
               <>
                 <StatCard
@@ -190,53 +127,6 @@ export function FunnelOverview({ metrics, source, platform = "instagram" }: Funn
               disabled={!enabledStages.booked}
             />
           </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <StatCard
-              label="Combined Contacts"
-              value={safe(metrics.combinedContacts)}
-              subValue={`${metrics.totalContacts} in + ${safe(metrics.obMessaged)} out`}
-              variant="created"
-              onClick={() => toggleStage("combinedContacts")}
-              disabled={!enabledStages.combinedContacts}
-            />
-            <StatCard
-              label="Link Sent"
-              value={metrics.linkSentCount}
-              subValue={`${metrics.linkSentRate.toFixed(1)}% of inbound`}
-              variant="link-sent"
-              onClick={() => toggleStage("linkSent")}
-              disabled={!enabledStages.linkSent}
-            />
-            <StatCard
-              label="Link Clicked"
-              value={safe(metrics.linkClickedCount)}
-              subValue={`${safe(metrics.linkClickedRate).toFixed(1)}% of sent`}
-              variant="link-clicked"
-              onClick={() => toggleStage("linkClicked")}
-              disabled={!enabledStages.linkClicked}
-            />
-            <StatCard
-              label="Combined Converted"
-              value={safe(metrics.combinedBooked)}
-              subValue={`${metrics.bookedCount} in + ${safe(metrics.obBooked)} out`}
-              variant="booked"
-              onClick={() => toggleStage("combinedBooked")}
-              disabled={!enabledStages.combinedBooked}
-            />
-            <StatCard
-              label="OB Reply Rate"
-              value={pct(metrics.obReplyRate)}
-              variant="default"
-            />
-            <StatCard
-              label="OB Revenue"
-              value={`$${safe(metrics.obContractValue).toLocaleString()}`}
-              subValue={`${safe(metrics.obContracts)} deals`}
-              variant="default"
-            />
-          </div>
-        )}
         <FunnelAreaChart stages={visibleStages} />
       </div>
     </div>

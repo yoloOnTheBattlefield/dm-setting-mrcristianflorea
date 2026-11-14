@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { CumulativeBooking, SourceFilter } from "@/lib/types";
+import { CumulativeBooking } from "@/lib/types";
 import {
   AreaChart,
   Area,
@@ -7,13 +7,11 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import { format, parseISO, startOfWeek, startOfMonth } from "date-fns";
 
 interface CumulativeBookingsChartProps {
   data: CumulativeBooking[];
-  source: SourceFilter;
 }
 
 /** For cumulative data, take the last (highest) entry per bucket */
@@ -30,7 +28,7 @@ function sampleCumulative(data: CumulativeBooking[], mode: "week" | "month"): Cu
   return Array.from(buckets.values());
 }
 
-export function CumulativeBookingsChart({ data, source }: CumulativeBookingsChartProps) {
+export function CumulativeBookingsChart({ data }: CumulativeBookingsChartProps) {
   const formattedData = useMemo(() => {
     let sampled: CumulativeBooking[];
     let fmt: string;
@@ -50,16 +48,7 @@ export function CumulativeBookingsChart({ data, source }: CumulativeBookingsChar
     }));
   }, [data]);
 
-  const isInbound = source === "inbound";
-  const isOutbound = source === "outbound";
-  const isAll = source === "all";
-
-  const lastEntry = data[data.length - 1];
-  const total = isOutbound
-    ? lastEntry?.ob_cumulative ?? 0
-    : isAll
-    ? lastEntry?.combined_cumulative ?? 0
-    : lastEntry?.cumulative ?? 0;
+  const total = data[data.length - 1]?.cumulative ?? 0;
 
   return (
     <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm h-full flex flex-col">
@@ -84,14 +73,6 @@ export function CumulativeBookingsChart({ data, source }: CumulativeBookingsChar
                 <stop offset="0%" stopColor="hsl(var(--stage-booked))" stopOpacity={0.3} />
                 <stop offset="100%" stopColor="hsl(var(--stage-booked))" stopOpacity={0.05} />
               </linearGradient>
-              <linearGradient id="obBookingGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(150 60% 45%)" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="hsl(150 60% 45%)" stopOpacity={0.05} />
-              </linearGradient>
-              <linearGradient id="combinedGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(260 60% 55%)" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="hsl(260 60% 55%)" stopOpacity={0.05} />
-              </linearGradient>
             </defs>
             <XAxis
               dataKey="displayDate"
@@ -114,43 +95,14 @@ export function CumulativeBookingsChart({ data, source }: CumulativeBookingsChar
                 fontSize: 12,
               }}
             />
-            {isAll && (
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-            )}
-            {/* Inbound line */}
-            {!isOutbound && (
-              <Area
-                type="monotone"
-                dataKey="cumulative"
-                name="Inbound"
-                stroke="hsl(var(--stage-booked))"
-                strokeWidth={2}
-                fill="url(#bookingGradient)"
-              />
-            )}
-            {/* Outbound line */}
-            {!isInbound && (
-              <Area
-                type="monotone"
-                dataKey="ob_cumulative"
-                name="Outbound"
-                stroke="hsl(150 60% 45%)"
-                strokeWidth={2}
-                fill="url(#obBookingGradient)"
-              />
-            )}
-            {/* Combined line (all mode only) */}
-            {isAll && (
-              <Area
-                type="monotone"
-                dataKey="combined_cumulative"
-                name="Combined"
-                stroke="hsl(260 60% 55%)"
-                strokeWidth={2}
-                strokeDasharray="5 3"
-                fill="url(#combinedGradient)"
-              />
-            )}
+            <Area
+              type="monotone"
+              dataKey="cumulative"
+              name="Inbound"
+              stroke="hsl(var(--stage-booked))"
+              strokeWidth={2}
+              fill="url(#bookingGradient)"
+            />
           </AreaChart>
         </ResponsiveContainer>
       </div>

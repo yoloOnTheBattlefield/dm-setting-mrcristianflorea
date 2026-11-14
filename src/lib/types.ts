@@ -107,20 +107,6 @@ export interface FunnelMetrics {
   fupCount: number;
   fupToBookedCount: number;
   recoveryRate: number;
-  // Outbound
-  obMessaged: number;
-  obReplied: number;
-  obBooked: number;
-  obQualified: number;
-  obContracts: number;
-  obContractValue: number;
-  obReplyRate: number;
-  obBookRate: number;
-  obCloseRate: number;
-  // Combined
-  combinedContacts: number;
-  combinedBooked: number;
-  combinedBookedRate: number;
 }
 
 export interface VelocityMetrics {
@@ -135,9 +121,6 @@ export interface DailyVolume {
   link_sent: number;
   booked: number;
   ghosted: number;
-  ob_messaged: number;
-  ob_replied: number;
-  ob_booked: number;
 }
 
 export interface GhostingBucket {
@@ -163,8 +146,6 @@ export interface StageAging {
 export interface CumulativeBooking {
   date: string;
   cumulative: number;
-  ob_cumulative: number;
-  combined_cumulative: number;
 }
 
 // --- Sales Metrics ---
@@ -215,8 +196,6 @@ export interface Payment {
   payment_date: string;
   createdAt: string;
 }
-
-export type SourceFilter = "all" | "inbound" | "outbound";
 
 export type DateRangeFilter = 1 | 7 | 14 | 30 | 90 | "all";
 
