@@ -22,6 +22,7 @@ import { Shimmer } from "@/components/skeletons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { ApiLead } from "@/lib/types";
+import { stageLabel, leadMagnetLabel } from "@/lib/agent";
 import {
   ArrowUpDown,
   ArrowUp,
@@ -270,7 +271,7 @@ export function ContactsTable({
 }: ContactsTableProps) {
   const sortable = !!onSort;
   const selectable = !!onToggle;
-  const colCount = (selectable ? 1 : 0) + 6;
+  const colCount = (selectable ? 1 : 0) + 8;
 
   return (
     <div className="rounded-lg border bg-card">
@@ -290,6 +291,8 @@ export function ContactsTable({
             )}
             <TableHead>Name</TableHead>
             <TableHead className="w-[130px]">Status</TableHead>
+            <TableHead>Stage</TableHead>
+            <TableHead>Lead magnet</TableHead>
             <TableHead>
               {sortable ? (
                 <button
@@ -336,6 +339,8 @@ export function ContactsTable({
                   </div>
                 </TableCell>
                 <TableCell><Shimmer className="h-5 w-20 rounded-full" delay={`${i * 40 + 15}ms`} /></TableCell>
+                <TableCell><Shimmer className="h-4 w-16" delay={`${i * 40 + 16}ms`} /></TableCell>
+                <TableCell><Shimmer className="h-4 w-16" delay={`${i * 40 + 17}ms`} /></TableCell>
                 <TableCell><Shimmer className="h-4 w-20" delay={`${i * 40 + 20}ms`} /></TableCell>
                 <TableCell><Shimmer className="h-4 w-20" delay={`${i * 40 + 25}ms`} /></TableCell>
                 <TableCell><Shimmer className="h-4 w-24" delay={`${i * 40 + 30}ms`} /></TableCell>
@@ -393,6 +398,18 @@ export function ContactsTable({
                       <span className={`h-1.5 w-1.5 rounded-full ${stage.dot}`} />
                       {stage.label}
                     </span>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {contact.skip ? (
+                      <span className="text-muted-foreground">Skip</span>
+                    ) : (
+                      stageLabel(contact.stage)
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {contact.lead_magnet?.status && contact.lead_magnet.status !== "none"
+                      ? leadMagnetLabel(contact.lead_magnet.status)
+                      : "—"}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {formatShortDate(contact.date_created)}

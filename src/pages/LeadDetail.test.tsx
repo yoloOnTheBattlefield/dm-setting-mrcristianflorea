@@ -41,6 +41,10 @@ vi.mock("@/hooks/usePayments", () => ({
   useLeadPayments: () => ({ data: [] }),
 }));
 
+vi.mock("@/components/lead/AgentContactCard", () => ({
+  AgentContactCard: () => null,
+}));
+
 const baseLead = {
   _id: "lead1",
   account_id: "acc1",

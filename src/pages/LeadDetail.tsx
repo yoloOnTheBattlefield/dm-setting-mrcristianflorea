@@ -99,6 +99,7 @@ import {
 } from "@/hooks/useLeadTasks";
 import { useLeadConversation } from "@/hooks/useLeadConversation";
 import { useLeadPayments } from "@/hooks/usePayments";
+import { AgentContactCard } from "@/components/lead/AgentContactCard";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1145,6 +1146,8 @@ export default function LeadDetail() {
               </CardContent>
             </Card>
 
+
+            <AgentContactCard lead={lead} />
 
             {/* Tasks */}
             <Card>
