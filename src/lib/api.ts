@@ -2,7 +2,7 @@ export const API_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV
     ? "http://localhost:3000"
-    : "https://quddify-server-production.up.railway.app");
+    : "https://server-production-38bfcd7a.up.railway.app");
 
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 2;

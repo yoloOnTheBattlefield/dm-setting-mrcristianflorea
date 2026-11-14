@@ -148,16 +148,10 @@ export default function Integrations() {
     const code = params.get("code");
     if (!code) return;
 
-    const state = params.get("state") || "";
     // Clean URL immediately
     window.history.replaceState({}, "", window.location.pathname);
 
-    // Determine endpoint based on state param
-    const isOutbound = state.startsWith("oa:");
-    const outboundId = isOutbound ? state.slice(3) : null;
-    const endpoint = isOutbound
-      ? `${API_URL}/api/instagram/outbound/${outboundId}/callback`
-      : `${API_URL}/api/instagram/callback`;
+    const endpoint = `${API_URL}/api/instagram/callback`;
 
     setIsConnectingIg(true);
     fetchWithAuth(endpoint, {
@@ -168,13 +162,9 @@ export default function Integrations() {
       .then(async (r) => {
         const data = await r.json();
         if (r.ok && data.success) {
-          if (isOutbound) {
-            toast({ title: "Instagram Connected", description: `Outbound account connected as @${data.ig_username}` });
-          } else {
-            setIgConnected(true);
-            setIgUsername(data.ig_username || "");
-            toast({ title: "Instagram Connected", description: `Connected as @${data.ig_username}` });
-          }
+          setIgConnected(true);
+          setIgUsername(data.ig_username || "");
+          toast({ title: "Instagram Connected", description: `Connected as @${data.ig_username}` });
         } else {
           toast({ title: "Error", description: data.error || "Failed to connect Instagram", variant: "destructive" });
         }
