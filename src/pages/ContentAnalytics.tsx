@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -32,6 +31,7 @@ import {
   type ContentPost,
 } from "@/hooks/useContentAnalytics";
 import { ContentTotalsTiles } from "@/components/dashboard/ContentTotalsTiles";
+import { LeadsBySource } from "@/components/dashboard/LeadsBySource";
 
 /** Metric cells show an em dash rather than 0 when the API withheld the number. */
 function metric(value: number | null | undefined) {
@@ -80,9 +80,6 @@ export default function ContentAnalytics() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Content Analytics</h1>
-          <p className="text-muted-foreground text-sm">
-            How each post performed, and how many leads it actually produced.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={days} onValueChange={setDays}>
@@ -110,12 +107,11 @@ export default function ContentAnalytics() {
 
       {totals && totals.posts > 0 && <ContentTotalsTiles totals={totals} showLeads />}
 
+      <LeadsBySource rows={data?.by_source} isLoading={isLoading} />
+
       <Card>
         <CardHeader>
           <CardTitle>Posts</CardTitle>
-          <CardDescription>
-            Leads are attributed to the post whose comments triggered them.
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -124,13 +120,7 @@ export default function ContentAnalytics() {
               Loading…
             </div>
           ) : posts.length === 0 ? (
-            <div className="text-muted-foreground py-10 text-center text-sm">
-              <p>No posts cached yet.</p>
-              <p className="mt-1">
-                Hit Refresh to pull them from Instagram. Needs a Meta connection —
-                Zernio doesn't expose post metrics.
-              </p>
-            </div>
+            <p className="text-muted-foreground py-10 text-center text-sm">No posts yet</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -143,6 +133,8 @@ export default function ContentAnalytics() {
                     <TableHead className="text-right">Comments</TableHead>
                     <TableHead className="text-right">Shares</TableHead>
                     <TableHead className="text-right">Saves</TableHead>
+                    <TableHead className="text-right">Comment leads</TableHead>
+                    <TableHead className="text-right">DM leads</TableHead>
                     <TableHead className="text-right">Leads</TableHead>
                     <TableHead className="text-right">Leads / 1k views</TableHead>
                   </TableRow>
@@ -182,6 +174,8 @@ export default function ContentAnalytics() {
                       <TableCell className="text-right tabular-nums">{metric(post.comments)}</TableCell>
                       <TableCell className="text-right tabular-nums">{metric(post.shares)}</TableCell>
                       <TableCell className="text-right tabular-nums">{metric(post.saved)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{post.comment_leads ?? 0}</TableCell>
+                      <TableCell className="text-right tabular-nums">{post.dm_leads ?? 0}</TableCell>
                       <TableCell className="text-right">
                         {post.leads_generated > 0 ? (
                           <Badge>{post.leads_generated}</Badge>

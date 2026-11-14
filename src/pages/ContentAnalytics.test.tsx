@@ -34,6 +34,8 @@ const POST = {
   fetched_at: "2026-09-10T00:00:00.000Z",
   comments_matched: 4,
   dms_sent: 3,
+  comment_leads: 1,
+  dm_leads: 1,
   leads_generated: 2,
   leads_per_1k_views: 1.03,
 };
@@ -123,7 +125,45 @@ describe("ContentAnalytics", () => {
     );
   });
 
-  it("explains the Meta requirement when nothing is cached", () => {
+  it("splits leads into comment and DM leads per post", () => {
+    mockData.mockReturnValue({
+      data: {
+        posts: [{ ...POST, comment_leads: 3, dm_leads: 7, leads_generated: 9 }],
+        totals: TOTALS,
+        days: 90,
+      },
+      isLoading: false,
+    } as never);
+
+    renderPage();
+
+    expect(screen.getByRole("columnheader", { name: "Comment leads" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "DM leads" })).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("7")).toBeInTheDocument();
+    expect(screen.getByText("9")).toBeInTheDocument();
+  });
+
+  it("shows leads by source", () => {
+    mockData.mockReturnValue({
+      data: {
+        posts: [POST],
+        totals: TOTALS,
+        days: 90,
+        by_source: [{ source_type: "story", source_label: "Bonnie story", leads: 23, booked: 2, won: 1 }],
+      },
+      isLoading: false,
+    } as never);
+
+    renderPage();
+
+    expect(screen.getByText("Leads by source")).toBeInTheDocument();
+    expect(screen.getByText("Story")).toBeInTheDocument();
+    expect(screen.getByText("Bonnie story")).toBeInTheDocument();
+    expect(screen.getByText("23")).toBeInTheDocument();
+  });
+
+  it("shows an empty state when nothing is cached", () => {
     mockData.mockReturnValue({
       data: { posts: [], totals: { ...TOTALS, posts: 0 }, days: 90 },
       isLoading: false,
@@ -131,7 +171,7 @@ describe("ContentAnalytics", () => {
 
     renderPage();
 
-    expect(screen.getByText(/Zernio doesn't expose post metrics/i)).toBeInTheDocument();
+    expect(screen.getByText("No posts yet")).toBeInTheDocument();
   });
 
   it("surfaces a refresh failure", async () => {

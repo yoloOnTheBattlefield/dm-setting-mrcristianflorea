@@ -86,7 +86,13 @@ export interface ApiLead {
   last_inbound_at?: string | null;
   last_outbound_at?: string | null;
   last_bot_send_at?: string | null;
+  source_type?: LeadSourceType | null;
+  source_label?: string | null;
+  source_media_id?: string | null;
+  source_url?: string | null;
 }
+
+export type LeadSourceType = "story" | "reel" | "post" | "comment" | "organic" | "other";
 
 export type AgentStage =
   | "new"

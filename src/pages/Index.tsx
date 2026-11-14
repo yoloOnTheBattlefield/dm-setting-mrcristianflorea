@@ -20,6 +20,7 @@ import { ContentTotalsTiles } from "@/components/dashboard/ContentTotalsTiles";
 import { TopLeadMagnets } from "@/components/dashboard/TopLeadMagnets";
 import { PipelineCard } from "@/components/dashboard/PipelineCard";
 import { LeadMagnetQueue } from "@/components/dashboard/LeadMagnetQueue";
+import { LeadsBySource } from "@/components/dashboard/LeadsBySource";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,7 +80,7 @@ export default function Index() {
     accountId: effectiveAccountId,
   });
 
-  const { data: content } = useContentAnalytics(days);
+  const { data: content, isLoading: contentLoading } = useContentAnalytics(days);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-3 sm:p-4 overflow-x-hidden">
@@ -146,7 +147,10 @@ export default function Index() {
               </div>
             )}
 
-            <TopLeadMagnets days={days} />
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 items-start">
+              <TopLeadMagnets days={days} />
+              <LeadsBySource rows={content?.by_source} isLoading={contentLoading} limit={5} showLink />
+            </div>
 
             <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 items-start">
               <PipelineCard />

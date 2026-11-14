@@ -20,8 +20,19 @@ export interface ContentPost {
   fetched_at: string | null;
   comments_matched: number;
   dms_sent: number;
+  /** Older backends omit the comment/DM split. */
+  comment_leads?: number;
+  dm_leads?: number;
   leads_generated: number;
   leads_per_1k_views: number | null;
+}
+
+export interface LeadSourceRow {
+  source_type: string;
+  source_label: string | null;
+  leads: number;
+  booked: number;
+  won: number;
 }
 
 export interface ContentTotals {
@@ -33,6 +44,8 @@ export interface ContentTotals {
   comments: number;
   shares: number;
   saved?: number;
+  comment_leads?: number;
+  dm_leads?: number;
   leads_generated: number;
 }
 
@@ -42,7 +55,7 @@ export function useContentAnalytics(days = 90) {
   return useQuery({
     queryKey: ["content-analytics", days],
     queryFn: () =>
-      apiGet<{ posts: ContentPost[]; totals: ContentTotals; days: number }>(
+      apiGet<{ posts: ContentPost[]; totals: ContentTotals; days: number; by_source?: LeadSourceRow[] }>(
         `${BASE}?days=${days}`,
       ),
   });

@@ -1,4 +1,4 @@
-import type { AgentStage, ApiLead, LeadMagnetStatus } from "@/lib/types";
+import type { AgentStage, ApiLead, LeadMagnetStatus, LeadSourceType } from "@/lib/types";
 
 export const AGENT_STAGES: AgentStage[] = [
   "new",
@@ -55,4 +55,20 @@ export function contactRef(lead: Pick<ApiLead, "ig_user_id" | "ig_username" | "z
   if (lead.ig_username) return `@${lead.ig_username.replace(/^@/, "")}`;
   if (lead.zernio_conversation_id) return lead.zernio_conversation_id;
   return null;
+}
+
+export const LEAD_SOURCE_TYPES: LeadSourceType[] = ["story", "reel", "post", "comment", "organic", "other"];
+
+export const SOURCE_LABELS: Record<string, string> = {
+  story: "Story",
+  reel: "Reel",
+  post: "Post",
+  comment: "Comment",
+  organic: "Organic",
+  other: "Other",
+  unknown: "Unknown",
+};
+
+export function sourceLabel(type: string | null | undefined): string {
+  return SOURCE_LABELS[type ?? "unknown"] ?? type ?? "Unknown";
 }
