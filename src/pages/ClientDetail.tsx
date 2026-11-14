@@ -59,11 +59,9 @@ import { ArrowLeft, Plus, Trash2, RefreshCw, KeyRound, Mail } from "lucide-react
 
 interface ClientData {
   account_id: string;
-  ghl: string;
   name: string;
   has_outbound?: boolean;
   has_research?: boolean;
-  ghl_lead_booked_webhook?: string;
 }
 
 export default function ClientDetail() {
@@ -74,9 +72,6 @@ export default function ClientDetail() {
 
   const [client, setClient] = useState<ClientData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [ghlWebhookUrl, setGhlWebhookUrl] = useState("");
-  const [ghlValidationError, setGhlValidationError] = useState("");
-  const [isGhlSaving, setIsGhlSaving] = useState(false);
 
   // Team members
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -115,13 +110,17 @@ export default function ClientDetail() {
       }
 
       try {
-        const response = await fetchWithAuth(`${API_URL}/accounts/ghl-webhook?_id=${id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setClient(data);
-          if (data.ghl_lead_booked_webhook) {
-            setGhlWebhookUrl(data.ghl_lead_booked_webhook);
-          }
+        const response = await fetchWithAuth(`${API_URL}/accounts`);
+        const account = response.ok
+          ? ((await response.json()) as Array<{ _id: string; name: string; has_outbound?: boolean; has_research?: boolean }>).find((a) => a._id === id)
+          : undefined;
+        if (account) {
+          setClient({
+            account_id: account._id,
+            name: account.name,
+            has_outbound: !!account.has_outbound,
+            has_research: !!account.has_research,
+          });
         } else {
           toast({
             title: "Error",
@@ -302,69 +301,6 @@ export default function ClientDetail() {
     }
   };
 
-  // Handle webhook URL change
-  const handleGhlWebhookChange = (value: string) => {
-    setGhlWebhookUrl(value);
-    setGhlValidationError("");
-
-    if (value && !value.startsWith("http")) {
-      setGhlValidationError("URL must start with http or https");
-    }
-  };
-
-  // Save webhook URL
-  const handleGhlWebhookSave = async () => {
-    if (!ghlWebhookUrl.startsWith("http")) {
-      setGhlValidationError("URL must start with http or https");
-      return;
-    }
-
-    if (!id) {
-      toast({
-        title: "Error",
-        description: "Client ID is missing",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsGhlSaving(true);
-
-    try {
-      const response = await fetchWithAuth(`${API_URL}/accounts/ghl-webhook`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          _id: id,
-          ghl_lead_booked_webhook: ghlWebhookUrl,
-        }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Webhook saved successfully",
-        });
-      } else {
-        const data = await response.json();
-        toast({
-          title: "Error",
-          description: data.message || "Failed to save webhook",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to connect to the server",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGhlSaving(false);
-    }
-  };
 
   if (isLoading) {
     return <ClientDetailSkeleton />;
@@ -409,10 +345,6 @@ export default function ClientDetail() {
               <Label className="text-muted-foreground">Account ID</Label>
               <p className="font-medium">{client.account_id}</p>
             </div>
-            <div>
-              <Label className="text-muted-foreground">GHL ID</Label>
-              <p className="font-medium">{client.ghl}</p>
-            </div>
             <div className="flex items-center justify-between rounded-md border p-3 mt-2">
               <div>
                 <Label>Has Outbound</Label>
@@ -438,43 +370,6 @@ export default function ClientDetail() {
                 onCheckedChange={handleToggleAccountResearch}
                 disabled={isTogglingResearch}
               />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* GoHighLevel Webhook Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>GoHighLevel Integration</CardTitle>
-            <CardDescription>
-              Configure webhook URLs for automation triggers
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Lead Converted Webhook</h4>
-              <div className="space-y-2">
-                <Label htmlFor="ghl-webhook-url">Webhook URL</Label>
-                <Input
-                  id="ghl-webhook-url"
-                  type="url"
-                  placeholder="https://services.leadconnectorhq.com/hooks/..."
-                  value={ghlWebhookUrl}
-                  onChange={(e) => handleGhlWebhookChange(e.target.value)}
-                  className={ghlValidationError ? "border-destructive" : ""}
-                />
-                {ghlValidationError && (
-                  <p className="text-sm text-destructive">{ghlValidationError}</p>
-                )}
-              </div>
-              <div className="flex justify-end pt-2">
-                <Button
-                  onClick={handleGhlWebhookSave}
-                  disabled={!ghlWebhookUrl || isGhlSaving || !!ghlValidationError}
-                >
-                  {isGhlSaving ? "Saving..." : "Save Webhook"}
-                </Button>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -577,7 +472,7 @@ export default function ClientDetail() {
                 <DialogHeader>
                   <DialogTitle>Add Team Member</DialogTitle>
                   <DialogDescription>
-                    Add a new team member to this client account. They will inherit the client's GHL access.
+                    Add a new team member to this client account.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">

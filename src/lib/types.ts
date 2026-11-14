@@ -209,7 +209,6 @@ export interface TeamMember {
   role: number;
   has_outbound?: boolean;
   has_research?: boolean;
-  ghl?: string;
 }
 
 // --- Scrape Jobs ---

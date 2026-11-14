@@ -432,24 +432,6 @@ export function ClientDetailSkeleton() {
           </CardContent>
         </Card>
 
-        {/* GHL Webhook Card */}
-        <Card>
-          <CardHeader className="pb-3">
-            <Shimmer className="h-5 w-44" />
-            <Shimmer className="h-3 w-64 mt-1" delay="30ms" />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Shimmer className="h-4 w-40" delay="100ms" />
-            <div className="space-y-2">
-              <Shimmer className="h-3 w-24" delay="120ms" />
-              <Shimmer className="h-9 w-full rounded-md" delay="140ms" />
-            </div>
-            <div className="flex justify-end">
-              <Shimmer className="h-9 w-28 rounded-md" delay="160ms" />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Team Members Card */}
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">

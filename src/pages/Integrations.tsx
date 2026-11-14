@@ -600,7 +600,7 @@ export default function Integrations() {
         onStripeSave={handleStripeSave}
         onStripeDisconnect={handleStripeDisconnect}
         isSavingStripe={isSavingStripe}
-        userGhl={user?.ghl}
+        accountId={user?.account_id}
         telegramConnected={telegramConnected}
         telegramBotToken={telegramBotToken}
         telegramChatId={telegramChatId}

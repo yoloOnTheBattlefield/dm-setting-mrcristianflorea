@@ -166,9 +166,7 @@ export default function AllContacts() {
     try {
       const now = new Date().toISOString();
       // account_id is set server-side from the authenticated session — do
-      // NOT pass it from the client. Sending user.ghl here previously caused
-      // the new lead to be saved with the wrong account_id (or undefined for
-      // accounts that don't use GHL), making it invisible in the list.
+      // NOT pass it from the client.
       const body: Record<string, unknown> = {
         first_name: leadForm.first_name.trim(),
         date_created: now,
@@ -240,7 +238,6 @@ export default function AllContacts() {
   );
   const [sortBy, setSortBy] = useState<LeadSortField>(readPersisted<LeadSortField>("contacts-sortBy", "date_created"));
   const [sortOrder, setSortOrder] = useState<SortOrder>(readPersisted<SortOrder>("contacts-sortOrder", "desc"));
-  const [hideLinked, setHideLinked] = useState<boolean>(readPersisted<boolean>("contacts-hideLinked", true));
 
   const handleSort = (field: LeadSortField) => {
     if (sortBy === field) {
@@ -268,7 +265,7 @@ export default function AllContacts() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedAccount, selectedStatuses, startDate, endDate, debouncedSearchQuery, hideLinked]);
+  }, [selectedAccount, selectedStatuses, startDate, endDate, debouncedSearchQuery]);
 
   // Scroll to top on page change
   useEffect(() => {
@@ -316,8 +313,7 @@ export default function AllContacts() {
     writePersisted("contacts-dateRange", dateRange);
     writePersisted("contacts-sortBy", sortBy);
     writePersisted("contacts-sortOrder", sortOrder);
-    writePersisted("contacts-hideLinked", hideLinked);
-  }, [selectedAccount, selectedStatuses, dateRange, debouncedSearchQuery, currentPage, itemsPerPage, setSearchParams, sortBy, sortOrder, hideLinked]);
+  }, [selectedAccount, selectedStatuses, dateRange, debouncedSearchQuery, currentPage, itemsPerPage, setSearchParams, sortBy, sortOrder]);
 
   // For kanban, we need all leads (no pagination limit)
   const kanbanLimit = viewMode === "kanban" ? 500 : itemsPerPage;
@@ -344,7 +340,6 @@ export default function AllContacts() {
     accountId: requestAccountId,
     sortBy,
     sortOrder,
-    excludeLinked: hideLinked || undefined,
   });
 
   const contacts = data?.leads || [];
@@ -365,7 +360,6 @@ export default function AllContacts() {
       : undefined,
     sortBy,
     sortOrder,
-    excludeLinked: hideLinked || undefined,
   });
 
   const stats = useMemo(() => {
@@ -482,8 +476,7 @@ export default function AllContacts() {
     end_date: endDate,
     search: debouncedSearchQuery || undefined,
     account_id: requestAccountId,
-    exclude_linked: hideLinked || undefined,
-  }), [selectedStatuses, startDate, endDate, debouncedSearchQuery, requestAccountId, hideLinked]);
+  }), [selectedStatuses, startDate, endDate, debouncedSearchQuery, requestAccountId]);
 
   const handleBulkStatusChange = useCallback(async (stage: string) => {
     const ids = getSelectedIds();
@@ -650,7 +643,7 @@ export default function AllContacts() {
                 <SelectContent>
                   <SelectItem value="all">All Accounts</SelectItem>
                   {accounts.map((account) => (
-                    <SelectItem key={account.ghl} value={account.ghl}>
+                    <SelectItem key={account._id} value={account._id}>
                       {account.name}
                     </SelectItem>
                   ))}
@@ -732,20 +725,6 @@ export default function AllContacts() {
             <DateFilter value={dateRange} onChange={setDateRange} />
           </div>
 
-          {user?.has_outbound && (
-          <div className="flex flex-col gap-2 justify-end">
-            <div className="flex items-center gap-2 h-9">
-              <Checkbox
-                id="hide-linked"
-                checked={hideLinked}
-                onCheckedChange={(v) => setHideLinked(!!v)}
-              />
-              <Label htmlFor="hide-linked" className="text-sm font-normal cursor-pointer whitespace-nowrap">
-                Hide outbound-linked
-              </Label>
-            </div>
-          </div>
-          )}
         </div>
         </div>
       </div>

@@ -27,7 +27,6 @@ interface LoginResponse {
   last_name?: string;
   _id?: string;
   account_id?: string;
-  ghl?: string;
   role?: number;
   api_key?: string;
   has_outbound?: boolean;
@@ -75,7 +74,6 @@ export function LoginForm({
       data.last_name,
       data._id,
       data.account_id,
-      data.ghl,
       data.role,
       data.api_key,
       data.has_outbound,

@@ -123,49 +123,6 @@ describe("LeadDetail — Header & Pipeline", () => {
   });
 });
 
-describe("LeadDetail — Outbound Lead Linking", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("shows outbound lead section with search input", async () => {
-    mockAllFetches();
-    renderLeadDetail();
-
-    await waitFor(() => {
-      expect(screen.getByText("Outbound Lead")).toBeInTheDocument();
-    });
-
-    expect(screen.getByPlaceholderText("Search outbound leads...")).toBeInTheDocument();
-  });
-
-  it("shows linked outbound lead with unlink button", async () => {
-    const leadWithLink = { ...baseLead, outbound_lead_id: "ob1" };
-    const outboundLead = {
-      _id: "ob1",
-      username: "fitness_guru",
-      fullName: "Jane Smith",
-      followersCount: 5000,
-    };
-
-    mockFetchWithAuth.mockImplementation((url: string) => {
-      if (url.includes("/leads/lead1")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(leadWithLink) });
-      }
-      if (url.includes("/outbound-leads/ob1")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(outboundLead) });
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ leads: [] }) });
-    });
-
-    renderLeadDetail();
-
-    await waitFor(() => {
-      expect(screen.getByText("@fitness_guru")).toBeInTheDocument();
-    });
-
-    expect(screen.getByText(/Jane Smith/)).toBeInTheDocument();
-  });
-});
-
 describe("LeadDetail — Notes", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -204,8 +161,7 @@ describe("LeadDetail — Lead Visibility", () => {
     mockUser.lead_visibility = { dms: true, outbound: true };
   });
 
-  it("hides outbound lead section when outbound visibility is false", async () => {
-    mockUser.lead_visibility = { dms: true, outbound: false };
+  it("never shows an outbound lead section", async () => {
     mockAllFetches();
     renderLeadDetail();
 
@@ -235,15 +191,6 @@ describe("LeadDetail — Lead Visibility", () => {
 
     expect(screen.queryByText("No DM conversation linked")).not.toBeInTheDocument();
     expect(screen.queryByText("Link conversation")).not.toBeInTheDocument();
-  });
-
-  it("shows outbound lead section when outbound visibility is true", async () => {
-    mockAllFetches();
-    renderLeadDetail();
-
-    await waitFor(() => {
-      expect(screen.getByText("Outbound Lead")).toBeInTheDocument();
-    });
   });
 });
 

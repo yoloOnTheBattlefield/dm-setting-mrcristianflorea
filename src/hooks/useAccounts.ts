@@ -3,12 +3,10 @@ import { API_URL, fetchWithAuth } from "@/lib/api";
 
 interface Account {
   _id: string;
-  ghl: string;
   name: string;
   email: string;
   calendly?: string | null;
   calendly_token?: string | null;
-  ghl_lead_booked_webhook?: string | null;
   default_platform?: "instagram" | "linkedin";
 }
 

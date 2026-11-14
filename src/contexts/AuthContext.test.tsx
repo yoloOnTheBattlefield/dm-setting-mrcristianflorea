@@ -9,7 +9,7 @@ function TestConsumer() {
       <span data-testid="auth">{String(isAuthenticated)}</span>
       <span data-testid="name">{user?.name || "none"}</span>
       <span data-testid="accounts">{accounts.length}</span>
-      <button onClick={() => login("test@test.com", "John", "Doe", "u1", "a1", undefined, 1, undefined, true, "tok123", true, [{ account_id: "a1", name: "Acme", role: 1, has_outbound: true, has_research: true, is_default: true }])}>
+      <button onClick={() => login("test@test.com", "John", "Doe", "u1", "a1", 1, undefined, true, "tok123", true, [{ account_id: "a1", name: "Acme", role: 1, has_outbound: true, has_research: true, is_default: true }])}>
         Login
       </button>
       <button onClick={() => updateUser({ firstName: "Jane" })}>Update</button>

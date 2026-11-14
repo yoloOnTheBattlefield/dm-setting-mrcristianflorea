@@ -455,9 +455,9 @@ export default function Landing() {
             icon={Activity}
             label="Module 6"
             title="Inbound Engine"
-            problem="Coaches and consultants generate inbound leads from content, ads, and referrals through GHL. Without connecting that data, outbound and inbound operate as blind silos."
+            problem="Coaches and consultants generate inbound leads from content, ads, and referrals. Without connecting that data, outbound and inbound operate as blind silos."
             mechanics={[
-              "GHL webhook integration: push inbound leads into the same system.",
+              "Instagram DM and comment webhooks push inbound leads into the same system.",
               "Lead model with full CRM fields: stages, follow-up tracking, booking status, contract value.",
               "Calendly token integration for booking confirmations.",
               "Public tracking pixel endpoint (GET /t/:accountId/:eventId) for conversion attribution.",
@@ -831,7 +831,7 @@ export default function Landing() {
               number="7"
               icon={MessageSquare}
               title="Reply & Booking"
-              description="Reply detected → conversation → link sent → booking confirmed via Calendly/GHL."
+              description="Reply detected → conversation → link sent → booking confirmed via Calendly."
             />
             <div className="relative flex gap-4">
               <div className="flex flex-col items-center">
@@ -865,8 +865,8 @@ export default function Landing() {
             <FlowStep
               number="2"
               icon={CalendarCheck}
-              title="Books via GHL"
-              description="Prospect fills out a form or books a call. GHL webhook fires."
+              title="Books via Calendly"
+              description="Prospect books a call. Calendly webhook fires."
             />
             <FlowStep
               number="3"
@@ -973,7 +973,7 @@ export default function Landing() {
             icon={Repeat}
             title="Inbound + outbound in one funnel"
             items={[
-              "Dashboard shows combined pipeline from GHL inbound + Instagram outbound.",
+              "Dashboard shows the inbound pipeline from Instagram DMs and comments.",
               "Most DM tools have zero awareness of your inbound pipeline.",
               "Prevents double-messaging. Shows true total volume.",
             ]}
@@ -1082,7 +1082,7 @@ export default function Landing() {
           {[
             {
               title: "Not a CRM",
-              desc: "Integrates with GHL for CRM functions. Tracks lead stages and contract values, but does not manage deals, invoices, or full client communication.",
+              desc: "Tracks lead stages and contract values, but does not manage deals, invoices, or full client communication.",
             },
             {
               title: "Not a social media scheduler",

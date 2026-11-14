@@ -10,9 +10,6 @@ import {
   DollarSign,
   Star,
   CheckCircle,
-  Link2,
-  Unlink,
-  Search,
   Loader2,
   Instagram,
   Mail,
@@ -25,7 +22,6 @@ import {
   Plus,
   Trash2,
   Ghost,
-  X,
   Send,
   Check,
   ChevronLeft,
@@ -34,7 +30,6 @@ import {
   Copy,
   AlertTriangle,
   Keyboard,
-  Bot,
   CircleDot,
   Link as LinkIcon,
   CalendarCheck,
@@ -89,7 +84,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { API_URL, fetchWithAuth } from "@/lib/api";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import {
   useLeadNotes,
@@ -103,7 +98,6 @@ import {
   useDeleteLeadTask,
 } from "@/hooks/useLeadTasks";
 import { useLeadConversation } from "@/hooks/useLeadConversation";
-import { useGhlConversation } from "@/hooks/useGhlConversation";
 import { useLeadPayments } from "@/hooks/usePayments";
 
 // ---------------------------------------------------------------------------
@@ -243,206 +237,6 @@ function RelativeTime({ date }: { date: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// OutboundLeadLinker (compact version for sidebar)
-// ---------------------------------------------------------------------------
-
-interface OutboundLeadResult {
-  _id: string;
-  username: string;
-  fullName: string;
-  followersCount?: number;
-}
-
-function OutboundLeadLinker({
-  leadId,
-  outboundLeadId,
-  leadName,
-  leadCreatedAt,
-  onLinked,
-}: {
-  leadId: string;
-  outboundLeadId?: string | null;
-  leadName: string;
-  leadCreatedAt?: string | null;
-  onLinked: () => void;
-}) {
-  const { toast } = useToast();
-  const [search, setSearch] = useState("");
-  const [results, setResults] = useState<OutboundLeadResult[]>([]);
-  const [autoResults, setAutoResults] = useState<OutboundLeadResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isLinking, setIsLinking] = useState(false);
-  const [linkedLead, setLinkedLead] = useState<OutboundLeadResult | null>(null);
-  const [showResults, setShowResults] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const [autoSearched, setAutoSearched] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const safeOutboundId = outboundLeadId && typeof outboundLeadId === "string" ? outboundLeadId : outboundLeadId ? String(outboundLeadId) : null;
-
-  useEffect(() => {
-    if (!safeOutboundId) { setLinkedLead(null); return; }
-    fetchWithAuth(`${API_URL}/outbound-leads/${safeOutboundId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setLinkedLead(d); });
-  }, [safeOutboundId]);
-
-  useEffect(() => {
-    if (safeOutboundId || autoSearched || leadName.trim().length < 2) return;
-    setAutoSearched(true);
-    const sp = new URLSearchParams({ search: leadName.trim(), limit: "5", page: "1" });
-    fetchWithAuth(`${API_URL}/outbound-leads?${sp}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d?.leads?.length) setAutoResults(d.leads); });
-  }, [safeOutboundId, leadName, autoSearched]);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node))
-        setShowResults(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  const searchOutbound = useCallback(async (q: string) => {
-    if (q.trim().length < 2) { setResults([]); return; }
-    setIsSearching(true);
-    try {
-      const sp = new URLSearchParams({ search: q.trim(), limit: "10", page: "1" });
-      const res = await fetchWithAuth(`${API_URL}/outbound-leads?${sp}`);
-      if (res.ok) setResults((await res.json()).leads || []);
-    } finally { setIsSearching(false); }
-  }, []);
-
-  const handleSearchChange = (val: string) => {
-    setSearch(val);
-    setShowResults(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => searchOutbound(val), 300);
-  };
-
-  const linkOutbound = async (outboundId: string) => {
-    setIsLinking(true);
-    try {
-      const res = await fetchWithAuth(`${API_URL}/leads/${leadId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ outbound_lead_id: outboundId }),
-      });
-      if (res.ok) {
-        await fetchWithAuth(`${API_URL}/outbound-leads/${outboundId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            replied: true,
-            replied_at: leadCreatedAt || new Date().toISOString(),
-          }),
-        }).catch((err) => console.error("Failed to update outbound replied status:", err));
-        toast({ title: "Linked", description: "Outbound lead linked and marked as replied." });
-        setSearch(""); setResults([]); setAutoResults([]); setShowResults(false);
-        onLinked();
-      } else {
-        toast({ title: "Error", description: "Failed to link", variant: "destructive" });
-      }
-    } finally { setIsLinking(false); }
-  };
-
-  const unlinkOutbound = async () => {
-    setIsLinking(true);
-    try {
-      const res = await fetchWithAuth(`${API_URL}/leads/${leadId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ outbound_lead_id: null }),
-      });
-      if (res.ok) {
-        toast({ title: "Unlinked", description: "Outbound lead unlinked." });
-        setLinkedLead(null);
-        onLinked();
-      } else {
-        toast({ title: "Error", description: "Failed to unlink", variant: "destructive" });
-      }
-    } finally { setIsLinking(false); }
-  };
-
-  if (outboundLeadId && linkedLead) {
-    return (
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <Link2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-sm font-medium truncate">@{linkedLead.username}</p>
-            <p className="text-xs text-muted-foreground truncate">
-              {linkedLead.fullName}
-              {linkedLead.followersCount != null && ` · ${linkedLead.followersCount.toLocaleString()}`}
-            </p>
-          </div>
-        </div>
-        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={unlinkOutbound} disabled={isLinking}>
-          <Unlink className="h-3 w-3" />
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      {autoResults.length > 0 && !dismissed && (
-        <div className="rounded-md border border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30 p-2 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-blue-700 dark:text-blue-300">
-              Match{autoResults.length > 1 ? "es" : ""} for "{leadName}"
-            </p>
-            <Button variant="ghost" size="sm" className="h-5 px-1 text-xs" onClick={() => setDismissed(true)}>
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-          {autoResults.map((ob) => (
-            <button key={ob._id} className="flex w-full items-center justify-between rounded bg-white dark:bg-background border px-2 py-1.5 text-left hover:bg-accent transition-colors" onClick={() => linkOutbound(ob._id)} disabled={isLinking}>
-              <span className="text-xs font-medium truncate">@{ob.username}</span>
-              <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
-            </button>
-          ))}
-        </div>
-      )}
-      <div ref={wrapperRef} className="relative">
-        <div className="relative">
-          <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Search outbound leads..."
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onFocus={() => search.trim().length >= 2 && setShowResults(true)}
-            className="pl-7 h-8 text-sm"
-          />
-          {isSearching && <Loader2 className="absolute right-2 top-2 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-        </div>
-        {showResults && results.length > 0 && (
-          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-48 overflow-y-auto">
-            {results.map((ob) => (
-              <button key={ob._id} className="flex w-full items-center justify-between px-2 py-1.5 text-left hover:bg-accent transition-colors" onClick={() => linkOutbound(ob._id)} disabled={isLinking}>
-                <div className="min-w-0">
-                  <p className="text-xs font-medium truncate">@{ob.username}</p>
-                  <p className="text-xs text-muted-foreground truncate">{ob.fullName}</p>
-                </div>
-                <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
-              </button>
-            ))}
-          </div>
-        )}
-        {showResults && search.trim().length >= 2 && !isSearching && results.length === 0 && (
-          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg px-2 py-3 text-center text-xs text-muted-foreground">
-            No outbound leads found
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // LeadDetail
 // ---------------------------------------------------------------------------
 
@@ -534,7 +328,6 @@ export default function LeadDetail() {
   const { data: notes = [] } = useLeadNotes(lead?._id);
   const { data: tasks = [] } = useLeadTasks(lead?._id);
   const { data: conversationData } = useLeadConversation(lead?._id);
-  const { data: ghlConversation } = useGhlConversation(lead?._id);
   const { data: payments = [] } = useLeadPayments(lead?._id);
   const [linkConvOpen, setLinkConvOpen] = useState(false);
   const { data: allConversations } = useQuery<{ conversations: import("@/lib/types").IgConversation[] }>({
@@ -1352,23 +1145,6 @@ export default function LeadDetail() {
               </CardContent>
             </Card>
 
-            {/* Outbound Lead (if has_outbound and visible) */}
-            {user?.has_outbound && user?.lead_visibility?.outbound !== false && (
-              <Card>
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Outbound Lead</CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <OutboundLeadLinker
-                    leadId={lead._id}
-                    outboundLeadId={lead.outbound_lead_id}
-                    leadName={leadName}
-                    leadCreatedAt={lead.date_created}
-                    onLinked={() => queryClient.invalidateQueries({ queryKey: ["lead", contactId] })}
-                  />
-                </CardContent>
-              </Card>
-            )}
 
             {/* Tasks */}
             <Card>
@@ -1635,7 +1411,7 @@ export default function LeadDetail() {
             )}
 
             {/* DM Conversation — link prompt when none found */}
-            {dmsVisible && conversationData === null && !(ghlConversation?.messages?.length) && (
+            {dmsVisible && conversationData === null && (
               <Card>
                 <CardContent className="px-4 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1731,56 +1507,6 @@ export default function LeadDetail() {
                       </p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* GHL AI Conversation (from chat_memory) */}
-            {dmsVisible && !conversationData?.messages?.length && ghlConversation?.messages && ghlConversation.messages.length > 0 && (
-              <Card>
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    DM Conversation
-                    <span className="ml-auto font-normal normal-case text-muted-foreground/60">
-                      {ghlConversation.total} message{ghlConversation.total !== 1 ? "s" : ""}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
-                    {ghlConversation.messages.map((msg) => (
-                      <div
-                        key={msg._id}
-                        className={cn(
-                          "flex flex-col max-w-[80%]",
-                          msg.direction === "outbound" ? "ml-auto items-end" : "items-start"
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "rounded-2xl px-3 py-2 text-sm relative",
-                            msg.direction === "outbound"
-                              ? "bg-primary text-primary-foreground rounded-tr-sm"
-                              : "bg-muted rounded-tl-sm"
-                          )}
-                        >
-                          {msg.role === "bot" && (
-                            <span className={cn(
-                              "inline-flex items-center gap-0.5 text-[9px] font-medium rounded-full px-1.5 py-0.5 mb-1",
-                              msg.direction === "outbound"
-                                ? "bg-white/20 text-primary-foreground/80"
-                                : "bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400"
-                            )}>
-                              <Bot className="h-2.5 w-2.5" />AI
-                            </span>
-                          )}
-                          {msg.role === "bot" && <br />}
-                          {msg.text}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </CardContent>
               </Card>
             )}

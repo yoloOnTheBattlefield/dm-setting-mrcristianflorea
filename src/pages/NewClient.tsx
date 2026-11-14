@@ -30,7 +30,6 @@ export default function NewClient() {
     last_name: "",
     email: "",
     password: "",
-    ghl: "",
     role: 0,
   });
 
@@ -38,7 +37,6 @@ export default function NewClient() {
     first_name: "",
     last_name: "",
     email: "",
-    ghl: "",
   });
 
   // Redirect if not admin
@@ -70,7 +68,6 @@ export default function NewClient() {
           last_name: "",
           email: "",
           password: "",
-          ghl: "",
           role: 0,
         });
       } else {
@@ -113,13 +110,12 @@ export default function NewClient() {
         first_name: inviteData.first_name,
         last_name: inviteData.last_name,
         type: "client",
-        ghl: inviteData.ghl || undefined,
       });
       toast({
         title: "Invitation sent",
         description: `An invite email has been sent to ${inviteData.email}`,
       });
-      setInviteData({ first_name: "", last_name: "", email: "", ghl: "" });
+      setInviteData({ first_name: "", last_name: "", email: "" });
     } catch (error) {
       toast({
         title: "Failed to send invitation",
@@ -195,17 +191,6 @@ export default function NewClient() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="invite-ghl">GHL ID</Label>
-                  <Input
-                    id="invite-ghl"
-                    name="ghl"
-                    value={inviteData.ghl}
-                    onChange={handleInviteChange}
-                    placeholder="Optional — can be set later"
-                  />
-                </div>
-
                 <div className="flex gap-2">
                   <Button type="submit" disabled={inviteClient.isPending}>
                     {inviteClient.isPending ? "Sending..." : "Send Invitation"}
@@ -274,17 +259,6 @@ export default function NewClient() {
                     id="password"
                     name="password"
                     value={formData.password}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="ghl">GHL ID</Label>
-                  <Input
-                    id="ghl"
-                    name="ghl"
-                    value={formData.ghl}
                     onChange={handleChange}
                     required
                   />

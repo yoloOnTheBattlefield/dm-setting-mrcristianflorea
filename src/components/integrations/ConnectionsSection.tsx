@@ -33,7 +33,7 @@ interface ConnectionsSectionProps {
   onStripeSave: () => void;
   onStripeDisconnect: () => void;
   isSavingStripe: boolean;
-  userGhl?: string;
+  accountId?: string;
   // Telegram
   telegramConnected: boolean;
   telegramBotToken: string;
@@ -63,7 +63,7 @@ export default function ConnectionsSection({
   onStripeSave,
   onStripeDisconnect,
   isSavingStripe,
-  userGhl,
+  accountId,
   telegramConnected,
   telegramBotToken,
   telegramChatId,
@@ -73,7 +73,7 @@ export default function ConnectionsSection({
   onTelegramDisconnect,
   isSavingTelegram,
 }: ConnectionsSectionProps) {
-  const stripeWebhookUrl = `https://quddify-server.vercel.app/api/stripe/webhook?account=${userGhl || "YOUR_ACCOUNT_ID"}`;
+  const stripeWebhookUrl = `${apiUrl}/api/stripe/webhook?account=${accountId || "YOUR_ACCOUNT_ID"}`;
   return (
     <section className="space-y-3">
       <div>

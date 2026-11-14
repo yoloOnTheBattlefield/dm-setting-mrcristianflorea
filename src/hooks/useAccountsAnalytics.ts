@@ -3,7 +3,6 @@ import { API_URL, fetchWithAuth } from "@/lib/api";
 
 export interface AccountAnalytics {
   account_id: string;
-  ghl: string;
   name: string;
   deleted?: boolean;
   totalLeads: number;

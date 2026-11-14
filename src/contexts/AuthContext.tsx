@@ -5,7 +5,6 @@ import { queryClient } from "@/App"
 export interface AccountMembership {
   account_id: string
   name: string
-  ghl?: string
   role: number
   has_outbound: boolean
   has_research: boolean
@@ -20,7 +19,6 @@ export interface LeadVisibility {
 interface User {
   id?: string
   account_id?: string
-  ghl?: string
   email: string
   firstName?: string
   lastName?: string
@@ -38,7 +36,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   accounts: AccountMembership[]
-  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accounts?: AccountMembership[], lead_visibility?: LeadVisibility, default_platform?: "instagram" | "linkedin") => void
+  login: (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accounts?: AccountMembership[], lead_visibility?: LeadVisibility, default_platform?: "instagram" | "linkedin") => void
   updateUser: (updates: Partial<User>) => void
   switchAccount: (accountId: string) => Promise<void>
   logout: () => void
@@ -71,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [])
 
-  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, ghl?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accts?: AccountMembership[], lead_visibility?: LeadVisibility, default_platform?: "instagram" | "linkedin") => {
+  const login = (email: string, firstName?: string, lastName?: string, id?: string, account_id?: string, role?: number, api_key?: string, has_outbound?: boolean, token?: string, has_research?: boolean, accts?: AccountMembership[], lead_visibility?: LeadVisibility, default_platform?: "instagram" | "linkedin") => {
     const fullName = firstName && lastName
       ? `${firstName} ${lastName}`
       : firstName || email.split('@')[0]
@@ -79,7 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userData: User = {
       id,
       account_id,
-      ghl,
       email,
       firstName,
       lastName,
@@ -137,7 +134,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userData: User = {
       id: data._id,
       account_id: data.account_id,
-      ghl: data.ghl,
       email: user?.email || "",
       firstName: data.first_name,
       lastName: data.last_name,

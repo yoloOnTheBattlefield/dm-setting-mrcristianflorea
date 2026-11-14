@@ -19,13 +19,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useAccounts } from "@/hooks/useAccounts";
 import { API_URL, fetchWithAuth } from "@/lib/api";
 import { AppearanceCard } from "@/components/settings/appearance-card";
 import { Switch } from "@/components/ui/switch";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
-const LEADS_API_URL = `${API_URL}/leads/generate`;
 const NOTIF_SETTINGS_URL = `${API_URL}/api/notifications/settings`;
 
 export default function UserSettings() {
@@ -43,18 +41,6 @@ export default function UserSettings() {
   const [newPassword, setNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // Generate leads (admin only)
-  const { data: accounts = [] } = useAccounts();
-  const [leadForm, setLeadForm] = useState({
-    ghl: "",
-    total: "100",
-    link_sent: "",
-    booked: "",
-    ghosted: "",
-    follow_up: "",
-    days_back: "30",
-  });
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const { isSupported, isSubscribed, isLoading: isPushLoading, subscribe, unsubscribe } = usePushNotifications();
   const [pushEnabled, setPushEnabled] = useState(true);
@@ -121,49 +107,6 @@ export default function UserSettings() {
       await subscribe();
     } else {
       await unsubscribe();
-    }
-  };
-
-  const handleGenerateLeads = async () => {
-    if (!leadForm.ghl) {
-      toast({ title: "Error", description: "Please select an account.", variant: "destructive" });
-      return;
-    }
-
-    const body: Record<string, string | number> = { ghl: leadForm.ghl };
-    if (leadForm.total) body.total = Number(leadForm.total);
-    if (leadForm.link_sent) body.link_sent = Number(leadForm.link_sent);
-    if (leadForm.booked) body.booked = Number(leadForm.booked);
-    if (leadForm.ghosted) body.ghosted = Number(leadForm.ghosted);
-    if (leadForm.follow_up) body.follow_up = Number(leadForm.follow_up);
-    if (leadForm.days_back) body.days_back = Number(leadForm.days_back);
-
-    setIsGenerating(true);
-    try {
-      const response = await fetchWithAuth(LEADS_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        toast({
-          title: "Success",
-          description: `Generated ${data.created} leads.`,
-        });
-      } else {
-        const data = await response.json().catch(() => ({}));
-        toast({
-          title: "Error",
-          description: data.error || "Failed to generate leads",
-          variant: "destructive",
-        });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to connect to the server", variant: "destructive" });
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -291,7 +234,6 @@ export default function UserSettings() {
           firstName: data.first_name,
           lastName: data.last_name,
           email: data.email,
-          ghl: data.ghl,
           account_id: data.account_id,
         });
         toast({ title: "Success", description: "Your details have been updated." });
@@ -473,19 +415,6 @@ export default function UserSettings() {
                   disabled={isSavingVisibility}
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Outbound campaign data</p>
-                  <p className="text-xs text-muted-foreground">
-                    Show the linked outbound lead section on lead pages
-                  </p>
-                </div>
-                <Switch
-                  checked={leadVisibility.outbound}
-                  onCheckedChange={(v) => handleVisibilityToggle("outbound", v)}
-                  disabled={isSavingVisibility}
-                />
-              </div>
             </CardContent>
           </Card>
         )}
@@ -523,12 +452,6 @@ export default function UserSettings() {
                 onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
               />
             </div>
-            {user?.ghl && (
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">GHL ID</Label>
-                <p className="text-sm font-medium">{user.ghl}</p>
-              </div>
-            )}
             <div className="space-y-2">
               <Label className="text-muted-foreground">Role</Label>
               <p className="text-sm font-medium">
@@ -575,101 +498,6 @@ export default function UserSettings() {
             </div>
           </CardContent>
         </Card>
-        {user?.role === 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Generate Mock Leads</CardTitle>
-              <CardDescription>Create test leads for a client account</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Account</Label>
-                <Select
-                  value={leadForm.ghl}
-                  onValueChange={(value) => setLeadForm((prev) => ({ ...prev, ghl: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((account) => (
-                      <SelectItem key={account.ghl} value={account.ghl}>
-                        {account.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="gen-total">Total Leads</Label>
-                  <Input
-                    id="gen-total"
-                    type="number"
-                    value={leadForm.total}
-                    onChange={(e) => setLeadForm((prev) => ({ ...prev, total: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="gen-days">Days Back</Label>
-                  <Input
-                    id="gen-days"
-                    type="number"
-                    value={leadForm.days_back}
-                    onChange={(e) => setLeadForm((prev) => ({ ...prev, days_back: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="gen-link-sent">Link Sent</Label>
-                  <Input
-                    id="gen-link-sent"
-                    type="number"
-                    placeholder="0"
-                    value={leadForm.link_sent}
-                    onChange={(e) => setLeadForm((prev) => ({ ...prev, link_sent: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="gen-booked">Converted</Label>
-                  <Input
-                    id="gen-booked"
-                    type="number"
-                    placeholder="0"
-                    value={leadForm.booked}
-                    onChange={(e) => setLeadForm((prev) => ({ ...prev, booked: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="gen-ghosted">Ghosted</Label>
-                  <Input
-                    id="gen-ghosted"
-                    type="number"
-                    placeholder="0"
-                    value={leadForm.ghosted}
-                    onChange={(e) => setLeadForm((prev) => ({ ...prev, ghosted: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="gen-follow-up">Follow Up</Label>
-                <Input
-                  id="gen-follow-up"
-                  type="number"
-                  placeholder="0"
-                  value={leadForm.follow_up}
-                  onChange={(e) => setLeadForm((prev) => ({ ...prev, follow_up: e.target.value }))}
-                />
-              </div>
-              <div className="flex justify-end pt-2">
-                <Button onClick={handleGenerateLeads} disabled={isGenerating || !leadForm.ghl}>
-                  {isGenerating ? "Generating..." : "Generate Leads"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
