@@ -19,9 +19,11 @@ import {
   LEAD_MAGNET_STATUSES,
   LEAD_MAGNET_LABELS,
   PITCH_OFFER_LABELS,
+  LEAD_SOURCE_TYPES,
+  sourceLabel,
   contactRef,
 } from "@/lib/agent";
-import type { AgentStage, ApiLead, LeadMagnetStatus } from "@/lib/types";
+import type { AgentStage, ApiLead, LeadMagnetStatus, LeadSourceType } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
 function Field({ label, value }: { label: string; value?: string | number | null }) {
@@ -41,7 +43,15 @@ export function AgentContactCard({ lead }: { lead: ApiLead }) {
   const pitch = lead.pitch ?? {};
   const [docUrl, setDocUrl] = useState(magnet.doc_url ?? "");
 
+  const [sourceText, setSourceText] = useState(lead.source_label ?? "");
+  const [sourceUrl, setSourceUrl] = useState(lead.source_url ?? "");
+
   useEffect(() => setDocUrl(lead.lead_magnet?.doc_url ?? ""), [lead.lead_magnet?.doc_url]);
+  useEffect(() => setSourceText(lead.source_label ?? ""), [lead.source_label]);
+  useEffect(() => setSourceUrl(lead.source_url ?? ""), [lead.source_url]);
+
+  const sourceDirty =
+    sourceText !== (lead.source_label ?? "") || sourceUrl !== (lead.source_url ?? "");
 
   function save(patch: Partial<ApiLead>, label: string) {
     if (!ref) return;
@@ -90,6 +100,63 @@ export function AgentContactCard({ lead }: { lead: ApiLead }) {
             onCheckedChange={(v) => save({ skip: v }, v ? "Skipped" : "Unskipped")}
             disabled={disabled}
           />
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Source</Label>
+            <Select
+              value={lead.source_type ?? ""}
+              onValueChange={(v) =>
+                save({ source_type: v as LeadSourceType }, `Source: ${sourceLabel(v)}`)
+              }
+              disabled={disabled}
+            >
+              <SelectTrigger className="h-8" aria-label="Source">
+                <SelectValue placeholder="Unknown" />
+              </SelectTrigger>
+              <SelectContent>
+                {LEAD_SOURCE_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {sourceLabel(t)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Input
+            value={sourceText}
+            onChange={(e) => setSourceText(e.target.value)}
+            placeholder="Label"
+            aria-label="Source label"
+            className="h-8 text-sm"
+          />
+          <div className="flex gap-2">
+            <Input
+              value={sourceUrl}
+              onChange={(e) => setSourceUrl(e.target.value)}
+              placeholder="Source URL"
+              aria-label="Source URL"
+              className="h-8 text-sm"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8"
+              disabled={disabled || !sourceDirty}
+              onClick={() =>
+                save(
+                  { source_label: sourceText || null, source_url: sourceUrl || null },
+                  "Source saved",
+                )
+              }
+            >
+              Save
+            </Button>
+          </div>
+          {lead.source_media_id && <Field label="Media" value={lead.source_media_id} />}
         </div>
 
         <Separator />
