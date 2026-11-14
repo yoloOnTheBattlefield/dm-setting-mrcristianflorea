@@ -216,7 +216,7 @@ function LandingNav({ onLogin }: { onLogin: () => void }) {
           <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center">
             <Zap className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-bold text-white">Quddify</span>
+          <span className="text-lg font-bold text-white">IG CRM</span>
         </div>
 
         <div className="hidden md:flex items-center gap-8 text-sm text-zinc-400">
@@ -267,7 +267,7 @@ export default function Landing() {
           </h1>
 
           <p className="mt-6 max-w-2xl mx-auto text-lg sm:text-xl text-zinc-400 leading-relaxed">
-            Quddify scrapes qualified prospects from Instagram reels, sends
+            IG CRM scrapes qualified prospects from Instagram reels, sends
             AI-personalized DMs across multiple sender accounts at human-like
             pace, and measures the entire path from first message to signed
             contract.
@@ -303,7 +303,7 @@ export default function Landing() {
         <SectionLabel>The System</SectionLabel>
         <SectionTitle>Three engines, one pipeline</SectionTitle>
         <SectionSub>
-          Most DM tools do one thing. Quddify connects lead acquisition, message
+          Most DM tools do one thing. IG CRM connects lead acquisition, message
           delivery, and revenue tracking into a single closed loop — so you
           know exactly which audience, message, and sender account produces
           paying clients.
@@ -946,7 +946,7 @@ export default function Landing() {
             title="Lead acquisition is built in"
             items={[
               "Most DM tools assume you already have a list.",
-              "Quddify scrapes reels → extracts commenters → qualifies with AI → feeds directly into campaigns.",
+              "IG CRM scrapes reels → extracts commenters → qualifies with AI → feeds directly into campaigns.",
               "The list-building is part of the product.",
             ]}
           />
@@ -1161,7 +1161,7 @@ export default function Landing() {
             <div className="h-6 w-6 rounded bg-blue-500 flex items-center justify-center">
               <Zap className="h-3 w-3 text-white" />
             </div>
-            <span className="text-sm font-semibold text-white">Quddify</span>
+            <span className="text-sm font-semibold text-white">IG CRM</span>
           </div>
           <div className="text-xs text-zinc-600">
             Instagram DM Automation for Revenue Teams

@@ -5,11 +5,11 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: "Quddify", body: event.data.text() };
+    payload = { title: "IG CRM", body: event.data.text() };
   }
 
   event.waitUntil(
-    self.registration.showNotification(payload.title || "Quddify", {
+    self.registration.showNotification(payload.title || "IG CRM", {
       body: payload.body || "",
       icon: "/favicon.ico",
       badge: "/favicon.ico",

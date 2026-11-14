@@ -365,7 +365,7 @@ export default function UserSettings() {
             <CardHeader>
               <CardTitle>Extension API Key</CardTitle>
               <CardDescription>
-                Paste this key into the Quddify Lead Capture browser extension to add LinkedIn profiles straight into your inbound pipeline. Regenerating invalidates the old key.
+                Paste this key into the Lead Capture browser extension to add LinkedIn profiles straight into your inbound pipeline. Regenerating invalidates the old key.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
