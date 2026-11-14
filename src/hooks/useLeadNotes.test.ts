@@ -6,8 +6,6 @@ import {
   useLeadNotes,
   useCreateLeadNote,
   useDeleteLeadNote,
-  useOutboundLeadNotes,
-  useCreateOutboundLeadNote,
 } from "./useLeadNotes";
 
 vi.mock("@/lib/api", () => ({
@@ -165,45 +163,3 @@ describe("useDeleteLeadNote (optimistic)", () => {
   });
 });
 
-describe("useOutboundLeadNotes", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("fetches notes for outbound lead", async () => {
-    vi.mocked(fetchWithAuth).mockResolvedValueOnce({
-      ok: true,
-      json: async () => [],
-    } as Response);
-
-    const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useOutboundLeadNotes("ob1"), { wrapper });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(fetchWithAuth).toHaveBeenCalledWith(
-      "http://localhost:3000/api/lead-notes?outbound_lead_id=ob1",
-    );
-  });
-});
-
-describe("useCreateOutboundLeadNote (optimistic)", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("adds optimistic note to outbound cache", async () => {
-    vi.mocked(fetchWithAuth)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ _id: "newnote" }) } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => [{ _id: "newnote" }] } as Response);
-
-    const { wrapper, qc } = createWrapper();
-    qc.setQueryData(["lead-notes-outbound", "ob1"], []);
-
-    const { result } = renderHook(() => useCreateOutboundLeadNote(), { wrapper });
-
-    await act(async () => {
-      result.current.mutate({ outbound_lead_id: "ob1", content: "Test" });
-    });
-
-    await waitFor(() => {
-      const cached = qc.getQueryData<unknown[]>(["lead-notes-outbound", "ob1"]);
-      expect(cached?.length).toBeGreaterThanOrEqual(1);
-    });
-  });
-});

@@ -10,7 +10,6 @@ import { AdminViewProvider } from "@/contexts/AdminViewContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import {
   coreRoutes,
-  outboundRoutes,
   researchRoutes,
   settingsRoutes,
   publicRoutes,
@@ -35,7 +34,6 @@ export const queryClient = new QueryClient({
 
 const allRoutes = [
   ...coreRoutes,
-  ...outboundRoutes,
   ...researchRoutes,
   ...settingsRoutes,
   ...publicRoutes,

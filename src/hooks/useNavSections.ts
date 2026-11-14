@@ -3,14 +3,10 @@ import { useAuth } from "@/contexts/AuthContext"
 import {
   type LucideIcon,
   BarChart3,
-  Building2,
   ClipboardCheck,
   Database,
   MessageSquareText,
   Plug,
-  ScanSearch,
-  Search,
-  Send,
   Settings2,
   Telescope,
   TrendingUp,
@@ -18,7 +14,6 @@ import {
   Users,
   UserPlus,
   UsersRound,
-  Network,
 } from "lucide-react"
 
 export interface NavItem {
@@ -55,29 +50,6 @@ export function useNavSections(): NavSection[] {
       ],
     })
 
-    if (user?.has_outbound) {
-      sections.push({
-        label: "Acquisition",
-        items: [
-          { title: "Scraper", url: "/scraper", icon: Search, description: "Scrape Instagram followers" },
-          { title: "Deep Scraper", url: "/deep-scraper", icon: ScanSearch, description: "Scrape reels, comments, and commenter profiles via Apify" },
-          { title: "Upload", url: "/contacts/upload", icon: Upload, description: "Upload IG scraper exports to qualify and import profiles" },
-          { title: "Prompts", url: "/prompts", icon: MessageSquareText, description: "Manage classification prompts for lead qualification" },
-        ],
-      })
-
-      sections.push({
-        label: "Outbound",
-        items: [
-          { title: "Leads", url: "/outbound-leads", icon: Users, description: "Manage your outbound leads pipeline" },
-          { title: "Campaigns", url: "/campaigns", icon: Send, description: "Manage your outbound campaigns" },
-          { title: "Accounts", url: "/outbound-accounts", icon: Building2, description: "Manage outbound Instagram accounts, credentials, and proxies" },
-          { title: "Analytics", url: "/analytics/outbound", icon: TrendingUp, description: "Performance metrics across your outbound pipeline" },
-          { title: "Seed Network", url: "/seed-network", icon: Network, description: "Visualize how leads connect across seed accounts" },
-        ],
-      })
-    }
-
     if (user?.has_research) {
       sections.push({
         label: "Research",
@@ -87,7 +59,6 @@ export function useNavSections(): NavSection[] {
           icon: Telescope,
           items: [
             { title: "Overview", url: "/research", description: "Instagram intelligence dashboard" },
-            { title: "Scraper", url: "/deep-scraper", description: "Scrape reels, comments, and commenter profiles via Apify" },
             { title: "Competitors", url: "/research/competitors", description: "Track and analyze competitor accounts" },
             { title: "Posts Library", url: "/research/posts", description: "Your Instagram research swipe file" },
             { title: "Comments Intel", url: "/research/comments", description: "Keyword radar, commenter patterns, and theme analysis" },
@@ -132,7 +103,7 @@ export function useNavSections(): NavSection[] {
     }
 
     return sections
-  }, [user?.role, user?.has_outbound, user?.has_research])
+  }, [user?.role, user?.has_research])
 }
 
 export function usePageTitle(pathname: string): string {
